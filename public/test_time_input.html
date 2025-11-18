@@ -1,0 +1,31 @@
+Get-Content storage\logs\laravel.log -Tail 100 | Select-String -Pattern "Check-in|parsing error" -Context 3,3<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Time Input Format</title>
+</head>
+<body>
+    <h2>Test HTML Time Input Format</h2>
+
+    <label>Select Time:</label>
+    <input type="time" id="timeInput" value="08:30" />
+    <br><br>
+
+    <button onclick="showTimeValue()">Show Value</button>
+    <br><br>
+
+    <div id="result"></div>
+
+    <script>
+        function showTimeValue() {
+            const time = document.getElementById('timeInput').value;
+            const result = document.getElementById('result');
+            result.innerHTML = `
+                <strong>Time Value:</strong> "${time}"<br>
+                <strong>Length:</strong> ${time.length}<br>
+                <strong>Type:</strong> ${typeof time}<br>
+                <strong>Char Codes:</strong> ${Array.from(time).map(c => c.charCodeAt(0)).join(', ')}
+            `;
+        }
+    </script>
+</body>
+</html>
