@@ -147,7 +147,7 @@ class PayrollController extends Controller
             $netSalary = $totalEarnings - $totalDeductions;
 
             // Get attendance summary for the period
-            $attendanceSummary = $this->getAttendanceSummary($request->employee_id, $request->period_month);
+            $attendanceSummary = $this->getAttendanceSummarySimple($request->employee_id, $request->period_month);
 
             // Handle file upload if provided
             $paymentProofPath = null;
@@ -417,9 +417,9 @@ class PayrollController extends Controller
     }
 
     /**
-     * Get attendance summary for a period
+     * Get attendance summary for a period (for internal payroll calculation)
      */
-    private function getAttendanceSummary($employeeId, $periodMonth)
+    private function getAttendanceSummarySimple($employeeId, $periodMonth)
     {
         $startDate = Carbon::parse($periodMonth . '-01')->startOfMonth();
         $endDate = Carbon::parse($periodMonth . '-01')->endOfMonth();
@@ -578,6 +578,121 @@ class PayrollController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get detailed attendance summary for a specific employee and period
+     * Used for displaying in payroll form
+     */
+    public function getAttendanceSummary(Request $request)
+    {
+        $employeeId = $request->get('employee_id');
+        $periodMonth = $request->get('period_month'); // Format: YYYY-MM
+
+        if (!$employeeId || !$periodMonth) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Employee ID dan Period Month harus disediakan'
+            ], 422);
+        }
+
+        try {
+            // Parse period to get start and end date
+            list($year, $month) = explode('-', $periodMonth);
+            $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
+            $endDate = $startDate->clone()->endOfMonth();
+
+            // Query attendance data for the period
+            $attendanceData = Attendance::where('employee_id', $employeeId)
+                ->whereBetween('attendance_date', [$startDate, $endDate])
+                ->get();
+
+            // Calculate attendance summary
+            $summary = [
+                'actual' => 0,
+                'total_workdays' => 0,
+                'late_days' => 0,
+                'overtime_hours' => 0,
+                'absent_days' => 0,
+                'sick_days' => 0,
+                'permission_days' => 0,
+                'permission_hours' => 0,
+                'annual_leave' => 0,
+                'maternity_leave' => 0,
+                'miscarriage_leave' => 0,
+                'special_leave' => 0
+            ];
+
+            foreach ($attendanceData as $attendance) {
+                // Count actual attendance (hadir)
+                if ($attendance->status === 'hadir') {
+                    $summary['actual']++;
+                    
+                    // Check if late
+                    if ($attendance->is_late) {
+                        $summary['late_days']++;
+                    }
+                    
+                    // Sum overtime hours
+                    if ($attendance->overtime_hours) {
+                        $summary['overtime_hours'] += $attendance->overtime_hours;
+                    }
+                }
+
+                // Count different leave types
+                switch ($attendance->status) {
+                    case 'absen':
+                    case 'alpha':
+                        $summary['absent_days']++;
+                        break;
+                    case 'sakit':
+                        $summary['sick_days']++;
+                        break;
+                    case 'izin_hari':
+                    case 'izin':
+                        $summary['permission_days']++;
+                        break;
+                    case 'izin_jam':
+                        if ($attendance->permission_hours) {
+                            $summary['permission_hours'] += $attendance->permission_hours;
+                        }
+                        break;
+                    case 'cuti_tahunan':
+                    case 'cuti':
+                        $summary['annual_leave']++;
+                        break;
+                    case 'cuti_kelahiran':
+                        $summary['maternity_leave']++;
+                        break;
+                    case 'cuti_keguguran':
+                        $summary['miscarriage_leave']++;
+                        break;
+                    case 'cuti_khusus':
+                        $summary['special_leave']++;
+                        break;
+                }
+            }
+
+            // Calculate total workdays
+            $summary['total_workdays'] = $summary['actual'] 
+                + $summary['absent_days'] 
+                + $summary['sick_days'] 
+                + $summary['permission_days'] 
+                + $summary['annual_leave'] 
+                + $summary['maternity_leave'] 
+                + $summary['miscarriage_leave'] 
+                + $summary['special_leave'];
+
+            return response()->json([
+                'success' => true,
+                'data' => $summary
+            ]);
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()

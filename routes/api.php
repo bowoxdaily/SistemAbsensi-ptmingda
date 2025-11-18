@@ -86,6 +86,7 @@ Route::prefix('payroll')->group(function () {
     Route::get('/', [PayrollController::class, 'list']);
     Route::post('/', [PayrollController::class, 'store']);
     Route::get('/employees', [PayrollController::class, 'getEmployees']);
+    Route::get('/attendance-summary', [PayrollController::class, 'getAttendanceSummary']);
     Route::get('/{id}', [PayrollController::class, 'show']);
     Route::put('/{id}', [PayrollController::class, 'update']);
     Route::delete('/{id}', [PayrollController::class, 'destroy']);

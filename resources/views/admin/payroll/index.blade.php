@@ -124,6 +124,8 @@
                                     Pendapatan</a></li>
                             <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#deductionsTab">➖
                                     Potongan</a></li>
+                            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#attendanceTab">📋
+                                    Absensi</a></li>
                             <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#summaryTab">📊
                                     Ringkasan</a></li>
                             <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#proofTab">📄
@@ -209,7 +211,7 @@
                                             step="0.01" value="0">
                                     </div>
                                     <div class="col-12 col-md-6">
-                                        <label>Potongan Tunjangan Serikat</label>
+                                        <label>Potongan Serikat</label>
                                         <input type="number" class="form-control deduction-field" id="deduction_union"
                                             name="deduction_union" min="0" step="0.01" value="0">
                                     </div>
@@ -217,6 +219,76 @@
                                         <label>Potongan Lainnya</label>
                                         <input type="number" class="form-control deduction-field" id="deduction_others"
                                             name="deduction_others" min="0" step="0.01" value="0">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Attendance Tab -->
+                            <div class="tab-pane fade" id="attendanceTab">
+                                <div class="alert alert-info">
+                                    <i class='bx bx-info-circle'></i> Data absensi otomatis terisi berdasarkan periode yang
+                                    dipilih
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-6">
+                                        <label>Kehadiran Aktual</label>
+                                        <input type="number" class="form-control" id="attendance_actual" readonly
+                                            min="0" value="0">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label>Total Hari Kerja</label>
+                                        <input type="number" class="form-control" id="attendance_total_workdays"
+                                            readonly min="0" value="0">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label>Terlambat (Hari)</label>
+                                        <input type="number" class="form-control" id="attendance_late_days" readonly
+                                            min="0" value="0">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label>Total Lembur (Jam)</label>
+                                        <input type="number" class="form-control" id="attendance_overtime_hours"
+                                            readonly step="0.5" min="0" value="0">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label>Absen (Hari)</label>
+                                        <input type="number" class="form-control" id="attendance_absent_days" readonly
+                                            min="0" value="0">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label>Sakit (Hari)</label>
+                                        <input type="number" class="form-control" id="attendance_sick_days" readonly
+                                            min="0" value="0">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label>Izin Per Hari</label>
+                                        <input type="number" class="form-control" id="attendance_permission_days"
+                                            readonly min="0" value="0">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label>Izin Per Jam</label>
+                                        <input type="number" class="form-control" id="attendance_permission_hours"
+                                            readonly step="0.5" min="0" value="0">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label>Cuti Tahunan (Hari)</label>
+                                        <input type="number" class="form-control" id="attendance_annual_leave" readonly
+                                            min="0" value="0">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label>Cuti Kelahiran (Hari)</label>
+                                        <input type="number" class="form-control" id="attendance_maternity_leave"
+                                            readonly min="0" value="0">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label>Cuti Keguguran (Hari)</label>
+                                        <input type="number" class="form-control" id="attendance_miscarriage_leave"
+                                            readonly min="0" value="0">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label>Cuti Khusus (Hari)</label>
+                                        <input type="number" class="form-control" id="attendance_special_leave" readonly
+                                            min="0" value="0">
                                     </div>
                                 </div>
                             </div>
@@ -536,6 +608,24 @@
                     $('#basic_salary').val(salary);
                     calculateTotals();
                     console.log('✅ Basic salary auto-filled:', salary);
+                }
+                // Load attendance data if both employee and period are selected
+                let period = $('#period_month').val();
+                if (empId && period) {
+                    loadAttendanceData(empId, period);
+                }
+            });
+
+            $('#period_month').on('change', function() {
+                let empId = $('#employee_id').val();
+                let period = $(this).val();
+                console.log('📅 Period changed:', {
+                    empId,
+                    period
+                });
+                // Load attendance data if both employee and period are selected
+                if (empId && period) {
+                    loadAttendanceData(empId, period);
                 }
             });
 
@@ -1373,6 +1463,66 @@
                 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
                 let [year, month] = period.split('-');
                 return `${months[parseInt(month)-1]} ${year}`;
+            }
+
+            function loadAttendanceData(employeeId, periodMonth) {
+                console.log('📋 Loading attendance data:', {
+                    employeeId,
+                    periodMonth
+                });
+
+                $.ajax({
+                    url: '/api/payroll/attendance-summary',
+                    method: 'GET',
+                    data: {
+                        employee_id: employeeId,
+                        period_month: periodMonth
+                    },
+                    success: function(res) {
+                        console.log('✅ Attendance data loaded:', res);
+                        if (res.success && res.data) {
+                            let data = res.data;
+                            // Fill attendance fields
+                            $('#attendance_actual').val(data.actual || 0);
+                            $('#attendance_total_workdays').val(data.total_workdays || 0);
+                            $('#attendance_late_days').val(data.late_days || 0);
+                            $('#attendance_overtime_hours').val(data.overtime_hours || 0);
+                            $('#attendance_absent_days').val(data.absent_days || 0);
+                            $('#attendance_sick_days').val(data.sick_days || 0);
+                            $('#attendance_permission_days').val(data.permission_days || 0);
+                            $('#attendance_permission_hours').val(data.permission_hours || 0);
+                            $('#attendance_annual_leave').val(data.annual_leave || 0);
+                            $('#attendance_maternity_leave').val(data.maternity_leave || 0);
+                            $('#attendance_miscarriage_leave').val(data.miscarriage_leave || 0);
+                            $('#attendance_special_leave').val(data.special_leave || 0);
+                            console.log('✅ Attendance fields populated');
+                        } else {
+                            console.warn('⚠️ No attendance data found');
+                            clearAttendanceFields();
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error('❌ Error loading attendance data:', xhr);
+                        console.error('Response:', xhr.responseJSON);
+                        clearAttendanceFields();
+                    }
+                });
+            }
+
+            function clearAttendanceFields() {
+                console.log('🧹 Clearing attendance fields');
+                $('#attendance_actual').val(0);
+                $('#attendance_total_workdays').val(0);
+                $('#attendance_late_days').val(0);
+                $('#attendance_overtime_hours').val(0);
+                $('#attendance_absent_days').val(0);
+                $('#attendance_sick_days').val(0);
+                $('#attendance_permission_days').val(0);
+                $('#attendance_permission_hours').val(0);
+                $('#attendance_annual_leave').val(0);
+                $('#attendance_maternity_leave').val(0);
+                $('#attendance_miscarriage_leave').val(0);
+                $('#attendance_special_leave').val(0);
             }
 
             function debounce(func, wait) {
