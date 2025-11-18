@@ -205,7 +205,7 @@
                                             name="deduction_tax" min="0" step="0.01" value="0">
                                     </div>
                                     <div class="col-12 col-md-6">
-                                        <label>Potongan Tunjangan Sakit</label>
+                                        <label>Potongan Sakit</label>
                                         <input type="number" class="form-control deduction-field"
                                             id="deduction_sick_leave" name="deduction_sick_leave" min="0"
                                             step="0.01" value="0">
