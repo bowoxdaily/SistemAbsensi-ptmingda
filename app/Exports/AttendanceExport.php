@@ -18,6 +18,9 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
     protected $status;
     protected $department;
     protected $search;
+    protected $rowNumber = 0;
+    protected $attendanceData = [];
+    protected $totalHadirByEmployee = [];
 
     public function __construct($dateFrom, $dateTo, $status = null, $department = null, $search = null)
     {
@@ -55,9 +58,30 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
 
         $query->whereBetween('attendance_date', [$this->dateFrom, $this->dateTo]);
 
-        return $query->orderBy('attendance_date', 'desc')
-            ->orderBy('check_in', 'desc')
-            ->get();
+        // Get all attendance data
+        $data = $query->get()
+            ->sortBy(function ($attendance) {
+                return [
+                    $attendance->employee->employee_code,  // Sort by NIP first
+                    $attendance->attendance_date            // Then by date
+                ];
+            })
+            ->values();
+
+        // Calculate total hadir per employee (based on status = 'Hadir')
+        $this->totalHadirByEmployee = $data
+            ->filter(function ($attendance) {
+                return strtoupper($attendance->status) === 'HADIR';
+            })
+            ->groupBy(function ($attendance) {
+                return $attendance->employee->employee_code;
+            })
+            ->map(function ($group) {
+                return count($group);
+            })
+            ->toArray();
+
+        return $data;
     }
 
     /**
@@ -65,8 +89,13 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
      */
     public function map($attendance): array
     {
+        $this->rowNumber++;
+        $employeeCode = $attendance->employee->employee_code ?? '-';
+        $totalHadir = $this->totalHadirByEmployee[$employeeCode] ?? 0;
+        
         return [
-            $attendance->employee->employee_code ?? '-',
+            $this->rowNumber,
+            $employeeCode,
             $attendance->employee->name ?? '-',
             $attendance->employee->department->name ?? '-',
             $attendance->employee->position->name ?? '-',
@@ -78,6 +107,7 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
                 Carbon::parse($attendance->employee->workSchedule->end_time)->format('H:i') : '-',
             strtoupper($attendance->status),
             $attendance->late_minutes > 0 ? $attendance->late_minutes . ' menit' : '-',
+            $totalHadir,
             $attendance->notes ?? '-',
         ];
     }
@@ -88,6 +118,7 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
     public function headings(): array
     {
         return [
+            'No',
             'NIP',
             'Nama Karyawan',
             'Departemen',
@@ -98,6 +129,7 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
             'Jam Kerja',
             'Status',
             'Terlambat',
+            'Total Hadir',
             'Catatan',
         ];
     }
