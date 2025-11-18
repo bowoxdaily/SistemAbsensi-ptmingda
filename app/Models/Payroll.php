@@ -24,6 +24,8 @@ class Payroll extends Model
         'deduction_loan',
         'deduction_bpjs',
         'deduction_tax',
+        'deduction_sick_leave',
+        'deduction_union',
         'deduction_others',
         'total_earnings',
         'total_deductions',
@@ -54,6 +56,8 @@ class Payroll extends Model
         'deduction_loan' => 'decimal:2',
         'deduction_bpjs' => 'decimal:2',
         'deduction_tax' => 'decimal:2',
+        'deduction_sick_leave' => 'decimal:2',
+        'deduction_union' => 'decimal:2',
         'deduction_others' => 'decimal:2',
         'total_earnings' => 'decimal:2',
         'total_deductions' => 'decimal:2',
@@ -122,6 +126,8 @@ class Payroll extends Model
             + $this->deduction_loan
             + $this->deduction_bpjs
             + $this->deduction_tax
+            + $this->deduction_sick_leave
+            + $this->deduction_union
             + $this->deduction_others;
     }
 

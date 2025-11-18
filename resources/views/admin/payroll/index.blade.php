@@ -203,6 +203,17 @@
                                             name="deduction_tax" min="0" step="0.01" value="0">
                                     </div>
                                     <div class="col-12 col-md-6">
+                                        <label>Potongan Tunjangan Sakit</label>
+                                        <input type="number" class="form-control deduction-field"
+                                            id="deduction_sick_leave" name="deduction_sick_leave" min="0"
+                                            step="0.01" value="0">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label>Potongan Tunjangan Serikat</label>
+                                        <input type="number" class="form-control deduction-field" id="deduction_union"
+                                            name="deduction_union" min="0" step="0.01" value="0">
+                                    </div>
+                                    <div class="col-12 col-md-6">
                                         <label>Potongan Lainnya</label>
                                         <input type="number" class="form-control deduction-field" id="deduction_others"
                                             name="deduction_others" min="0" step="0.01" value="0">
@@ -1137,6 +1148,8 @@
                             $('#deduction_loan').val(p.deduction_loan);
                             $('#deduction_bpjs').val(p.deduction_bpjs);
                             $('#deduction_tax').val(p.deduction_tax);
+                            $('#deduction_sick_leave').val(p.deduction_sick_leave);
+                            $('#deduction_union').val(p.deduction_union);
                             $('#deduction_others').val(p.deduction_others);
                             $('#notes').val(p.notes);
                             calculateTotals();

@@ -87,6 +87,8 @@ class PayrollController extends Controller
             'deduction_loan' => 'nullable|numeric|min:0',
             'deduction_bpjs' => 'nullable|numeric|min:0',
             'deduction_tax' => 'nullable|numeric|min:0',
+            'deduction_sick_leave' => 'nullable|numeric|min:0',
+            'deduction_union' => 'nullable|numeric|min:0',
             'deduction_others' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
             'payment_proof_file' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
@@ -138,6 +140,8 @@ class PayrollController extends Controller
                 + ($request->deduction_loan ?? 0)
                 + ($request->deduction_bpjs ?? 0)
                 + ($request->deduction_tax ?? 0)
+                + ($request->deduction_sick_leave ?? 0)
+                + ($request->deduction_union ?? 0)
                 + ($request->deduction_others ?? 0);
 
             $netSalary = $totalEarnings - $totalDeductions;
@@ -175,6 +179,8 @@ class PayrollController extends Controller
                 'deduction_loan' => $request->deduction_loan ?? 0,
                 'deduction_bpjs' => $request->deduction_bpjs ?? 0,
                 'deduction_tax' => $request->deduction_tax ?? 0,
+                'deduction_sick_leave' => $request->deduction_sick_leave ?? 0,
+                'deduction_union' => $request->deduction_union ?? 0,
                 'deduction_others' => $request->deduction_others ?? 0,
                 'total_earnings' => $totalEarnings,
                 'total_deductions' => $totalDeductions,
@@ -262,6 +268,8 @@ class PayrollController extends Controller
             'deduction_loan' => 'nullable|numeric|min:0',
             'deduction_bpjs' => 'nullable|numeric|min:0',
             'deduction_tax' => 'nullable|numeric|min:0',
+            'deduction_sick_leave' => 'nullable|numeric|min:0',
+            'deduction_union' => 'nullable|numeric|min:0',
             'deduction_others' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
         ]);
@@ -290,6 +298,8 @@ class PayrollController extends Controller
                 + ($request->deduction_loan ?? 0)
                 + ($request->deduction_bpjs ?? 0)
                 + ($request->deduction_tax ?? 0)
+                + ($request->deduction_sick_leave ?? 0)
+                + ($request->deduction_union ?? 0)
                 + ($request->deduction_others ?? 0);
 
             $netSalary = $totalEarnings - $totalDeductions;
@@ -308,6 +318,8 @@ class PayrollController extends Controller
                 'deduction_loan' => $request->deduction_loan ?? 0,
                 'deduction_bpjs' => $request->deduction_bpjs ?? 0,
                 'deduction_tax' => $request->deduction_tax ?? 0,
+                'deduction_sick_leave' => $request->deduction_sick_leave ?? 0,
+                'deduction_union' => $request->deduction_union ?? 0,
                 'deduction_others' => $request->deduction_others ?? 0,
                 'total_earnings' => $totalEarnings,
                 'total_deductions' => $totalDeductions,
