@@ -61,55 +61,12 @@ class DashboardController extends Controller
 
     /**
      * Dashboard untuk Manager
-     * Melihat data departemen yang dikelola
+     * Manager memiliki akses yang sama dengan Admin
      */
     private function managerDashboard()
     {
-        // Ambil employee berdasarkan user_id manager
-        $employee = Employee::where('user_id', Auth::id())->first();
-
-        if (!$employee) {
-            // Jika manager belum punya data employee, tampilkan dashboard kosong
-            return view('dashboard.manager', [
-                'message' => 'Data karyawan Anda belum tersedia. Silakan hubungi administrator.'
-            ]);
-        }
-
-        // Ambil karyawan di departemen yang sama atau yang di-supervisi
-        $teamMembers = Employee::where('department_id', $employee->department_id)
-            ->orWhere('supervisor_id', $employee->id)
-            ->where('status', 'active')
-            ->get();
-
-        $teamMemberIds = $teamMembers->pluck('id');
-
-        $data = [
-            'employee' => $employee,
-            'totalTeamMembers' => $teamMembers->count(),
-            'hadirHariIni' => Attendance::whereIn('employee_id', $teamMemberIds)
-                ->whereDate('attendance_date', today())
-                ->whereIn('status', ['hadir', 'terlambat'])->count(),
-            'tidakHadirHariIni' => Attendance::whereIn('employee_id', $teamMemberIds)
-                ->whereDate('attendance_date', today())
-                ->where('status', 'alpha')->count(),
-            'cutiPending' => Leave::whereIn('employee_id', $teamMemberIds)
-                ->where('status', 'pending')
-                ->count(),
-            'absensiTeam' => Attendance::with(['employee.position'])
-                ->whereIn('employee_id', $teamMemberIds)
-                ->whereDate('attendance_date', today())
-                ->latest()
-                ->get(),
-            'cutiPendingList' => Leave::with(['employee'])
-                ->whereIn('employee_id', $teamMemberIds)
-                ->where('status', 'pending')
-                ->latest()
-                ->take(5)
-                ->get(),
-            'teamMembers' => $teamMembers,
-        ];
-
-        return view('dashboard.manager', $data);
+        // Manager menggunakan dashboard admin dengan data yang sama
+        return $this->adminDashboard();
     }
 
     /**

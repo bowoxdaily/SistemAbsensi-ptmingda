@@ -25,8 +25,8 @@
             </a>
         </li>
 
-        @if (Auth::user()->role == 'admin')
-            <!-- Menu untuk Admin -->
+        @if (Auth::user()->role == 'admin' || Auth::user()->role == 'manager')
+            <!-- Menu untuk Admin & Manager -->
             <!-- Menu Header - Master Data -->
             <li class="menu-header small text-uppercase">
                 <span class="menu-header-text">Master Data</span>
@@ -107,13 +107,15 @@
                 <span class="menu-header-text">Keuangan</span>
             </li>
 
-            <!-- Payroll -->
-            <li class="menu-item {{ request()->routeIs('admin.payroll.*') ? 'active' : '' }}">
-                <a href="{{ route('admin.payroll.index') }}" class="menu-link">
-                    <i class="menu-icon tf-icons bx bx-money"></i>
-                    <div data-i18n="Payroll">Payroll Karyawan</div>
-                </a>
-            </li>
+            <!-- Payroll (Manager only) -->
+            @if (Auth::user()->role == 'manager')
+                <li class="menu-item {{ request()->routeIs('admin.payroll.*') ? 'active' : '' }}">
+                    <a href="{{ route('admin.payroll.index') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-money"></i>
+                        <div data-i18n="Payroll">Payroll Karyawan</div>
+                    </a>
+                </li>
+            @endif
 
             <!-- Menu Header - Pengaturan -->
             <li class="menu-header small text-uppercase">
@@ -160,65 +162,6 @@
                 <a href="{{ route('admin.profile.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-user"></i>
                     <div data-i18n="Profile">Profil Saya</div>
-                </a>
-            </li>
-        @elseif(Auth::user()->role == 'manager')
-            <!-- Menu untuk Manager -->
-            <!-- Menu Header - Tim Saya -->
-            <li class="menu-header small text-uppercase">
-                <span class="menu-header-text">Manajemen Tim</span>
-            </li>
-
-            <!-- Absensi Tim -->
-            <li class="menu-item {{ request()->routeIs('absensi.*') ? 'active' : '' }}">
-                <a href="#" class="menu-link">
-                    <i class="menu-icon tf-icons bx bx-calendar-check"></i>
-                    <div data-i18n="Absensi">Absensi Tim</div>
-                </a>
-            </li>
-
-            <!-- Rekap Tim -->
-            <li class="menu-item {{ request()->routeIs('rekap.*') ? 'active' : '' }}">
-                <a href="#" class="menu-link">
-                    <i class="menu-icon tf-icons bx bx-file"></i>
-                    <div data-i18n="Rekap">Rekap Tim</div>
-                </a>
-            </li>
-
-            <!-- Approval Cuti -->
-            <li class="menu-item {{ request()->routeIs('approval.*') ? 'active' : '' }}">
-                <a href="#" class="menu-link">
-                    <i class="menu-icon tf-icons bx bx-check-circle"></i>
-                    <div data-i18n="Approval">Approval Cuti</div>
-                </a>
-            </li>
-
-            <!-- Daftar Anggota Tim -->
-            <li class="menu-item {{ request()->routeIs('team.*') ? 'active' : '' }}">
-                <a href="#" class="menu-link">
-                    <i class="menu-icon tf-icons bx bx-group"></i>
-                    <div data-i18n="Team">Anggota Tim</div>
-                </a>
-            </li>
-
-            <!-- Menu Header - Pribadi -->
-            <li class="menu-header small text-uppercase">
-                <span class="menu-header-text">Pribadi</span>
-            </li>
-
-            <!-- Absensi Saya -->
-            <li class="menu-item {{ request()->routeIs('my-attendance.*') ? 'active' : '' }}">
-                <a href="#" class="menu-link">
-                    <i class="menu-icon tf-icons bx bx-fingerprint"></i>
-                    <div data-i18n="MyAttendance">Absensi Saya</div>
-                </a>
-            </li>
-
-            <!-- Cuti Saya -->
-            <li class="menu-item {{ request()->routeIs('my-leave.*') ? 'active' : '' }}">
-                <a href="#" class="menu-link">
-                    <i class="menu-icon tf-icons bx bx-calendar-event"></i>
-                    <div data-i18n="MyLeave">Cuti Saya</div>
                 </a>
             </li>
         @else

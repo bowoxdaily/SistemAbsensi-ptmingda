@@ -81,8 +81,8 @@ Route::middleware('web')->prefix('employee')->group(function () {
     Route::get('/payroll/{id}', [\App\Http\Controllers\Employee\PayrollController::class, 'show']);
 });
 
-// Payroll API Routes
-Route::prefix('payroll')->group(function () {
+// Payroll API Routes (Manager only)
+Route::middleware(['web', 'auth', 'manager'])->prefix('payroll')->group(function () {
     Route::get('/', [PayrollController::class, 'list']);
     Route::post('/', [PayrollController::class, 'store']);
     Route::get('/employees', [PayrollController::class, 'getEmployees']);

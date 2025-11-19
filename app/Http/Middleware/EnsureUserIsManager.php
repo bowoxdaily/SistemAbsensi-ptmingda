@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
-class EnsureUserIsAdmin
+class EnsureUserIsManager
 {
     /**
      * Handle an incoming request.
@@ -20,10 +20,10 @@ class EnsureUserIsAdmin
             return redirect()->route('login')->with('error', 'Silakan login terlebih dahulu.');
         }
 
-        // Allow both admin and manager roles
-        if (!in_array(Auth::user()->role, ['admin', 'manager'])) {
+        // Only allow manager role
+        if (Auth::user()->role !== 'manager') {
             // Return 403 Forbidden response with custom error page
-            abort(403, 'Anda tidak memiliki akses ke halaman ini. Halaman ini khusus untuk Administrator dan Manager.');
+            abort(403, 'Anda tidak memiliki akses ke halaman ini. Halaman ini khusus untuk Manager.');
         }
 
         return $next($request);

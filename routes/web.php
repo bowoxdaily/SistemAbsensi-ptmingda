@@ -61,8 +61,10 @@ Route::middleware(['auth'])->group(function () {
 
         // Leave Management (View only - API handles POST/DELETE)
         Route::get('/admin/leave', [\App\Http\Controllers\Admin\LeaveController::class, 'index'])->name('admin.leave.index');
+    });
 
-        // Payroll Management
+    // Payroll Management (Manager only)
+    Route::middleware(['manager'])->group(function () {
         Route::get('/admin/payroll', [PayrollController::class, 'index'])->name('admin.payroll.index');
         Route::get('/admin/payroll/export', [PayrollController::class, 'export'])->name('admin.payroll.export');
     });
