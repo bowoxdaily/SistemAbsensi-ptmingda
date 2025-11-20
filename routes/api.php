@@ -138,7 +138,6 @@ Route::middleware(['web', 'auth'])->prefix('employee/leave')->group(function () 
 
 // Employee Profile API
 Route::middleware(['web', 'auth'])->prefix('employee/profile')->group(function () {
-    Route::get('/', [\App\Http\Controllers\Employee\ProfileController::class, 'index']);
     Route::put('/', [\App\Http\Controllers\Employee\ProfileController::class, 'update']);
     Route::post('/photo', [\App\Http\Controllers\Employee\ProfileController::class, 'updatePhoto']);
     Route::put('/password', [\App\Http\Controllers\Employee\ProfileController::class, 'updatePassword']);
@@ -146,7 +145,6 @@ Route::middleware(['web', 'auth'])->prefix('employee/profile')->group(function (
 
 // Admin Profile API
 Route::middleware(['web', 'auth'])->prefix('admin/profile')->group(function () {
-    Route::get('/', [\App\Http\Controllers\Admin\AdminProfileController::class, 'index']);
     Route::put('/', [\App\Http\Controllers\Admin\AdminProfileController::class, 'update']);
     Route::post('/photo', [\App\Http\Controllers\Admin\AdminProfileController::class, 'updatePhoto']);
     Route::put('/password', [\App\Http\Controllers\Admin\AdminProfileController::class, 'updatePassword']);

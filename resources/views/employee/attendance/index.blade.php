@@ -35,10 +35,8 @@
                 <div class="card mb-4" id="employeeInfoCard" style="display: none;">
                     <div class="card-body">
                         <div class="d-flex align-items-center">
-                            <div class="avatar avatar-lg me-3">
-                                <span class="avatar-initial rounded-circle bg-label-primary">
-                                    <i class='bx bx-user bx-lg'></i>
-                                </span>
+                            <div class="avatar avatar-lg me-3" id="empAvatarContainer">
+                                <!-- Will be filled by JavaScript -->
                             </div>
                             <div class="flex-grow-1">
                                 <h5 class="mb-1" id="empName"></h5>
@@ -526,6 +524,25 @@
                         document.getElementById('empDetails').textContent =
                             `${emp.employee_code} - ${emp.department.name} - ${emp.position.name}`;
                         document.getElementById('shiftInfo').textContent = emp.shift_type;
+
+                        // Set avatar - photo or initial
+                        const avatarContainer = document.getElementById('empAvatarContainer');
+                        if (emp.profile_photo) {
+                            avatarContainer.innerHTML = `
+                                <img src="/storage/${emp.profile_photo}" alt="${emp.name}" 
+                                     class="rounded-circle" 
+                                     style="width: 48px; height: 48px; object-fit: cover;">
+                            `;
+                        } else {
+                            const initial = emp.name.charAt(0).toUpperCase();
+                            avatarContainer.innerHTML = `
+                                <span class="avatar-initial rounded-circle bg-label-primary" 
+                                      style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                    ${initial}
+                                </span>
+                            `;
+                        }
+
                         document.getElementById('employeeInfoCard').style.display = 'block';
 
                         // Check today's attendance

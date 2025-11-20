@@ -25,14 +25,24 @@ class ProfileController extends Controller
             return redirect()->route('login');
         }
 
-        // Redirect admin to admin profile
-        if (Auth::user()->role === 'admin') {
+        // Redirect admin and manager to admin profile
+        if (in_array(Auth::user()->role, ['admin', 'manager'])) {
             return redirect()->route('admin.profile.index');
         }
 
+        // Get employee data
         $employee = Employee::with(['department', 'position'])
             ->where('user_id', Auth::id())
-            ->firstOrFail();
+            ->first();
+
+        // If employee data doesn't exist, show error message
+        if (!$employee) {
+            return view('employee.profile.index', [
+                'employee' => null,
+                'stats' => null,
+                'message' => 'Data karyawan Anda belum tersedia di sistem. Silakan hubungi administrator.'
+            ]);
+        }
 
         // Get current month statistics
         $stats = [
@@ -66,7 +76,7 @@ class ProfileController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        if (Auth::user()->role === 'admin') {
+        if (in_array(Auth::user()->role, ['admin', 'manager'])) {
             abort(403, 'Unauthorized action.');
         }
 
