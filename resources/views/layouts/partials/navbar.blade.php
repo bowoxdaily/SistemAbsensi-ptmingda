@@ -95,9 +95,9 @@
                         <div class="dropdown-divider"></div>
                     </li>
                     <li>
-                        <form action="{{ route('logout') }}" method="POST">
+                        <form action="{{ route('logout') }}" method="POST" id="logout-form">
                             @csrf
-                            <button type="submit" class="dropdown-item">
+                            <button type="submit" class="dropdown-item" onclick="handleLogout(event)">
                                 <i class="bx bx-power-off me-2"></i>
                                 <span class="align-middle">Keluar</span>
                             </button>
@@ -108,6 +108,39 @@
             <!--/ User -->
         </ul>
     </div>
+
+    @push('scripts')
+        <script>
+            function handleLogout(event) {
+                // If CSRF token fails, fallback to GET request
+                const form = document.getElementById('logout-form');
+
+                // Try POST first
+                fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                }).then(response => {
+                    if (response.ok || response.redirected) {
+                        window.location.href = '{{ route('login') }}';
+                    } else {
+                        // Fallback to GET if POST fails
+                        window.location.href = '/logout';
+                    }
+                }).catch(error => {
+                    // Fallback to GET if fetch fails
+                    window.location.href = '/logout';
+                });
+
+                event.preventDefault();
+                return false;
+            }
+        </script>
+    @endpush
 </nav>
 
 @push('styles')
