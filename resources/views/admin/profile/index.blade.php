@@ -132,20 +132,33 @@
 
                                 <div class="mb-3">
                                     <label class="form-label">Password Lama <span class="text-danger">*</span></label>
-                                    <input type="password"
-                                        class="form-control @error('current_password') is-invalid @enderror"
-                                        name="current_password" required>
+                                    <div class="input-group input-group-merge">
+                                        <input type="password" id="current_password"
+                                            class="form-control @error('current_password') is-invalid @enderror"
+                                            name="current_password" placeholder="Masukkan password lama" required>
+                                        <span class="input-group-text cursor-pointer"
+                                            onclick="togglePasswordField('current_password')">
+                                            <i class="bx bx-hide" id="current_password_icon"></i>
+                                        </span>
+                                    </div>
                                     @error('current_password')
-                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        <div class="invalid-feedback d-block">{{ $message }}</div>
                                     @enderror
                                 </div>
 
                                 <div class="mb-3">
                                     <label class="form-label">Password Baru <span class="text-danger">*</span></label>
-                                    <input type="password" class="form-control @error('password') is-invalid @enderror"
-                                        name="password" required>
+                                    <div class="input-group input-group-merge">
+                                        <input type="password" id="password"
+                                            class="form-control @error('password') is-invalid @enderror" name="password"
+                                            placeholder="Masukkan password baru" required>
+                                        <span class="input-group-text cursor-pointer"
+                                            onclick="togglePasswordField('password')">
+                                            <i class="bx bx-hide" id="password_icon"></i>
+                                        </span>
+                                    </div>
                                     @error('password')
-                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        <div class="invalid-feedback d-block">{{ $message }}</div>
                                     @enderror
                                     <small class="text-muted">Minimal 8 karakter</small>
                                 </div>
@@ -153,7 +166,14 @@
                                 <div class="mb-3">
                                     <label class="form-label">Konfirmasi Password Baru <span
                                             class="text-danger">*</span></label>
-                                    <input type="password" class="form-control" name="password_confirmation" required>
+                                    <div class="input-group input-group-merge">
+                                        <input type="password" id="password_confirmation" class="form-control"
+                                            name="password_confirmation" placeholder="Konfirmasi password baru" required>
+                                        <span class="input-group-text cursor-pointer"
+                                            onclick="togglePasswordField('password_confirmation')">
+                                            <i class="bx bx-hide" id="password_confirmation_icon"></i>
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <div class="d-flex justify-content-end">
@@ -210,6 +230,22 @@
 
     @push('scripts')
         <script>
+            // Toggle password visibility
+            function togglePasswordField(fieldId) {
+                const passwordInput = document.getElementById(fieldId);
+                const icon = document.getElementById(fieldId + '_icon');
+
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    icon.classList.remove('bx-hide');
+                    icon.classList.add('bx-show');
+                } else {
+                    passwordInput.type = 'password';
+                    icon.classList.remove('bx-show');
+                    icon.classList.add('bx-hide');
+                }
+            }
+
             // Preview image before upload
             document.getElementById('photoInput').addEventListener('change', function(e) {
                 const file = e.target.files[0];
