@@ -135,6 +135,7 @@
                             <option value="25">25</option>
                             <option value="50">50</option>
                             <option value="100">100</option>
+                            <option value="all">Semua</option>
                         </select>
                     </div>
                     <small class="text-muted" id="totalKaryawan">Total: 0</small>
@@ -1001,7 +1002,8 @@
         }
 
         function changePerPage() {
-            perPage = parseInt($('#perPageSelect').val());
+            const selectedValue = $('#perPageSelect').val();
+            perPage = selectedValue === 'all' ? 999999 : parseInt(selectedValue);
             loadKaryawans(1);
         }
 

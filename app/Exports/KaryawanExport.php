@@ -102,9 +102,9 @@ class KaryawanExport implements FromCollection, WithHeadings, WithMapping, WithS
             $karyawan->nik ?? '-',
             $karyawan->name,
             $karyawan->gender === 'L' ? 'Laki-laki' : 'Perempuan',
-            $karyawan->birth_place,
-            $karyawan->birth_date ? $karyawan->birth_date->format('Y-m-d') : '-',
-            $karyawan->marital_status,
+            $karyawan->birth_place ?? '-',
+            $this->formatDate($karyawan->birth_date),
+            $karyawan->marital_status ?? '-',
             $karyawan->tanggungan_anak ?? 0,
             $karyawan->agama ?? '-',
             $karyawan->bangsa ?? '-',
@@ -115,24 +115,24 @@ class KaryawanExport implements FromCollection, WithHeadings, WithMapping, WithS
             $karyawan->subDepartment ? $karyawan->subDepartment->name : '-',
             $karyawan->position ? $karyawan->position->name : '-',
             $karyawan->lulusan_sekolah ?? '-',
-            $karyawan->join_date ? $karyawan->join_date->format('Y-m-d') : '-',
-            $karyawan->employment_status,
+            $this->formatDate($karyawan->join_date),
+            $karyawan->employment_status ?? '-',
             $karyawan->workSchedule ? $karyawan->workSchedule->name : '-',
-            $karyawan->tanggal_resign ? $karyawan->tanggal_resign->format('Y-m-d') : '-',
+            $this->formatDate($karyawan->tanggal_resign),
             $karyawan->bank ?? '-',
             $karyawan->nomor_rekening ?? '-',
             $karyawan->tax_npwp ?? '-',
             $karyawan->bpjs_kesehatan ?? '-',
             $karyawan->bpjs_ketenagakerjaan ?? '-',
             $this->getStatusLabel($karyawan->status),
-            $karyawan->address,
-            $karyawan->city,
-            $karyawan->province,
-            $karyawan->postal_code,
-            $karyawan->phone,
-            $karyawan->email,
-            $karyawan->emergency_contact_name,
-            $karyawan->emergency_contact_phone,
+            $karyawan->address ?? '-',
+            $karyawan->city ?? '-',
+            $karyawan->province ?? '-',
+            $karyawan->postal_code ?? '-',
+            $karyawan->phone ?? '-',
+            $karyawan->email ?? '-',
+            $karyawan->emergency_contact_name ?? '-',
+            $karyawan->emergency_contact_phone ?? '-',
         ];
     }
 
@@ -200,6 +200,28 @@ class KaryawanExport implements FromCollection, WithHeadings, WithMapping, WithS
                 ],
             ],
         ];
+    }
+
+    /**
+     * Format date - handle both string and Carbon object
+     */
+    private function formatDate($date)
+    {
+        if (!$date) {
+            return '-';
+        }
+        
+        // If already a string in Y-m-d format
+        if (is_string($date)) {
+            return $date;
+        }
+        
+        // If Carbon object
+        if (is_object($date) && method_exists($date, 'format')) {
+            return $date->format('Y-m-d');
+        }
+        
+        return '-';
     }
 
     /**
