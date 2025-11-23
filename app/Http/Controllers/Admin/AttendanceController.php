@@ -25,6 +25,7 @@ class AttendanceController extends Controller
         $dateTo = $request->get('date_to', now()->format('Y-m-d'));
         $status = $request->get('status');
         $department = $request->get('department');
+        $perPage = $request->get('per_page', 10);
 
         // Build query
         $query = Attendance::with(['employee.department', 'employee.position', 'employee.workSchedule']);
@@ -50,10 +51,25 @@ class AttendanceController extends Controller
         $query->whereBetween('attendance_date', [$dateFrom, $dateTo]);
 
         // Get paginated results
-        $attendances = $query->orderBy('attendance_date', 'desc')
-            ->orderBy('check_in', 'desc')
-            ->paginate(20)
-            ->appends($request->all());
+        // If per_page is 'all', get all records, otherwise paginate
+        if ($perPage === 'all') {
+            $attendances = $query->orderBy('attendance_date', 'desc')
+                ->orderBy('check_in', 'desc')
+                ->get();
+            // Convert to paginator for compatibility with blade
+            $attendances = new \Illuminate\Pagination\LengthAwarePaginator(
+                $attendances,
+                $attendances->count(),
+                $attendances->count(),
+                1,
+                ['path' => $request->url(), 'query' => $request->query()]
+            );
+        } else {
+            $attendances = $query->orderBy('attendance_date', 'desc')
+                ->orderBy('check_in', 'desc')
+                ->paginate((int)$perPage)
+                ->appends($request->all());
+        }
 
         // Get statistics
         $stats = [

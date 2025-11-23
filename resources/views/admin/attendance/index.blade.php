@@ -150,6 +150,18 @@
 
         <!-- Attendance Table -->
         <div class="card mt-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Daftar Absensi</h5>
+                <div class="d-flex align-items-center">
+                    <label class="me-2 mb-0 text-muted small">Tampilkan:</label>
+                    <select class="form-select form-select-sm" id="perPageSelect" style="width: auto; min-width: 80px;">
+                        <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10</option>
+                        <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
+                        <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                        <option value="all" {{ request('per_page') == 'all' ? 'selected' : '' }}>Semua</option>
+                    </select>
+                </div>
+            </div>
             <div class="card-body">
                 <!-- Desktop Table View -->
                 <div class="table-responsive d-none d-lg-block">
@@ -403,8 +415,16 @@
                 </div>
 
                 <!-- Pagination -->
-                <div class="mt-3">
-                    {{ $attendances->links() }}
+                <div class="mt-3 d-flex justify-content-between align-items-center flex-wrap">
+                    <div class="mb-2 mb-md-0">
+                        <span class="text-muted">
+                            Menampilkan {{ $attendances->firstItem() ?? 0 }} - {{ $attendances->lastItem() ?? 0 }}
+                            dari {{ $attendances->total() }} data
+                        </span>
+                    </div>
+                    <div>
+                        {{ $attendances->onEachSide(1)->links('pagination::bootstrap-5') }}
+                    </div>
                 </div>
             </div>
         </div>
@@ -429,6 +449,100 @@
         </div>
     </div>
 
+    @push('styles')
+        <style>
+            /* Card Header */
+            .card-header {
+                background-color: #fff;
+                border-bottom: 1px solid #d9dee3;
+                padding: 1rem 1.5rem;
+            }
+
+            .card-header .card-title {
+                font-size: 1.125rem;
+                font-weight: 500;
+                color: #566a7f;
+            }
+
+            /* Pagination Styles */
+            .pagination {
+                margin-bottom: 0;
+                flex-wrap: wrap;
+                gap: 0.25rem;
+            }
+
+            .pagination .page-item {
+                margin: 0 2px;
+            }
+
+            .pagination .page-link {
+                padding: 0.375rem 0.75rem;
+                font-size: 0.875rem;
+                border-radius: 0.375rem;
+                min-width: 38px;
+                text-align: center;
+            }
+
+            .pagination .page-item.active .page-link {
+                z-index: 3;
+                color: #fff;
+                background-color: #696cff;
+                border-color: #696cff;
+            }
+
+            .pagination .page-item.disabled .page-link {
+                pointer-events: none;
+                opacity: 0.5;
+            }
+
+            /* Per Page Selector */
+            #perPageSelect {
+                cursor: pointer;
+                border-color: #d9dee3;
+            }
+
+            #perPageSelect:hover {
+                border-color: #696cff;
+            }
+
+            #perPageSelect:focus {
+                border-color: #696cff;
+                box-shadow: 0 0 0 0.2rem rgba(105, 108, 255, 0.25);
+            }
+
+            /* Mobile Responsive */
+            @media (max-width: 576px) {
+                .card-header {
+                    flex-direction: column;
+                    align-items: flex-start !important;
+                    gap: 0.75rem;
+                }
+
+                .card-header .card-title {
+                    margin-bottom: 0.5rem;
+                }
+
+                .pagination .page-link {
+                    padding: 0.25rem 0.5rem;
+                    font-size: 0.75rem;
+                    min-width: 32px;
+                }
+
+                .pagination {
+                    gap: 0.1rem;
+                }
+
+                .pagination .page-item {
+                    margin: 0 1px;
+                }
+
+                #perPageSelect {
+                    font-size: 0.813rem;
+                }
+            }
+        </style>
+    @endpush
+
     @push('scripts')
         <script>
             // Initialize tooltips
@@ -437,6 +551,21 @@
                 var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
                     return new bootstrap.Tooltip(tooltipTriggerEl);
                 });
+            });
+
+            // Per page selector
+            $('#perPageSelect').on('change', function() {
+                const perPage = $(this).val();
+                const url = new URL(window.location.href);
+
+                // Update or add per_page parameter
+                url.searchParams.set('per_page', perPage);
+
+                // Reset to page 1 when changing per_page
+                url.searchParams.delete('page');
+
+                // Redirect to new URL
+                window.location.href = url.toString();
             });
 
             // Export Excel
@@ -535,10 +664,10 @@
                                         </tr>
                                     </table>
                                     ${data.notes ? `
-                                                                                                        <div class="alert alert-info mt-3 mb-0">
-                                                                                                            <strong>Catatan:</strong><br>${data.notes}
-                                                                                                        </div>
-                                                                                                    ` : ''}
+                                                                                                                                <div class="alert alert-info mt-3 mb-0">
+                                                                                                                                    <strong>Catatan:</strong><br>${data.notes}
+                                                                                                                                </div>
+                                                                                                                            ` : ''}
                                 </div>
                             </div>
 
@@ -548,44 +677,44 @@
                                 <div class="col-md-6">
                                     <h6 class="mb-3">Foto Check In</h6>
                                     ${data.photo_in ? `
-                                                                                        <div class="text-center">
-                                                                                            <a href="/storage/${data.photo_in}" target="_blank">
-                                                                                                <img src="/storage/${data.photo_in}"
-                                                                                                     alt="Foto Check In"
-                                                                                                     class="img-fluid rounded border"
-                                                                                                     style="max-height: 300px; cursor: pointer;">
-                                                                                            </a>
-                                                                                            <p class="text-muted mt-2 mb-0">
-                                                                                                <small><i class='bx bx-time-five'></i> ${data.check_in || '-'}</small>
-                                                                                            </p>
-                                                                                        </div>
-                                                                                    ` : `
-                                                                                        <div class="text-center py-4">
-                                                                                            <i class='bx bx-image-add bx-lg text-muted'></i>
-                                                                                            <p class="text-muted mt-2 mb-0">Tidak ada foto check in</p>
-                                                                                        </div>
-                                                                                    `}
+                                                                                                                <div class="text-center">
+                                                                                                                    <a href="/storage/${data.photo_in}" target="_blank">
+                                                                                                                        <img src="/storage/${data.photo_in}"
+                                                                                                                             alt="Foto Check In"
+                                                                                                                             class="img-fluid rounded border"
+                                                                                                                             style="max-height: 300px; cursor: pointer;">
+                                                                                                                    </a>
+                                                                                                                    <p class="text-muted mt-2 mb-0">
+                                                                                                                        <small><i class='bx bx-time-five'></i> ${data.check_in || '-'}</small>
+                                                                                                                    </p>
+                                                                                                                </div>
+                                                                                                            ` : `
+                                                                                                                <div class="text-center py-4">
+                                                                                                                    <i class='bx bx-image-add bx-lg text-muted'></i>
+                                                                                                                    <p class="text-muted mt-2 mb-0">Tidak ada foto check in</p>
+                                                                                                                </div>
+                                                                                                            `}
                                 </div>
                                 <div class="col-md-6">
                                     <h6 class="mb-3">Foto Check Out</h6>
                                     ${data.photo_out ? `
-                                                                                        <div class="text-center">
-                                                                                            <a href="/storage/${data.photo_out}" target="_blank">
-                                                                                                <img src="/storage/${data.photo_out}"
-                                                                                                     alt="Foto Check Out"
-                                                                                                     class="img-fluid rounded border"
-                                                                                                     style="max-height: 300px; cursor: pointer;">
-                                                                                            </a>
-                                                                                            <p class="text-muted mt-2 mb-0">
-                                                                                                <small><i class='bx bx-time-five'></i> ${data.check_out || '-'}</small>
-                                                                                            </p>
-                                                                                        </div>
-                                                                                    ` : `
-                                                                                        <div class="text-center py-4">
-                                                                                            <i class='bx bx-image-add bx-lg text-muted'></i>
-                                                                                            <p class="text-muted mt-2 mb-0">Tidak ada foto check out</p>
-                                                                                        </div>
-                                                                                    `}
+                                                                                                                <div class="text-center">
+                                                                                                                    <a href="/storage/${data.photo_out}" target="_blank">
+                                                                                                                        <img src="/storage/${data.photo_out}"
+                                                                                                                             alt="Foto Check Out"
+                                                                                                                             class="img-fluid rounded border"
+                                                                                                                             style="max-height: 300px; cursor: pointer;">
+                                                                                                                    </a>
+                                                                                                                    <p class="text-muted mt-2 mb-0">
+                                                                                                                        <small><i class='bx bx-time-five'></i> ${data.check_out || '-'}</small>
+                                                                                                                    </p>
+                                                                                                                </div>
+                                                                                                            ` : `
+                                                                                                                <div class="text-center py-4">
+                                                                                                                    <i class='bx bx-image-add bx-lg text-muted'></i>
+                                                                                                                    <p class="text-muted mt-2 mb-0">Tidak ada foto check out</p>
+                                                                                                                </div>
+                                                                                                            `}
                                 </div>
                             </div>
                         `);
