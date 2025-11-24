@@ -90,7 +90,7 @@
                             <!-- Camera Preview -->
                             <div class="position-relative mb-3">
                                 <video id="videoElement" width="100%" autoplay playsinline class="rounded border"
-                                    style="background: #000; max-height: 400px; height: auto;"></video>
+                                    style="background: #000; max-height: 400px; height: auto; transform: scaleX(-1);"></video>
                                 <canvas id="canvasElement" style="display: none;"></canvas>
 
                                 <!-- Face Detection Indicator -->
