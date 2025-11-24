@@ -693,10 +693,91 @@ class AttendanceController extends Controller
         $attendance = Attendance::with(['employee.department', 'employee.position', 'employee.workSchedule'])
             ->findOrFail($id);
 
+        // Format attendance_date to Y-m-d string to avoid timezone issues
+        $attendanceData = $attendance->toArray();
+        if (isset($attendanceData['attendance_date'])) {
+            $attendanceData['attendance_date'] = Carbon::parse($attendance->attendance_date)->format('Y-m-d');
+        }
+
         return response()->json([
             'success' => true,
-            'data' => $attendance
+            'data' => $attendanceData
         ]);
+    }
+
+    /**
+     * Update attendance record
+     */
+    public function update(Request $request, $id)
+    {
+        try {
+            $attendance = Attendance::with('employee.workSchedule')->findOrFail($id);
+
+            // Validation
+            $validator = Validator::make($request->all(), [
+                'attendance_date' => 'required|date',
+                'check_in' => 'required',
+                'check_out' => 'nullable',
+                'status' => 'required|in:hadir,terlambat,izin,sakit,cuti,alpha',
+                'late_minutes' => 'nullable|integer|min:0',
+                'notes' => 'nullable|string|max:500'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Calculate late minutes automatically if status is 'terlambat' or 'hadir'
+            $lateMinutes = 0;
+            $schedule = $attendance->employee->workSchedule;
+            
+            if (in_array($request->status, ['hadir', 'terlambat']) && $schedule && $request->check_in) {
+                try {
+                    // Parse check-in time
+                    $checkInTime = Carbon::createFromFormat('Y-m-d H:i', $request->attendance_date . ' ' . $request->check_in);
+                    
+                    // Parse schedule start time
+                    $startTime = substr($schedule->start_time, 0, 5); // Get HH:MM only
+                    $scheduledTime = Carbon::createFromFormat('Y-m-d H:i', $request->attendance_date . ' ' . $startTime);
+                    
+                    // Calculate late minutes if check-in is after scheduled time
+                    if ($checkInTime->gt($scheduledTime)) {
+                        $lateMinutes = $scheduledTime->diffInMinutes($checkInTime);
+                    }
+                } catch (\Exception $e) {
+                    // If calculation fails, use provided late_minutes or 0
+                    $lateMinutes = $request->late_minutes ?? 0;
+                }
+            } else {
+                // For other statuses (izin, sakit, cuti, alpha), use provided value or 0
+                $lateMinutes = $request->late_minutes ?? 0;
+            }
+
+            // Update attendance data
+            $attendance->attendance_date = $request->attendance_date;
+            $attendance->check_in = $request->check_in;
+            $attendance->check_out = $request->check_out;
+            $attendance->status = $request->status;
+            $attendance->late_minutes = $lateMinutes;
+            $attendance->notes = $request->notes;
+
+            $attendance->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data absensi berhasil diupdate',
+                'data' => $attendance->load(['employee.department', 'employee.position'])
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengupdate data absensi: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

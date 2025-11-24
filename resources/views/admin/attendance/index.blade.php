@@ -267,6 +267,10 @@
                                                     data-id="{{ $attendance->id }}">
                                                     <i class="bx bx-detail me-1"></i> Detail
                                                 </a>
+                                                <a class="dropdown-item edit-btn" href="javascript:void(0);"
+                                                    data-id="{{ $attendance->id }}">
+                                                    <i class="bx bx-edit me-1"></i> Edit
+                                                </a>
                                                 <a class="dropdown-item text-danger delete-btn" href="javascript:void(0);"
                                                     data-id="{{ $attendance->id }}"
                                                     data-name="{{ $attendance->employee->name }}"
@@ -310,6 +314,10 @@
                                             <a class="dropdown-item detail-btn" href="javascript:void(0);"
                                                 data-id="{{ $attendance->id }}">
                                                 <i class="bx bx-detail me-1"></i> Detail
+                                            </a>
+                                            <a class="dropdown-item edit-btn" href="javascript:void(0);"
+                                                data-id="{{ $attendance->id }}">
+                                                <i class="bx bx-edit me-1"></i> Edit
                                             </a>
                                             <a class="dropdown-item text-danger delete-btn" href="javascript:void(0);"
                                                 data-id="{{ $attendance->id }}"
@@ -449,6 +457,77 @@
         </div>
     </div>
 
+    <!-- Edit Modal -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Absensi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="edit_id" name="id">
+
+                        <div class="mb-3">
+                            <label class="form-label">Karyawan</label>
+                            <input type="text" class="form-control" id="edit_employee_name" readonly>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Tanggal Absensi <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="edit_attendance_date"
+                                    name="attendance_date" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Status <span class="text-danger">*</span></label>
+                                <select class="form-select" id="edit_status" name="status" required>
+                                    <option value="hadir">Hadir</option>
+                                    <option value="terlambat">Terlambat</option>
+                                    <option value="izin">Izin</option>
+                                    <option value="sakit">Sakit</option>
+                                    <option value="cuti">Cuti</option>
+                                    <option value="alpha">Alpha</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Check In <span class="text-danger">*</span></label>
+                                <input type="time" class="form-control" id="edit_check_in" name="check_in" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Check Out</label>
+                                <input type="time" class="form-control" id="edit_check_out" name="check_out">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Terlambat (menit)</label>
+                            <input type="number" class="form-control" id="edit_late_minutes" name="late_minutes"
+                                min="0" placeholder="Otomatis dihitung">
+                            <small class="text-muted">Kosongkan untuk perhitungan otomatis</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Catatan</label>
+                            <textarea class="form-control" id="edit_notes" name="notes" rows="3"
+                                placeholder="Catatan tambahan (opsional)"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary" id="saveEditBtn">
+                            <i class="bx bx-save me-1"></i> Simpan Perubahan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     @push('styles')
         <style>
             /* Card Header */
@@ -462,6 +541,34 @@
                 font-size: 1.125rem;
                 font-weight: 500;
                 color: #566a7f;
+            }
+
+            /* Modal Positioning Fix */
+            .modal {
+                padding-right: 0 !important;
+            }
+
+            .modal-dialog {
+                margin: 1.75rem auto;
+            }
+
+            .modal.fade .modal-dialog {
+                transition: transform 0.3s ease-out;
+            }
+
+            .modal-backdrop {
+                position: fixed;
+                top: 0;
+                left: 0;
+                z-index: 1040;
+                width: 100vw;
+                height: 100vh;
+            }
+
+            /* Prevent body shift when modal opens */
+            body.modal-open {
+                overflow: hidden;
+                padding-right: 0 !important;
             }
 
             /* Pagination Styles */
@@ -664,10 +771,10 @@
                                         </tr>
                                     </table>
                                     ${data.notes ? `
-                                                                                                                                <div class="alert alert-info mt-3 mb-0">
-                                                                                                                                    <strong>Catatan:</strong><br>${data.notes}
-                                                                                                                                </div>
-                                                                                                                            ` : ''}
+                                                                                                                                                <div class="alert alert-info mt-3 mb-0">
+                                                                                                                                                    <strong>Catatan:</strong><br>${data.notes}
+                                                                                                                                                </div>
+                                                                                                                                            ` : ''}
                                 </div>
                             </div>
 
@@ -677,44 +784,44 @@
                                 <div class="col-md-6">
                                     <h6 class="mb-3">Foto Check In</h6>
                                     ${data.photo_in ? `
-                                                                                                                <div class="text-center">
-                                                                                                                    <a href="/storage/${data.photo_in}" target="_blank">
-                                                                                                                        <img src="/storage/${data.photo_in}"
-                                                                                                                             alt="Foto Check In"
-                                                                                                                             class="img-fluid rounded border"
-                                                                                                                             style="max-height: 300px; cursor: pointer;">
-                                                                                                                    </a>
-                                                                                                                    <p class="text-muted mt-2 mb-0">
-                                                                                                                        <small><i class='bx bx-time-five'></i> ${data.check_in || '-'}</small>
-                                                                                                                    </p>
-                                                                                                                </div>
-                                                                                                            ` : `
-                                                                                                                <div class="text-center py-4">
-                                                                                                                    <i class='bx bx-image-add bx-lg text-muted'></i>
-                                                                                                                    <p class="text-muted mt-2 mb-0">Tidak ada foto check in</p>
-                                                                                                                </div>
-                                                                                                            `}
+                                                                                                                                <div class="text-center">
+                                                                                                                                    <a href="/storage/${data.photo_in}" target="_blank">
+                                                                                                                                        <img src="/storage/${data.photo_in}"
+                                                                                                                                             alt="Foto Check In"
+                                                                                                                                             class="img-fluid rounded border"
+                                                                                                                                             style="max-height: 300px; cursor: pointer;">
+                                                                                                                                    </a>
+                                                                                                                                    <p class="text-muted mt-2 mb-0">
+                                                                                                                                        <small><i class='bx bx-time-five'></i> ${data.check_in || '-'}</small>
+                                                                                                                                    </p>
+                                                                                                                                </div>
+                                                                                                                            ` : `
+                                                                                                                                <div class="text-center py-4">
+                                                                                                                                    <i class='bx bx-image-add bx-lg text-muted'></i>
+                                                                                                                                    <p class="text-muted mt-2 mb-0">Tidak ada foto check in</p>
+                                                                                                                                </div>
+                                                                                                                            `}
                                 </div>
                                 <div class="col-md-6">
                                     <h6 class="mb-3">Foto Check Out</h6>
                                     ${data.photo_out ? `
-                                                                                                                <div class="text-center">
-                                                                                                                    <a href="/storage/${data.photo_out}" target="_blank">
-                                                                                                                        <img src="/storage/${data.photo_out}"
-                                                                                                                             alt="Foto Check Out"
-                                                                                                                             class="img-fluid rounded border"
-                                                                                                                             style="max-height: 300px; cursor: pointer;">
-                                                                                                                    </a>
-                                                                                                                    <p class="text-muted mt-2 mb-0">
-                                                                                                                        <small><i class='bx bx-time-five'></i> ${data.check_out || '-'}</small>
-                                                                                                                    </p>
-                                                                                                                </div>
-                                                                                                            ` : `
-                                                                                                                <div class="text-center py-4">
-                                                                                                                    <i class='bx bx-image-add bx-lg text-muted'></i>
-                                                                                                                    <p class="text-muted mt-2 mb-0">Tidak ada foto check out</p>
-                                                                                                                </div>
-                                                                                                            `}
+                                                                                                                                <div class="text-center">
+                                                                                                                                    <a href="/storage/${data.photo_out}" target="_blank">
+                                                                                                                                        <img src="/storage/${data.photo_out}"
+                                                                                                                                             alt="Foto Check Out"
+                                                                                                                                             class="img-fluid rounded border"
+                                                                                                                                             style="max-height: 300px; cursor: pointer;">
+                                                                                                                                    </a>
+                                                                                                                                    <p class="text-muted mt-2 mb-0">
+                                                                                                                                        <small><i class='bx bx-time-five'></i> ${data.check_out || '-'}</small>
+                                                                                                                                    </p>
+                                                                                                                                </div>
+                                                                                                                            ` : `
+                                                                                                                                <div class="text-center py-4">
+                                                                                                                                    <i class='bx bx-image-add bx-lg text-muted'></i>
+                                                                                                                                    <p class="text-muted mt-2 mb-0">Tidak ada foto check out</p>
+                                                                                                                                </div>
+                                                                                                                            `}
                                 </div>
                             </div>
                         `);
@@ -725,6 +832,134 @@
                                 Gagal memuat detail absensi
                             </div>
                         `);
+                    }
+                });
+            });
+
+            // Edit attendance
+            $(document).on('click', '.edit-btn', function() {
+                const id = $(this).data('id');
+                const modal = new bootstrap.Modal(document.getElementById('editModal'));
+
+                // Load attendance data
+                $.ajax({
+                    url: `/api/admin/attendance/${id}/detail`,
+                    method: 'GET',
+                    success: function(response) {
+                        const data = response.data;
+                        const emp = data.employee;
+
+                        // Parse date - simple string extraction without Date object
+                        let attendanceDate = '';
+                        if (data.attendance_date) {
+                            const dateStr = String(data.attendance_date);
+
+                            // Method 1: Direct regex extraction (no timezone issues)
+                            const match = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+                            if (match) {
+                                attendanceDate = `${match[1]}-${match[2]}-${match[3]}`;
+                            } else {
+                                // Method 2: Split by space or T and take first part
+                                const datePart = dateStr.split(/[T\s]/)[0];
+                                if (datePart && /^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+                                    attendanceDate = datePart;
+                                }
+                            }
+                        }
+
+                        console.log('Original date:', data.attendance_date);
+                        console.log('Parsed date:', attendanceDate);
+
+                        // Fill form
+                        $('#edit_id').val(data.id);
+                        $('#edit_employee_name').val(`${emp.employee_code} - ${emp.name}`);
+                        $('#edit_attendance_date').val(attendanceDate);
+                        $('#edit_check_in').val(data.check_in ? data.check_in.substring(0, 5) : '');
+                        $('#edit_check_out').val(data.check_out ? data.check_out.substring(0, 5) : '');
+                        $('#edit_status').val(data.status);
+                        $('#edit_late_minutes').val(data.late_minutes || '');
+                        $('#edit_notes').val(data.notes || '');
+
+                        modal.show();
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal!',
+                            text: 'Gagal memuat data absensi',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                });
+            });
+
+            // Save edit form
+            $('#editForm').on('submit', function(e) {
+                e.preventDefault();
+
+                const id = $('#edit_id').val();
+                const formData = {
+                    attendance_date: $('#edit_attendance_date').val(),
+                    check_in: $('#edit_check_in').val(),
+                    check_out: $('#edit_check_out').val() || null,
+                    status: $('#edit_status').val(),
+                    late_minutes: $('#edit_late_minutes').val() || null,
+                    notes: $('#edit_notes').val() || null
+                };
+
+                // Disable submit button
+                $('#saveEditBtn').prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...');
+
+                $.ajax({
+                    url: `/api/admin/attendance/${id}`,
+                    method: 'PUT',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    data: JSON.stringify(formData),
+                    success: function(response) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil!',
+                            text: response.message,
+                            showConfirmButton: false,
+                            timer: 2000
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    },
+                    error: function(xhr) {
+                        let errorMessage = 'Gagal mengupdate data absensi';
+
+                        if (xhr.responseJSON) {
+                            if (xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
+                            }
+
+                            // Show validation errors
+                            if (xhr.responseJSON.errors) {
+                                const errors = xhr.responseJSON.errors;
+                                errorMessage += '<br><br><div class="text-start">';
+                                for (const [field, messages] of Object.entries(errors)) {
+                                    errorMessage += `<small>• ${messages.join(', ')}</small><br>`;
+                                }
+                                errorMessage += '</div>';
+                            }
+                        }
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal!',
+                            html: errorMessage,
+                            confirmButtonText: 'OK'
+                        });
+
+                        // Re-enable submit button
+                        $('#saveEditBtn').prop('disabled', false).html(
+                            '<i class="bx bx-save me-1"></i> Simpan Perubahan');
                     }
                 });
             });

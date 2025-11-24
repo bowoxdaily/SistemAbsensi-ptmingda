@@ -61,6 +61,7 @@ Route::prefix('attendance')->group(function () {
 // Admin Attendance API
 Route::middleware(['web', 'auth', 'admin'])->prefix('admin/attendance')->group(function () {
     Route::get('/{id}/detail', [AttendanceController::class, 'detail']);
+    Route::put('/{id}', [AttendanceController::class, 'update']);
     Route::delete('/{id}', [AttendanceController::class, 'destroy']);
 });
 
