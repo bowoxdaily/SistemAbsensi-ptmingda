@@ -804,7 +804,14 @@
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
                 const ctx = canvas.getContext('2d');
+
+                // Flip horizontally to match the mirrored video preview
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
                 ctx.drawImage(video, 0, 0);
+
+                // Reset transform
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
 
                 capturedPhoto = canvas.toDataURL('image/png');
                 capturedImage.src = capturedPhoto;

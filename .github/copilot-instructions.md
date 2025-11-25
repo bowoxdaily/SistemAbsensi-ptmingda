@@ -74,6 +74,53 @@ Route::get('/api/attendance/list', [AttendanceController::class, 'list']);
 -   Use `/api/attendance/by-date/{employeeId}?date=YYYY-MM-DD` to check existing records
 -   Allow past date entry for corrections
 
+### Date Handling & Timezone Issues
+
+**CRITICAL: Avoid timezone conversion issues when handling dates in API responses**
+
+**Problem:** Laravel's date casting (`'date'` in `$casts`) converts dates to Carbon instances, which serialize to JSON with timezone info (e.g., `2025-11-24T00:00:00.000000Z`). JavaScript's Date parsing may shift this by timezone offset, causing dates to appear 1 day earlier in forms.
+
+**Solution Pattern:**
+
+```php
+// In API controller responses - explicitly format dates as Y-m-d strings
+public function detail($id) {
+    $attendance = Attendance::findOrFail($id);
+    $data = $attendance->toArray();
+
+    // Force date to string format without timezone
+    if (isset($data['attendance_date'])) {
+        $data['attendance_date'] = Carbon::parse($attendance->attendance_date)->format('Y-m-d');
+    }
+
+    return response()->json(['data' => $data]);
+}
+```
+
+**JavaScript Parsing (in Blade views):**
+
+```javascript
+// Extract YYYY-MM-DD directly via regex (no Date object parsing)
+const dateStr = String(data.attendance_date);
+const match = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+if (match) {
+    attendanceDate = `${match[1]}-${match[2]}-${match[3]}`;
+}
+
+// Fallback: split string without Date constructor
+const datePart = dateStr.split(/[T\s]/)[0]; // "2025-11-24"
+if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+    attendanceDate = datePart;
+}
+```
+
+**Key Rules:**
+
+1. Always return dates from API as plain `Y-m-d` strings for form inputs
+2. Never parse API dates with `new Date()` in JavaScript for date inputs
+3. Use regex/string splitting to extract date components
+4. For display purposes (not inputs), Carbon formatting in Blade is safe
+
 ## Development Workflows
 
 ### Running the Application
