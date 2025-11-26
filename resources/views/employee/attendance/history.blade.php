@@ -150,6 +150,10 @@
                                                         <span class="badge bg-success">Hadir</span>
                                                     @elseif($attendance->status == 'terlambat')
                                                         <span class="badge bg-warning">Terlambat</span>
+                                                        @if ($attendance->late_minutes > 0)
+                                                            <br><small class="text-muted">({{ $attendance->late_minutes }}
+                                                                menit)</small>
+                                                        @endif
                                                     @elseif($attendance->status == 'cuti')
                                                         <span class="badge bg-primary">Cuti</span>
                                                     @elseif($attendance->status == 'izin')
@@ -165,8 +169,9 @@
                                                 </td>
                                                 <td>
                                                     @if ($attendance->late_minutes > 0)
-                                                        <span class="badge bg-label-danger">
-                                                            {{ $attendance->late_minutes }} menit
+                                                        <span class="badge bg-danger">
+                                                            <i class='bx bx-time'></i> {{ $attendance->late_minutes }}
+                                                            menit
                                                         </span>
                                                     @else
                                                         <span class="text-muted">-</span>
@@ -200,11 +205,17 @@
                                                         {{ \Carbon\Carbon::parse($attendance->attendance_date)->format('d/m/Y') }}
                                                     </small>
                                                 </div>
-                                                <div>
+                                                <div class="text-end">
                                                     @if ($attendance->status == 'hadir')
                                                         <span class="badge bg-success">Hadir</span>
                                                     @elseif($attendance->status == 'terlambat')
                                                         <span class="badge bg-warning">Terlambat</span>
+                                                        @if ($attendance->late_minutes > 0)
+                                                            <br><span class="badge bg-danger mt-1">
+                                                                <i class='bx bx-time'></i> {{ $attendance->late_minutes }}
+                                                                menit
+                                                            </span>
+                                                        @endif
                                                     @elseif($attendance->status == 'cuti')
                                                         <span class="badge bg-primary">Cuti</span>
                                                     @elseif($attendance->status == 'izin')
@@ -256,12 +267,14 @@
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <div>
                                                     @if ($attendance->late_minutes > 0)
-                                                        <span class="badge bg-label-danger">
+                                                        <span class="badge bg-danger">
                                                             <i class='bx bx-time'></i> Terlambat
                                                             {{ $attendance->late_minutes }} menit
                                                         </span>
                                                     @else
-                                                        <span class="text-muted small">Tepat waktu</span>
+                                                        <span class="text-success small">
+                                                            <i class='bx bx-check-circle'></i> Tepat waktu
+                                                        </span>
                                                     @endif
                                                 </div>
                                                 <button type="button" class="btn btn-sm btn-primary view-detail"
@@ -573,25 +586,25 @@
 
                                 <div class="row mt-3">
                                     ${data.photo_in ? `
-                                                                                <div class="col-md-6 text-center">
-                                                                                    <h6>Foto Check In</h6>
-                                                                                    <img src="/storage/${data.photo_in}" class="img-fluid rounded border" alt="Check In" style="max-height: 300px;">
-                                                                                </div>
-                                                                            ` : ''}
+                                                                                        <div class="col-md-6 text-center">
+                                                                                            <h6>Foto Check In</h6>
+                                                                                            <img src="/storage/${data.photo_in}" class="img-fluid rounded border" alt="Check In" style="max-height: 300px;">
+                                                                                        </div>
+                                                                                    ` : ''}
                                     ${data.photo_out ? `
-                                                                                <div class="col-md-6 text-center">
-                                                                                    <h6>Foto Check Out</h6>
-                                                                                    <img src="/storage/${data.photo_out}" class="img-fluid rounded border" alt="Check Out" style="max-height: 300px;">
-                                                                                </div>
-                                                                            ` : ''}
+                                                                                        <div class="col-md-6 text-center">
+                                                                                            <h6>Foto Check Out</h6>
+                                                                                            <img src="/storage/${data.photo_out}" class="img-fluid rounded border" alt="Check Out" style="max-height: 300px;">
+                                                                                        </div>
+                                                                                    ` : ''}
                                 </div>
 
                                 ${data.notes ? `
-                                                                            <div class="mt-3">
-                                                                                <h6>Catatan</h6>
-                                                                                <div class="alert alert-info">${data.notes}</div>
-                                                                            </div>
-                                                                        ` : ''}
+                                                                                    <div class="mt-3">
+                                                                                        <h6>Catatan</h6>
+                                                                                        <div class="alert alert-info">${data.notes}</div>
+                                                                                    </div>
+                                                                                ` : ''}
                             `;
 
                             $('#detailContent').html(html);

@@ -207,19 +207,60 @@ class AttendanceController extends Controller
 
             // Get work schedule to check if late
             $checkInTime = now();
-            // Get employee's work schedule
             $schedule = $employee->workSchedule;
 
             $lateMinutes = 0;
             $status = 'hadir';
 
             if ($schedule && $schedule->start_time) {
-                $scheduledTime = Carbon::parse($schedule->start_time);
-                $lateToleranceTime = $scheduledTime->copy()->addMinutes($schedule->late_tolerance ?? 0);
-
-                if ($checkInTime->gt($lateToleranceTime)) {
-                    $lateMinutes = $checkInTime->diffInMinutes($scheduledTime);
-                    $status = 'terlambat';
+                try {
+                    // Get start time string - handle both string and Carbon object
+                    $startTimeStr = is_string($schedule->start_time) 
+                        ? $schedule->start_time 
+                        : $schedule->start_time->format('H:i:s');
+                    
+                    // Extract HH:MM only
+                    if (strlen($startTimeStr) > 5) {
+                        $startTimeStr = substr($startTimeStr, 0, 5);
+                    }
+                    
+                    // Create scheduled time with today's date
+                    $scheduledTime = Carbon::createFromFormat('H:i', $startTimeStr);
+                    $scheduledTime->setDate(today()->year, today()->month, today()->day);
+                    
+                    // Debug log
+                    Log::info('Check-in Debug', [
+                        'employee_id' => $employee->id,
+                        'check_in_time' => $checkInTime->format('Y-m-d H:i:s'),
+                        'scheduled_time' => $scheduledTime->format('Y-m-d H:i:s'),
+                        'is_late' => $checkInTime->gt($scheduledTime),
+                        'late_tolerance' => $schedule->late_tolerance ?? 0,
+                    ]);
+                    
+                    // Calculate late minutes if check-in is after scheduled time
+                    if ($checkInTime->gt($scheduledTime)) {
+                        // Use absolute value to ensure positive result
+                        $lateMinutes = abs($checkInTime->diffInMinutes($scheduledTime, false));
+                        
+                        Log::info('Late calculation', [
+                            'check_in' => $checkInTime->format('H:i:s'),
+                            'scheduled' => $scheduledTime->format('H:i:s'),
+                            'late_minutes' => $lateMinutes,
+                            'tolerance' => $schedule->late_tolerance ?? 0,
+                            'exceeds_tolerance' => $lateMinutes > ($schedule->late_tolerance ?? 0)
+                        ]);
+                        
+                        // Apply tolerance - mark as terlambat only if exceeds tolerance
+                        $lateTolerance = $schedule->late_tolerance ?? 0;
+                        if ($lateMinutes > $lateTolerance) {
+                            $status = 'terlambat';
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // If parsing fails, mark as hadir without late calculation
+                    Log::error('Check-in time parsing error: ' . $e->getMessage());
+                    $status = 'hadir';
+                    $lateMinutes = 0;
                 }
             }
 
