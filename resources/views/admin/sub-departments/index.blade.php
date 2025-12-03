@@ -3,6 +3,20 @@
 
 @push('styles')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+        rel="stylesheet" />
+    <style>
+        .select2-container--bootstrap-5 .select2-selection {
+            min-height: calc(1.5em + 0.5rem + 2px);
+        }
+
+        .select2-container--bootstrap-5.select2-container--focus .select2-selection,
+        .select2-container--bootstrap-5.select2-container--open .select2-selection {
+            border-color: #696cff;
+            box-shadow: 0 0 0 0.25rem rgba(105, 108, 255, 0.25);
+        }
+    </style>
 @endpush
 
 @section('content')
@@ -25,13 +39,18 @@
         <div class="card mb-3">
             <div class="card-body">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-5">
+                    <div class="col-md-4">
+                        <label for="searchInput" class="form-label small mb-1">Cari Sub Departemen</label>
+                        <input type="text" class="form-control form-control-sm" id="searchInput"
+                            placeholder="Cari nama sub departemen...">
+                    </div>
+                    <div class="col-md-3">
                         <label for="filterDepartment" class="form-label small mb-1">Departemen</label>
                         <select class="form-select form-select-sm" id="filterDepartment">
                             <option value="">Semua Departemen</option>
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-2">
                         <label for="filterStatus" class="form-label small mb-1">Status</label>
                         <select class="form-select form-select-sm" id="filterStatus">
                             <option value="">Semua Status</option>
@@ -39,16 +58,20 @@
                             <option value="0">Tidak Aktif</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-sm btn-primary flex-grow-1" onclick="applyFilter()">
-                                <i class='bx bx-filter-alt me-1'></i> Filter
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetFilter()"
-                                title="Reset Filter">
-                                <i class='bx bx-reset'></i>
-                            </button>
-                        </div>
+                    <div class="col-md-2">
+                        <label for="perPage" class="form-label small mb-1">Tampilkan</label>
+                        <select class="form-select form-select-sm" id="perPage">
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="button" class="btn btn-sm btn-outline-secondary w-100" onclick="resetFilter()"
+                            title="Reset Filter">
+                            <i class='bx bx-reset'></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -210,6 +233,7 @@
 
 @push('scripts')
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         // Toastr configuration
         toastr.options = {
@@ -233,9 +257,12 @@
         let currentPage = 1;
         let subDepartmentModal, detailModal;
         let departments = [];
+        let searchTimeout;
         let currentFilters = {
             department_id: '',
-            is_active: ''
+            is_active: '',
+            search: '',
+            per_page: 10
         };
 
         $(document).ready(function() {
@@ -243,8 +270,8 @@
             subDepartmentModal = new bootstrap.Modal(document.getElementById('subDepartmentModal'));
             detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
 
-            // Load departments for filter and form
-            loadDepartments();
+            // Initialize Select2 for department dropdowns
+            initSelect2();
 
             // Load sub departments
             loadSubDepartments();
@@ -254,48 +281,113 @@
                 e.preventDefault();
                 saveSubDepartment();
             });
+
+            // Search input with debounce
+            $('#searchInput').on('keyup', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(function() {
+                    applyFilter();
+                }, 500);
+            });
+
+            // Filter change handlers
+            $('#filterStatus, #perPage').on('change', function() {
+                applyFilter();
+            });
+
+            // Reinitialize Select2 when modal is shown
+            $('#subDepartmentModal').on('shown.bs.modal', function() {
+                $('#department_id').select2('destroy');
+                initSelect2Form();
+            });
         });
 
-        // Load departments for dropdown
-        function loadDepartments() {
-            $.ajax({
-                url: '/api/departments',
-                method: 'GET',
-                success: function(response) {
-                    departments = response.data.data;
-                    populateDepartmentDropdowns();
+        // Initialize Select2 for all department dropdowns
+        function initSelect2() {
+            // Filter dropdown - simple Select2 with search
+            $('#filterDepartment').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Semua Departemen',
+                allowClear: true,
+                width: '100%',
+                ajax: {
+                    url: '/api/departments',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            search: params.term,
+                            paginate: 'false'
+                        };
+                    },
+                    processResults: function(response) {
+                        return {
+                            results: response.data.map(dept => ({
+                                id: dept.id,
+                                text: dept.name
+                            }))
+                        };
+                    },
+                    cache: true
                 }
+            }).on('change', function() {
+                applyFilter();
             });
+
+            // Form dropdown initialization
+            initSelect2Form();
         }
 
-        function populateDepartmentDropdowns() {
-            // For filter
-            const filterSelect = $('#filterDepartment');
-            filterSelect.find('option:not(:first)').remove();
-
-            // For form
-            const formSelect = $('#department_id');
-            formSelect.find('option:not(:first)').remove();
-
-            departments.forEach(dept => {
-                filterSelect.append(`<option value="${dept.id}">${dept.name}</option>`);
-                formSelect.append(`<option value="${dept.id}">${dept.name}</option>`);
+        function initSelect2Form() {
+            $('#department_id').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Pilih Departemen...',
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $('#subDepartmentModal'),
+                ajax: {
+                    url: '/api/departments',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            search: params.term,
+                            paginate: 'false'
+                        };
+                    },
+                    processResults: function(response) {
+                        return {
+                            results: response.data.map(dept => ({
+                                id: dept.id,
+                                text: dept.name
+                            }))
+                        };
+                    },
+                    cache: true
+                },
+                minimumInputLength: 0
             });
         }
 
         function applyFilter() {
+            currentFilters.search = $('#searchInput').val();
             currentFilters.department_id = $('#filterDepartment').val();
             currentFilters.is_active = $('#filterStatus').val();
+            currentFilters.per_page = $('#perPage').val();
             loadSubDepartments(1);
         }
 
         function resetFilter() {
             currentFilters = {
                 department_id: '',
-                is_active: ''
+                is_active: '',
+                search: '',
+                per_page: 10
             };
-            $('#filterDepartment').val('');
+            $('#searchInput').val('');
+            $('#filterDepartment').val(null).trigger('change');
             $('#filterStatus').val('');
+            $('#perPage').val('10');
             loadSubDepartments(1);
         }
 
@@ -303,11 +395,17 @@
         function loadSubDepartments(page = 1) {
             let url = '/api/sub-departments?page=' + page;
 
+            if (currentFilters.search) {
+                url += '&search=' + encodeURIComponent(currentFilters.search);
+            }
             if (currentFilters.department_id) {
                 url += '&department_id=' + currentFilters.department_id;
             }
             if (currentFilters.is_active !== '') {
                 url += '&is_active=' + currentFilters.is_active;
+            }
+            if (currentFilters.per_page) {
+                url += '&per_page=' + currentFilters.per_page;
             }
 
             $.ajax({
@@ -519,6 +617,7 @@
             $('#modalTitle').text('Tambah Sub Departemen');
             $('#subDepartmentId').val('');
             $('#subDepartmentForm')[0].reset();
+            $('#department_id').val(null).trigger('change');
             $('#is_active').prop('checked', true);
             $('.form-control, .form-select').removeClass('is-invalid');
         }
@@ -532,7 +631,11 @@
                     const sd = response.data;
                     $('#modalTitle').text('Edit Sub Departemen');
                     $('#subDepartmentId').val(sd.id);
-                    $('#department_id').val(sd.department_id);
+
+                    // Set Select2 value with AJAX
+                    const option = new Option(sd.department.name, sd.department_id, true, true);
+                    $('#department_id').append(option).trigger('change');
+
                     $('#name').val(sd.name);
                     $('#description').val(sd.description);
                     $('#is_active').prop('checked', sd.is_active);

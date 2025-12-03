@@ -50,7 +50,7 @@ class KaryawanController extends Controller
             ->when($status, function ($query, $status) {
                 return $query->where('status', $status);
             })
-            ->orderBy('created_at', 'desc')
+            ->orderBy('employee_code', 'asc')
             ->paginate($perPage);
 
         return response()->json([

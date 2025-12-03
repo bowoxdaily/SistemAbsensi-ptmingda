@@ -20,10 +20,27 @@ class DepartmentController extends Controller
 
     public function index(Request $request)
     {
+        $query = Department::withCount('employees');
+
+        // Search functionality
+        if ($request->filled('search')) {
+            $searchTerm = $request->search;
+            $query->where('name', 'like', '%' . $searchTerm . '%');
+        }
+
+        // Check if pagination is needed
+        if ($request->has('paginate') && $request->paginate === 'false') {
+            // Return all results without pagination (for Select2)
+            $departments = $query->orderBy('name', 'asc')->get();
+            return response()->json([
+                'success' => true,
+                'data' => $departments
+            ]);
+        }
+
+        // Default paginated results
         $perPage = $request->get('per_page', 10);
-        $departments = Department::withCount('employees')
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage);
+        $departments = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
         return response()->json([
             'success' => true,

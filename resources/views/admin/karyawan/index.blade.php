@@ -2,7 +2,6 @@
 
 @section('title', 'Daftar Karyawan')
 
-@section('title', 'Daftar Karyawan')
 
 @section('styles')
     <style>
