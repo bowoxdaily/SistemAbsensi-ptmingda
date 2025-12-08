@@ -1443,6 +1443,32 @@
             return `${day}-${month}-${year}`;
         }
 
+        // Format date for birth date display (dd Month yyyy format like "13 Mei 2003")
+        function formatBirthDateToDisplay(dateString) {
+            if (!dateString || dateString === '-') return '-';
+
+            // Extract date part only (ignore time and timezone)
+            let datePart = dateString;
+            if (dateString.includes('T')) {
+                datePart = dateString.split('T')[0];
+            }
+
+            // Parse Y-m-d format manually
+            const [year, month, day] = datePart.split('-');
+
+            // Indonesian month names
+            const monthNames = [
+                'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+            ];
+
+            const monthIndex = parseInt(month) - 1;
+            const monthName = monthNames[monthIndex] || month;
+
+            // Return format: "13 Mei 2003"
+            return `${parseInt(day)} ${monthName} ${year}`;
+        }
+
         // Helper function to ensure date is in Y-m-d format for form submission (timezone-safe)
         function formatDateForSubmission(dateString) {
             if (!dateString) return '';
@@ -1471,7 +1497,7 @@
                     const k = response.data;
 
                     // Format tanggal ke dd-mm-yyyy
-                    const birthDateFormatted = formatDateToDisplay(k.birth_date);
+                    const birthDateFormatted = formatBirthDateToDisplay(k.birth_date);
                     const joinDateFormatted = formatDateToDisplay(k.join_date);
                     const resignDateFormatted = formatDateToDisplay(k.tanggal_resign);
 
