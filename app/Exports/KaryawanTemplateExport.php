@@ -73,6 +73,7 @@ class KaryawanTemplateExport implements WithHeadings, WithStyles, WithColumnWidt
             'Lulusan Sekolah',
             'Tanggal Bergabung',
             'Status Kerja',
+            'Status Serikat',
             'Jadwal Kerja',
             'Tanggal Resign',
             'Bank',
@@ -117,22 +118,23 @@ class KaryawanTemplateExport implements WithHeadings, WithStyles, WithColumnWidt
             'Q' => 20,  // Lulusan Sekolah
             'R' => 18,  // Tanggal Bergabung
             'S' => 15,  // Status Kerja
-            'T' => 18,  // Jadwal Kerja
-            'U' => 15,  // Tanggal Resign
-            'V' => 20,  // Bank
-            'W' => 20,  // Nomor Rekening
-            'X' => 20,  // NPWP
-            'Y' => 20,  // BPJS Kesehatan
-            'Z' => 20,  // BPJS Ketenagakerjaan
-            'AA' => 12, // Status
-            'AB' => 35, // Alamat
-            'AC' => 15, // Kota
-            'AD' => 15, // Provinsi
-            'AE' => 12, // Kode Pos
-            'AF' => 15, // No HP
-            'AG' => 25, // Email
-            'AH' => 25, // Kontak Darurat Nama
-            'AI' => 15, // Kontak Darurat No
+            'T' => 18,  // Status Serikat
+            'U' => 18,  // Jadwal Kerja
+            'V' => 15,  // Tanggal Resign
+            'W' => 20,  // Bank
+            'X' => 20,  // Nomor Rekening
+            'Y' => 20,  // NPWP
+            'Z' => 20,  // BPJS Kesehatan
+            'AA' => 20,  // BPJS Ketenagakerjaan
+            'AB' => 12, // Status
+            'AC' => 35, // Alamat
+            'AD' => 15, // Kota
+            'AE' => 15, // Provinsi
+            'AF' => 12, // Kode Pos
+            'AG' => 15, // No HP
+            'AH' => 25, // Email
+            'AI' => 25, // Kontak Darurat Nama
+            'AJ' => 15, // Kontak Darurat No
         ];
     }
 
@@ -160,24 +162,26 @@ class KaryawanTemplateExport implements WithHeadings, WithStyles, WithColumnWidt
         $sheet->setCellValue('O2', 'IT & Development - Development');
         $sheet->setCellValue('P2', 'Staff IT');
         $sheet->setCellValue('Q2', 'S1 Informatika');
-        $sheet->setCellValue('R2', '2020-01-01');
+        $sheet->setCellValue('R2', '2023-01-10');
         $sheet->setCellValue('S2', 'Tetap');
-        $sheet->setCellValue('T2', 'Shift Pagi');
-        $sheet->setCellValue('U2', '');
-        $sheet->setCellValue('V2', 'BCA');
-        $sheet->setCellValue('W2', '1234567890');
-        $sheet->setCellValue('X2', '12.345.678.9-012.000');
-        $sheet->setCellValue('Y2', '0001234567890');
+        $sheet->setCellValue('T2', 'Non Serikat');
+        $sheet->setCellValue('U2', 'Shift Pagi');
+        $sheet->setCellValue('V2', '');
+        $sheet->setCellValue('W2', 'BCA');
+        $sheet->setCellValue('W2', 'BCA');
+        $sheet->setCellValue('X2', '1234567890');
+        $sheet->setCellValue('Y2', '12.345.678.9-012.000');
         $sheet->setCellValue('Z2', '0001234567890');
-        $sheet->setCellValue('AA2', 'Aktif');
-        $sheet->setCellValue('AB2', 'Jl. Contoh No. 123');
-        $sheet->setCellValue('AC2', 'Jakarta Selatan');
-        $sheet->setCellValue('AD2', 'DKI Jakarta');
-        $sheet->setCellValue('AE2', '12345');
-        $sheet->setCellValue('AF2', '081234567890');
-        $sheet->setCellValue('AG2', 'john.doe@example.com');
-        $sheet->setCellValue('AH2', 'Jane Doe');
-        $sheet->setCellValue('AI2', '081234567891');
+        $sheet->setCellValue('AA2', '0001234567890');
+        $sheet->setCellValue('AB2', 'Aktif');
+        $sheet->setCellValue('AC2', 'Jl. Contoh No. 123');
+        $sheet->setCellValue('AD2', 'Jakarta Selatan');
+        $sheet->setCellValue('AE2', 'DKI Jakarta');
+        $sheet->setCellValue('AF2', '12345');
+        $sheet->setCellValue('AG2', '081234567890');
+        $sheet->setCellValue('AH2', 'john.doe@example.com');
+        $sheet->setCellValue('AI2', 'Jane Doe');
+        $sheet->setCellValue('AJ2', '081234567891');
 
         // Add notes in row 3
         $sheet->setCellValue('A3', 'Contoh: EMP002');
@@ -193,9 +197,10 @@ class KaryawanTemplateExport implements WithHeadings, WithStyles, WithColumnWidt
         $sheet->setCellValue('R3', 'Format: YYYY-MM-DD');
         $sheet->setCellValue('S3', 'Pilih dari dropdown ⬇');
         $sheet->setCellValue('T3', 'Pilih dari dropdown ⬇');
-        $sheet->setCellValue('U3', 'Kosongkan jika belum resign');
-        $sheet->setCellValue('AA3', 'Pilih dari dropdown ⬇');
-        $sheet->setCellValue('AG3', 'Harus unique');
+        $sheet->setCellValue('U3', 'Pilih dari dropdown ⬇');
+        $sheet->setCellValue('V3', 'Kosongkan jika belum resign');
+        $sheet->setCellValue('AB3', 'Pilih dari dropdown ⬇');
+        $sheet->setCellValue('AH3', 'Harus unique');
 
         return [
             // Style header row
@@ -355,9 +360,27 @@ class KaryawanTemplateExport implements WithHeadings, WithStyles, WithColumnWidt
                     $sheet->getCell('S' . $i)->setDataValidation(clone $empStatusValidation);
                 }
 
-                // Set dropdown untuk Jadwal Kerja (Column T) - dari database
+                // Set dropdown untuk Status Serikat (Column T)
+                $serikatValidation = $sheet->getCell('T2')->getDataValidation();
+                $serikatValidation->setType(DataValidation::TYPE_LIST);
+                $serikatValidation->setErrorStyle(DataValidation::STYLE_INFORMATION);
+                $serikatValidation->setAllowBlank(false);
+                $serikatValidation->setShowInputMessage(true);
+                $serikatValidation->setShowErrorMessage(true);
+                $serikatValidation->setShowDropDown(true);
+                $serikatValidation->setErrorTitle('Input error');
+                $serikatValidation->setError('Pilih dari dropdown');
+                $serikatValidation->setPromptTitle('Status Serikat');
+                $serikatValidation->setPrompt('Pilih status keanggotaan serikat pekerja');
+                $serikatValidation->setFormula1('"Serikat GARTEKS,Non Serikat"');
+
+                for ($i = 2; $i <= 1000; $i++) {
+                    $sheet->getCell('T' . $i)->setDataValidation(clone $serikatValidation);
+                }
+
+                // Set dropdown untuk Jadwal Kerja (Column U) - dari database
                 if (!empty($this->workSchedules)) {
-                    $scheduleValidation = $sheet->getCell('T2')->getDataValidation();
+                    $scheduleValidation = $sheet->getCell('U2')->getDataValidation();
                     $scheduleValidation->setType(DataValidation::TYPE_LIST);
                     $scheduleValidation->setErrorStyle(DataValidation::STYLE_INFORMATION);
                     $scheduleValidation->setAllowBlank(false);
@@ -371,12 +394,12 @@ class KaryawanTemplateExport implements WithHeadings, WithStyles, WithColumnWidt
                     $scheduleValidation->setFormula1('"' . implode(',', $this->workSchedules) . '"');
 
                     for ($i = 2; $i <= 1000; $i++) {
-                        $sheet->getCell('T' . $i)->setDataValidation(clone $scheduleValidation);
+                        $sheet->getCell('U' . $i)->setDataValidation(clone $scheduleValidation);
                     }
                 }
 
-                // Set dropdown untuk Status Karyawan (Column AA)
-                $statusValidation = $sheet->getCell('AA2')->getDataValidation();
+                // Set dropdown untuk Status Karyawan (Column AB)
+                $statusValidation = $sheet->getCell('AB2')->getDataValidation();
                 $statusValidation->setType(DataValidation::TYPE_LIST);
                 $statusValidation->setErrorStyle(DataValidation::STYLE_INFORMATION);
                 $statusValidation->setAllowBlank(false);
@@ -390,7 +413,7 @@ class KaryawanTemplateExport implements WithHeadings, WithStyles, WithColumnWidt
                 $statusValidation->setFormula1('"Aktif,Tidak Aktif,Resign"');
 
                 for ($i = 2; $i <= 1000; $i++) {
-                    $sheet->getCell('AA' . $i)->setDataValidation(clone $statusValidation);
+                    $sheet->getCell('AB' . $i)->setDataValidation(clone $statusValidation);
                 }
             },
         ];

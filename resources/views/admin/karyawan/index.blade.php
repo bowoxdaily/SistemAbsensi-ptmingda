@@ -384,30 +384,13 @@
                                     </div>
                                 </div>
 
-                                <div class="row g-2 g-md-3">
-                                    <div class="col-sm-6 mb-2">
-                                        <label for="position_id" class="form-label small">Posisi <span
-                                                class="text-danger">*</span></label>
-                                        <select class="form-select form-select-sm" id="position_id" name="position_id">
-                                            <option value="">Pilih Posisi...</option>
-                                        </select>
-                                        <div class="invalid-feedback" id="position_idError"></div>
-                                    </div>
-                                    <div class="col-sm-6 mb-2">
-                                        <label for="lulusan_sekolah" class="form-label small">Pendidikan Terakhir</label>
-                                        <select class="form-select form-select-sm" id="lulusan_sekolah"
-                                            name="lulusan_sekolah">
-                                            <option value="">Pilih Pendidikan...</option>
-                                            <option value="SD">SD</option>
-                                            <option value="SMP">SMP</option>
-                                            <option value="SMA">SMA</option>
-                                            <option value="D1">D1</option>
-                                            <option value="D3">D3</option>
-                                            <option value="D4/S1">D4/S1</option>
-                                            <option value="S2">S2</option>
-                                        </select>
-                                        <div class="invalid-feedback" id="lulusan_sekolahError"></div>
-                                    </div>
+                                <div class="mb-2">
+                                    <label for="position_id" class="form-label small">Posisi <span
+                                            class="text-danger">*</span></label>
+                                    <select class="form-select form-select-sm" id="position_id" name="position_id">
+                                        <option value="">Pilih Posisi...</option>
+                                    </select>
+                                    <div class="invalid-feedback" id="position_idError"></div>
                                 </div>
 
                                 <div class="row g-2 g-md-3">
@@ -431,6 +414,19 @@
                                         <div class="invalid-feedback" id="employment_statusError"></div>
                                     </div>
                                     <div class="col-sm-4 mb-2">
+                                        <label for="serikat" class="form-label small">Status Serikat <span
+                                                class="text-danger">*</span></label>
+                                        <select class="form-select form-select-sm" id="serikat" name="serikat">
+                                            <option value="">Pilih...</option>
+                                            <option value="Serikat GARTEKS">Serikat GARTEKS</option>
+                                            <option value="Non Serikat">Non Serikat</option>
+                                        </select>
+                                        <div class="invalid-feedback" id="serikatError"></div>
+                                    </div>
+                                </div>
+
+                                <div class="row g-2 g-md-3">
+                                    <div class="col-sm-6 mb-2">
                                         <label for="work_schedule_id" class="form-label small">Jadwal Kerja <span
                                                 class="text-danger">*</span></label>
                                         <select class="form-select form-select-sm" id="work_schedule_id"
@@ -438,6 +434,22 @@
                                             <option value="">Pilih Jadwal...</option>
                                         </select>
                                         <div class="invalid-feedback" id="work_schedule_idError"></div>
+                                    </div>
+                                    <div class="col-sm-6 mb-2">
+                                        <label for="lulusan_sekolah" class="form-label small">Pendidikan Terakhir</label>
+                                        <select class="form-select form-select-sm" id="lulusan_sekolah"
+                                            name="lulusan_sekolah">
+                                            <option value="">Pilih Pendidikan...</option>
+                                            <option value="SD">SD</option>
+                                            <option value="SMP">SMP</option>
+                                            <option value="SMA">SMA</option>
+                                            <option value="D1">D1</option>
+                                            <option value="D2">D2</option>
+                                            <option value="D3">D3</option>
+                                            <option value="D4/S1">D4/S1</option>
+                                            <option value="S2">S2</option>
+                                        </select>
+                                        <div class="invalid-feedback" id="lulusan_sekolahError"></div>
                                     </div>
                                 </div>
 
@@ -684,6 +696,10 @@
                                 <tr>
                                     <th>Status Kerja</th>
                                     <td id="detailEmploymentStatus">-</td>
+                                </tr>
+                                <tr>
+                                    <th>Status Serikat</th>
+                                    <td id="detailSerikat">-</td>
                                 </tr>
                                 <tr>
                                     <th>Jadwal Kerja</th>
@@ -1314,6 +1330,7 @@
                     $('#join_date').val(k.join_date || '');
 
                     $('#employment_status').val(k.employment_status);
+                    $('#serikat').val(k.serikat || 'Non Serikat');
                     $('#work_schedule_id').val(k.work_schedule_id);
                     $('#status').val(k.status);
 
@@ -1374,6 +1391,7 @@
                 lulusan_sekolah: $('#lulusan_sekolah').val(), // Pendidikan Terakhir dari dropdown
                 join_date: formatDateForSubmission($('#join_date').val()),
                 employment_status: $('#employment_status').val(),
+                serikat: $('#serikat').val(),
                 work_schedule_id: $('#work_schedule_id').val(),
                 status: $('#status').val(),
                 tanggal_resign: formatDateForSubmission($('#tanggal_resign').val()),
@@ -1522,6 +1540,7 @@
                     $('#detailLulusanSekolah').text(k.lulusan_sekolah || '-');
                     $('#detailJoinDate').text(joinDateFormatted);
                     $('#detailEmploymentStatus').text(k.employment_status);
+                    $('#detailSerikat').text(k.serikat || 'Non Serikat');
                     $('#detailShiftType').text(k.work_schedule ? k.work_schedule.name : '-');
                     $('#detailStatus').html(getStatusBadge(k.status));
 
