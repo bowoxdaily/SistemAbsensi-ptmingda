@@ -30,6 +30,7 @@ class Karyawans extends Model
         'position_id',
         'join_date',
         'employment_status',
+        'serikat',
         'lulusan_sekolah',
         'work_schedule_id',
         'supervisor_id',
