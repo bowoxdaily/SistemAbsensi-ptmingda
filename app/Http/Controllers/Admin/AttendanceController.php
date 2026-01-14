@@ -816,6 +816,57 @@ class AttendanceController extends Controller
     }
 
     /**
+     * Bulk delete attendances
+     */
+    public function bulkDelete(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'required|integer|exists:attendances,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data tidak valid',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $ids = $request->ids;
+            $deletedCount = 0;
+
+            // Get all attendances to be deleted
+            $attendances = Attendance::whereIn('id', $ids)->get();
+
+            foreach ($attendances as $attendance) {
+                // Delete photos if exist
+                if ($attendance->photo_in) {
+                    Storage::disk('public')->delete($attendance->photo_in);
+                }
+                if ($attendance->photo_out) {
+                    Storage::disk('public')->delete($attendance->photo_out);
+                }
+
+                // Delete attendance record
+                $attendance->delete();
+                $deletedCount++;
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Berhasil menghapus {$deletedCount} data absensi"
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus data absensi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Export attendance to Excel
      */
     public function export(Request $request)

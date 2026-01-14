@@ -151,7 +151,12 @@
         <!-- Attendance Table -->
         <div class="card mt-4">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Daftar Absensi</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <h5 class="card-title mb-0">Daftar Absensi</h5>
+                    <button type="button" class="btn btn-sm btn-danger" id="bulkDeleteBtn" style="display: none;">
+                        <i class='bx bx-trash me-1'></i> Hapus <span id="selectedCount">0</span> Data
+                    </button>
+                </div>
                 <div class="d-flex align-items-center">
                     <label class="me-2 mb-0 text-muted small">Tampilkan:</label>
                     <select class="form-select form-select-sm" id="perPageSelect" style="width: auto; min-width: 80px;">
@@ -168,6 +173,9 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
+                                <th width="40">
+                                    <input type="checkbox" class="form-check-input" id="selectAll">
+                                </th>
                                 <th>No</th>
                                 <th>NIP</th>
                                 <th>Nama Karyawan</th>
@@ -185,6 +193,12 @@
                         <tbody>
                             @forelse($attendances as $index => $attendance)
                                 <tr>
+                                    <td>
+                                        <input type="checkbox" class="form-check-input attendance-checkbox" 
+                                               value="{{ $attendance->id }}"
+                                               data-name="{{ $attendance->employee->name }}"
+                                               data-date="{{ \Carbon\Carbon::parse($attendance->attendance_date)->locale('id')->translatedFormat('d F Y') }}">
+                                    </td>
                                     <td>{{ $attendances->firstItem() + $index }}</td>
                                     <td><strong>{{ $attendance->employee->employee_code }}</strong></td>
                                     <td>{{ $attendance->employee->name }}</td>
@@ -283,7 +297,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="12" class="text-center py-4">
+                                    <td colspan="13" class="text-center py-4">
                                         <i class='bx bx-info-circle bx-lg text-muted'></i>
                                         <p class="mt-2 mb-0 text-muted">Tidak ada data absensi</p>
                                     </td>
@@ -299,11 +313,17 @@
                         <div class="card mb-3 shadow-sm">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <div>
-                                        <h6 class="mb-1">{{ $attendance->employee->name }}</h6>
-                                        <small class="text-muted">
-                                            <i class='bx bx-id-card'></i> {{ $attendance->employee->employee_code }}
-                                        </small>
+                                    <div class="d-flex align-items-start gap-2 flex-grow-1">
+                                        <input type="checkbox" class="form-check-input attendance-checkbox mt-1" 
+                                               value="{{ $attendance->id }}"
+                                               data-name="{{ $attendance->employee->name }}"
+                                               data-date="{{ \Carbon\Carbon::parse($attendance->attendance_date)->locale('id')->translatedFormat('d F Y') }}">
+                                        <div>
+                                            <h6 class="mb-1">{{ $attendance->employee->name }}</h6>
+                                            <small class="text-muted">
+                                                <i class='bx bx-id-card'></i> {{ $attendance->employee->employee_code }}
+                                            </small>
+                                        </div>
                                     </div>
                                     <div class="dropdown">
                                         <button type="button" class="btn btn-sm btn-icon dropdown-toggle hide-arrow"
@@ -1000,6 +1020,127 @@
                                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
                                 'Accept': 'application/json'
                             },
+                            success: function(response) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil!',
+                                    text: response.message,
+                                    showConfirmButton: false,
+                                    timer: 2000
+                                }).then(() => {
+                                    // Reload page
+                                    window.location.reload();
+                                });
+                            },
+                            error: function(xhr) {
+                                let errorMessage = 'Gagal menghapus data absensi';
+                                if (xhr.responseJSON && xhr.responseJSON.message) {
+                                    errorMessage = xhr.responseJSON.message;
+                                }
+
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal!',
+                                    text: errorMessage,
+                                    confirmButtonText: 'OK'
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+
+            // Select All Checkbox
+            $('#selectAll').on('change', function() {
+                const isChecked = $(this).prop('checked');
+                $('.attendance-checkbox').prop('checked', isChecked);
+                updateBulkDeleteButton();
+            });
+
+            // Individual Checkbox
+            $(document).on('change', '.attendance-checkbox', function() {
+                const totalCheckboxes = $('.attendance-checkbox').length;
+                const checkedCheckboxes = $('.attendance-checkbox:checked').length;
+                
+                $('#selectAll').prop('checked', totalCheckboxes === checkedCheckboxes);
+                updateBulkDeleteButton();
+            });
+
+            // Update Bulk Delete Button Visibility
+            function updateBulkDeleteButton() {
+                const checkedCount = $('.attendance-checkbox:checked').length;
+                
+                if (checkedCount > 0) {
+                    $('#bulkDeleteBtn').show();
+                    $('#selectedCount').text(checkedCount);
+                } else {
+                    $('#bulkDeleteBtn').hide();
+                }
+            }
+
+            // Bulk Delete Handler
+            $('#bulkDeleteBtn').on('click', function() {
+                const selectedIds = [];
+                const selectedItems = [];
+                
+                $('.attendance-checkbox:checked').each(function() {
+                    selectedIds.push($(this).val());
+                    selectedItems.push({
+                        name: $(this).data('name'),
+                        date: $(this).data('date')
+                    });
+                });
+
+                if (selectedIds.length === 0) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Peringatan',
+                        text: 'Pilih minimal 1 data untuk dihapus',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+
+                // Build list of items for confirmation
+                let itemsList = '<div class="text-start mt-3" style="max-height: 300px; overflow-y: auto;">';
+                selectedItems.forEach((item, index) => {
+                    itemsList += `<small>${index + 1}. ${item.name} - ${item.date}</small><br>`;
+                });
+                itemsList += '</div>';
+
+                Swal.fire({
+                    title: `Hapus ${selectedIds.length} Data Absensi?`,
+                    html: `Apakah Anda yakin ingin menghapus ${selectedIds.length} data absensi berikut?${itemsList}`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Ya, Hapus Semua!',
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Show loading
+                        Swal.fire({
+                            title: 'Menghapus...',
+                            html: `Sedang menghapus ${selectedIds.length} data...`,
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+
+                        // Send bulk delete request
+                        $.ajax({
+                            url: '/api/admin/attendance/bulk-delete',
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
+                            },
+                            data: JSON.stringify({ ids: selectedIds }),
                             success: function(response) {
                                 Swal.fire({
                                     icon: 'success',

@@ -63,6 +63,7 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('admin/attendance')->group(f
     Route::get('/{id}/detail', [AttendanceController::class, 'detail']);
     Route::put('/{id}', [AttendanceController::class, 'update']);
     Route::delete('/{id}', [AttendanceController::class, 'destroy']);
+    Route::post('/bulk-delete', [AttendanceController::class, 'bulkDelete']);
 });
 
 // Employee Routes (for logged-in employees)
