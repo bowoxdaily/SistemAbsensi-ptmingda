@@ -161,6 +161,18 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('settings/cronjob')->group(f
     Route::post('/run', [\App\Http\Controllers\Admin\CronJobController::class, 'runScheduler']);
 });
 
+// Holiday Management API
+Route::middleware(['web', 'auth', 'admin'])->prefix('settings/holidays')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Admin\HolidayController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Admin\HolidayController::class, 'store']);
+    Route::get('/calendar', [\App\Http\Controllers\Admin\HolidayController::class, 'calendar']);
+    Route::post('/import', [\App\Http\Controllers\Admin\HolidayController::class, 'import']);
+    Route::get('/{id}', [\App\Http\Controllers\Admin\HolidayController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Admin\HolidayController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Admin\HolidayController::class, 'destroy']);
+    Route::post('/{id}/toggle', [\App\Http\Controllers\Admin\HolidayController::class, 'toggleActive']);
+});
+
 // Import/Export API
 Route::prefix('karyawan')->group(function () {
     Route::post('/import', [\App\Http\Controllers\Admin\KaryawanController::class, 'import']);

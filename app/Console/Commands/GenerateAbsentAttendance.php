@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use App\Models\Employee;
 use App\Models\Attendance;
 use App\Models\Leave;
+use App\Models\Holiday;
 use Carbon\Carbon;
 
 class GenerateAbsentAttendance extends Command
@@ -42,6 +43,13 @@ class GenerateAbsentAttendance extends Command
         // If Sunday (0) or Saturday (6), skip (weekend)
         if ($dayOfWeek == 0 || $dayOfWeek == 6) {
             $this->warn("Skipping weekend date: " . $date->format('l, d F Y'));
+            return 0;
+        }
+
+        // Check if date is a holiday
+        if (Holiday::isHoliday($date)) {
+            $holiday = Holiday::where('date', $date->format('Y-m-d'))->where('is_active', true)->first();
+            $this->warn("Skipping holiday: " . $date->format('l, d F Y') . " - {$holiday->name}");
             return 0;
         }
 

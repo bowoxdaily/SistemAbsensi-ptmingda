@@ -19,6 +19,82 @@
         </div>
 
         <div class="row">
+            <!-- Holidays Management Card -->
+            <div class="col-12">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class='bx bx-calendar-star me-2'></i>Pengaturan Hari Libur
+                        </h5>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary" onclick="importHolidays()">
+                                <i class='bx bx-download'></i> Import Libur Nasional
+                            </button>
+                            <button class="btn btn-sm btn-primary" onclick="showAddHolidayModal()">
+                                <i class='bx bx-plus'></i> Tambah Hari Libur
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info shadow-none border mb-3">
+                            <strong><i class='bx bx-info-circle'></i> Info:</strong><br>
+                            Hari libur yang ditambahkan akan dikecualikan dari perhitungan absensi alpha. Karyawan yang tidak absen pada hari libur tidak akan dianggap alpha.
+                        </div>
+
+                        <!-- Filter Year & Month -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Tahun</label>
+                                <select class="form-select" id="holidayYear" onchange="loadHolidays()">
+                                    <option value="2025">2025</option>
+                                    <option value="2026" selected>2026</option>
+                                    <option value="2027">2027</option>
+                                    <option value="2028">2028</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Bulan</label>
+                                <select class="form-select" id="holidayMonth" onchange="loadHolidays()">
+                                    <option value="">Semua Bulan</option>
+                                    <option value="1">Januari</option>
+                                    <option value="2">Februari</option>
+                                    <option value="3">Maret</option>
+                                    <option value="4">April</option>
+                                    <option value="5">Mei</option>
+                                    <option value="6">Juni</option>
+                                    <option value="7">Juli</option>
+                                    <option value="8">Agustus</option>
+                                    <option value="9">September</option>
+                                    <option value="10">Oktober</option>
+                                    <option value="11">November</option>
+                                    <option value="12">Desember</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Holidays Table -->
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="holidaysTable">
+                                <thead>
+                                    <tr>
+                                        <th width="15%">Tanggal</th>
+                                        <th>Nama Hari Libur</th>
+                                        <th width="15%">Jenis</th>
+                                        <th width="10%">Status</th>
+                                        <th width="15%">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="holidaysTableBody">
+                                    <tr>
+                                        <td colspan="5" class="text-center">Loading...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Command Cron Job -->
             <div class="col-lg-8">
                 <div class="card mb-4">
@@ -428,6 +504,53 @@
         </div>
     </div>
 
+    <!-- Modal Add/Edit Holiday -->
+    <div class="modal fade" id="holidayModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="holidayModalTitle">Tambah Hari Libur</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="holidayForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="holidayId">
+                        <div class="mb-3">
+                            <label class="form-label">Tanggal <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="holidayDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nama Hari Libur <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="holidayName" placeholder="Contoh: Hari Raya Idul Fitri" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Jenis <span class="text-danger">*</span></label>
+                            <select class="form-select" id="holidayType" required>
+                                <option value="nasional">Libur Nasional</option>
+                                <option value="cuti_bersama">Cuti Bersama</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Keterangan</label>
+                            <textarea class="form-control" id="holidayDescription" rows="3" placeholder="Keterangan tambahan (opsional)"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="holidayIsActive" checked>
+                                <label class="form-check-label" for="holidayIsActive">Aktif</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     @push('scripts')
         <script>
             function copyToClipboard(elementId) {
@@ -677,10 +800,266 @@
             // Auto check status on load
             $(document).ready(function() {
                 checkCronStatus();
+                loadHolidays();
 
                 // Auto refresh every 30 seconds
                 setInterval(checkCronStatus, 30000);
             });
+
+            // ============================================
+            // HOLIDAY MANAGEMENT FUNCTIONS
+            // ============================================
+
+            function loadHolidays() {
+                const year = $('#holidayYear').val();
+                const month = $('#holidayMonth').val();
+
+                $.ajax({
+                    url: '/api/settings/holidays',
+                    method: 'GET',
+                    data: { year, month },
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    success: function(response) {
+                        renderHolidaysTable(response.data);
+                    },
+                    error: function(xhr) {
+                        toastr.error('Gagal memuat data hari libur', 'Error!');
+                    }
+                });
+            }
+
+            function renderHolidaysTable(holidays) {
+                const tbody = $('#holidaysTableBody');
+                tbody.empty();
+
+                if (holidays.length === 0) {
+                    tbody.append(`
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">Tidak ada data hari libur</td>
+                        </tr>
+                    `);
+                    return;
+                }
+
+                holidays.forEach(holiday => {
+                    const typeClass = {
+                        'nasional': 'bg-label-danger',
+                        'cuti_bersama': 'bg-label-warning',
+                        'custom': 'bg-label-info'
+                    }[holiday.type] || 'bg-label-secondary';
+
+                    const statusBadge = holiday.is_active 
+                        ? '<span class="badge bg-success">Aktif</span>'
+                        : '<span class="badge bg-secondary">Nonaktif</span>';
+
+                    tbody.append(`
+                        <tr>
+                            <td>
+                                <strong>${holiday.date_formatted}</strong><br>
+                                <small class="text-muted">${holiday.day_name}</small>
+                            </td>
+                            <td>
+                                ${holiday.name}
+                                ${holiday.description ? '<br><small class="text-muted">' + holiday.description + '</small>' : ''}
+                            </td>
+                            <td><span class="badge ${typeClass}">${holiday.type_label}</span></td>
+                            <td>${statusBadge}</td>
+                            <td>
+                                <button class="btn btn-sm btn-icon btn-outline-primary" onclick="editHoliday(${holiday.id})" title="Edit">
+                                    <i class='bx bx-edit'></i>
+                                </button>
+                                <button class="btn btn-sm btn-icon btn-outline-${holiday.is_active ? 'warning' : 'success'}" 
+                                    onclick="toggleHoliday(${holiday.id}, ${!holiday.is_active})" 
+                                    title="${holiday.is_active ? 'Nonaktifkan' : 'Aktifkan'}">
+                                    <i class='bx bx-${holiday.is_active ? 'hide' : 'show'}'></i>
+                                </button>
+                                <button class="btn btn-sm btn-icon btn-outline-danger" onclick="deleteHoliday(${holiday.id})" title="Hapus">
+                                    <i class='bx bx-trash'></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `);
+                });
+            }
+
+            function showAddHolidayModal() {
+                $('#holidayModalTitle').text('Tambah Hari Libur');
+                $('#holidayForm')[0].reset();
+                $('#holidayId').val('');
+                $('#holidayIsActive').prop('checked', true);
+                new bootstrap.Modal(document.getElementById('holidayModal')).show();
+            }
+
+            function editHoliday(id) {
+                $.ajax({
+                    url: `/api/settings/holidays/${id}`,
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    success: function(response) {
+                        const holiday = response.data;
+                        $('#holidayModalTitle').text('Edit Hari Libur');
+                        $('#holidayId').val(holiday.id);
+                        $('#holidayDate').val(holiday.date);
+                        $('#holidayName').val(holiday.name);
+                        $('#holidayType').val(holiday.type);
+                        $('#holidayDescription').val(holiday.description || '');
+                        $('#holidayIsActive').prop('checked', holiday.is_active);
+                        new bootstrap.Modal(document.getElementById('holidayModal')).show();
+                    },
+                    error: function(xhr) {
+                        toastr.error('Gagal memuat data hari libur', 'Error!');
+                    }
+                });
+            }
+
+            $('#holidayForm').on('submit', function(e) {
+                e.preventDefault();
+
+                const id = $('#holidayId').val();
+                const data = {
+                    _token: '{{ csrf_token() }}',
+                    date: $('#holidayDate').val(),
+                    name: $('#holidayName').val(),
+                    type: $('#holidayType').val(),
+                    description: $('#holidayDescription').val(),
+                    is_active: $('#holidayIsActive').is(':checked') ? 1 : 0
+                };
+
+                const url = id ? `/api/settings/holidays/${id}` : '/api/settings/holidays';
+                const method = id ? 'PUT' : 'POST';
+
+                $.ajax({
+                    url: url,
+                    method: method,
+                    data: data,
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    success: function(response) {
+                        toastr.success(response.message, 'Berhasil!');
+                        bootstrap.Modal.getInstance(document.getElementById('holidayModal')).hide();
+                        loadHolidays();
+                    },
+                    error: function(xhr) {
+                        if (xhr.responseJSON?.errors) {
+                            const errors = Object.values(xhr.responseJSON.errors).flat();
+                            toastr.error(errors.join('<br>'), 'Validasi Gagal');
+                        } else {
+                            toastr.error(xhr.responseJSON?.message || 'Gagal menyimpan data', 'Error!');
+                        }
+                    }
+                });
+            });
+
+            function toggleHoliday(id, newStatus) {
+                $.ajax({
+                    url: `/api/settings/holidays/${id}/toggle`,
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}'
+                    },
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    success: function(response) {
+                        toastr.success(response.message, 'Berhasil!');
+                        loadHolidays();
+                    },
+                    error: function(xhr) {
+                        toastr.error(xhr.responseJSON?.message || 'Gagal mengubah status', 'Error!');
+                    }
+                });
+            }
+
+            function deleteHoliday(id) {
+                Swal.fire({
+                    title: 'Hapus Hari Libur',
+                    text: 'Yakin ingin menghapus hari libur ini?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Hapus',
+                    cancelButtonText: 'Batal',
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#8592a3'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/api/settings/holidays/${id}`,
+                            method: 'DELETE',
+                            data: {
+                                _token: '{{ csrf_token() }}'
+                            },
+                            headers: {
+                                'Accept': 'application/json'
+                            },
+                            success: function(response) {
+                                toastr.success(response.message, 'Berhasil!');
+                                loadHolidays();
+                            },
+                            error: function(xhr) {
+                                toastr.error(xhr.responseJSON?.message || 'Gagal menghapus data', 'Error!');
+                            }
+                        });
+                    }
+                });
+            }
+
+            function importHolidays() {
+                const year = $('#holidayYear').val();
+
+                Swal.fire({
+                    title: 'Import Hari Libur Nasional',
+                    text: `Import hari libur nasional Indonesia tahun ${year}?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Import',
+                    cancelButtonText: 'Batal',
+                    confirmButtonColor: '#696cff',
+                    cancelButtonColor: '#8592a3'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        Swal.fire({
+                            title: 'Mengimport...',
+                            text: 'Mohon tunggu',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+
+                        $.ajax({
+                            url: '/api/settings/holidays/import',
+                            method: 'POST',
+                            data: {
+                                _token: '{{ csrf_token() }}',
+                                year: year
+                            },
+                            headers: {
+                                'Accept': 'application/json'
+                            },
+                            success: function(response) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil!',
+                                    text: response.message
+                                });
+                                loadHolidays();
+                            },
+                            error: function(xhr) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal',
+                                    text: xhr.responseJSON?.message || 'Gagal mengimport data'
+                                });
+                            }
+                        });
+                    }
+                });
+            }
         </script>
     @endpush
 @endsection
