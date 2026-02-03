@@ -68,6 +68,9 @@ Route::middleware(['auth'])->group(function () {
         // WhatsApp Settings (View only - API handles POST)
         Route::get('/admin/settings/whatsapp', [\App\Http\Controllers\Admin\WhatsAppSettingController::class, 'index'])->name('admin.settings.whatsapp');
 
+        // Fingerspot Settings (View only - API handles POST/PUT/DELETE)
+        Route::get('/admin/settings/fingerspot', [\App\Http\Controllers\Admin\FingerspotSettingController::class, 'index'])->name('admin.settings.fingerspot');
+
         // Leave Management (View only - API handles POST/DELETE)
         Route::get('/admin/leave', [\App\Http\Controllers\Admin\LeaveController::class, 'index'])->name('admin.leave.index');
     });

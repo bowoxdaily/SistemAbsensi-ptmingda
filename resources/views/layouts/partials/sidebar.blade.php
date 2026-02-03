@@ -149,6 +149,11 @@
                             <div data-i18n="WhatsApp">WhatsApp</div>
                         </a>
                     </li>
+                    <li class="menu-item {{ request()->routeIs('admin.settings.fingerspot*') ? 'active' : '' }}">
+                        <a href="{{ route('admin.settings.fingerspot') }}" class="menu-link">
+                            <div data-i18n="Fingerspot">Fingerspot</div>
+                        </a>
+                    </li>
                 </ul>
             </li>
 

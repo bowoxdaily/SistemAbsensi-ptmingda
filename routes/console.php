@@ -37,3 +37,11 @@ Schedule::command('attendance:generate-absent')
         $sentinelFile = storage_path('framework/schedule-sentinel');
         touch($sentinelFile);
     });
+
+// Schedule: Auto sync Fingerspot data every 5 minutes
+// Mengambil data attlog dari API Fingerspot dan memproses ke attendance
+Schedule::command('fingerspot:sync')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/fingerspot-sync.log'));
