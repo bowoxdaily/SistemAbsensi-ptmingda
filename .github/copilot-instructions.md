@@ -8,22 +8,22 @@ Laravel 11 employee attendance system with face detection, automated alpha gener
 
 ### Data Model Relationships
 
--   **User** (1:1) **Employee** (N:1) **Department/Position**
--   **Employee** (1:N) **Attendance** - Core attendance tracking
--   **Employee** (N:1) **WorkSchedule** - Defines working days/hours per shift
--   **Employee** (1:N) **Leave** - Leave requests (izin, sakit, cuti)
--   **Employee** (1:N) **Payroll** - Monthly salary calculations
--   Table naming: Database uses `employees` table, but model is `Karyawans` (legacy naming preserved for compatibility)
+- **User** (1:1) **Employee** (N:1) **Department/Position**
+- **Employee** (1:N) **Attendance** - Core attendance tracking
+- **Employee** (N:1) **WorkSchedule** - Defines working days/hours per shift
+- **Employee** (1:N) **Leave** - Leave requests (izin, sakit, cuti)
+- **Employee** (1:N) **Payroll** - Monthly salary calculations
+- Table naming: Database uses `employees` table, but model is `Karyawans` (legacy naming preserved for compatibility)
 
 ### Route Architecture Pattern
 
 **Separation of Concerns:**
 
--   `routes/web.php` - View rendering only (returns Blade templates)
--   `routes/api.php` - Data operations (CRUD via JSON API)
--   Frontend makes AJAX calls to `/api/*` endpoints for all data manipulation
--   Admin routes protected by `admin` middleware checking `users.role === 'admin'` or `'manager'`
--   **Manager role has same access as Admin** - both use `/admin/*` routes
+- `routes/web.php` - View rendering only (returns Blade templates)
+- `routes/api.php` - Data operations (CRUD via JSON API)
+- Frontend makes AJAX calls to `/api/*` endpoints for all data manipulation
+- Admin routes protected by `admin` middleware checking `users.role === 'admin'` or `'manager'`
+- **Manager role has same access as Admin** - both use `/admin/*` routes
 
 **Example Flow:**
 
@@ -38,9 +38,9 @@ Route::get('/api/attendance/list', [AttendanceController::class, 'list']);
 
 **Role Structure (from `users` table):**
 
--   `karyawan` - Regular employee access (employee dashboard)
--   `admin` - Full administrative access (admin dashboard)
--   `manager` - Same as admin (shares admin dashboard and all features)
+- `karyawan` - Regular employee access (employee dashboard)
+- `admin` - Full administrative access (admin dashboard)
+- `manager` - Same as admin (shares admin dashboard and all features)
 
 ### Attendance Status Logic
 
@@ -56,23 +56,23 @@ Route::get('/api/attendance/list', [AttendanceController::class, 'list']);
 
 **Alpha Auto-Generation:**
 
--   Command: `php artisan attendance:generate-absent {date?}`
--   Runs: Hourly 08:00-23:59 on weekdays (see `routes/console.php`)
--   Logic in `GenerateAbsentAttendance`:
-    -   Checks each active employee with `work_schedule_id`
-    -   Verifies if date is working day for their shift (uses `WorkSchedule->work_*` columns)
-    -   Skips if check-out time + 30min grace period hasn't passed
-    -   Creates `alpha` record only if no attendance/leave exists
-    -   Never overwrites existing attendance
+- Command: `php artisan attendance:generate-absent {date?}`
+- Runs: Hourly 08:00-23:59 on weekdays (see `routes/console.php`)
+- Logic in `GenerateAbsentAttendance`:
+    - Checks each active employee with `work_schedule_id`
+    - Verifies if date is working day for their shift (uses `WorkSchedule->work_*` columns)
+    - Skips if check-out time + 30min grace period hasn't passed
+    - Creates `alpha` record only if no attendance/leave exists
+    - Never overwrites existing attendance
 
 ### Retroactive Attendance Entry
 
 **Key Feature:** Manual attendance supports date/time override (see `ABSENSI_MANUAL_UPDATE.md`)
 
--   `face-detection.blade.php` has date picker to select any date
--   `checkIn()`/`checkOut()` accept `date`, `check_in_time`, `check_out_time` parameters
--   Use `/api/attendance/by-date/{employeeId}?date=YYYY-MM-DD` to check existing records
--   Allow past date entry for corrections
+- `face-detection.blade.php` has date picker to select any date
+- `checkIn()`/`checkOut()` accept `date`, `check_in_time`, `check_out_time` parameters
+- Use `/api/attendance/by-date/{employeeId}?date=YYYY-MM-DD` to check existing records
+- Allow past date entry for corrections
 
 ### Date Handling & Timezone Issues
 
@@ -144,9 +144,9 @@ php artisan db:seed          # Seed data
 
 ### Common Tasks
 
--   **Add migration:** `php artisan make:migration create_*_table`
--   **Add controller:** `php artisan make:controller Admin\*Controller`
--   **Clear cache:** `php artisan cache:clear; php artisan config:clear; php artisan route:clear`
+- **Add migration:** `php artisan make:migration create_*_table`
+- **Add controller:** `php artisan make:controller Admin\*Controller`
+- **Clear cache:** `php artisan cache:clear; php artisan config:clear; php artisan route:clear`
 
 ### Testing Scheduler Locally
 
@@ -165,11 +165,11 @@ php artisan schedule:run
 
 ### Naming Patterns
 
--   **Controllers:** Namespaced under `Admin\` or `Employee\` based on access level (Manager uses `Admin\` namespace)
--   **Views:** `resources/views/{admin|employee}/{feature}/{action}.blade.php` (Manager uses admin views)
--   **API Routes:** Prefix with feature: `/api/attendance/*`, `/api/karyawan/*`
--   **Models:** Singular names, `Karyawans` is exception (maps to `employees` table via `$table` property)
--   **User Roles:** `karyawan`, `admin`, `manager` - Manager has identical permissions to Admin
+- **Controllers:** Namespaced under `Admin\` or `Employee\` based on access level (Manager uses `Admin\` namespace)
+- **Views:** `resources/views/{admin|employee}/{feature}/{action}.blade.php` (Manager uses admin views)
+- **API Routes:** Prefix with feature: `/api/attendance/*`, `/api/karyawan/*`
+- **Models:** Singular names, `Karyawans` is exception (maps to `employees` table via `$table` property)
+- **User Roles:** `karyawan`, `admin`, `manager` - Manager has identical permissions to Admin
 
 ### Validation Pattern
 
@@ -237,18 +237,18 @@ $.ajax({
 
 ### Excel Import/Export (Maatwebsite/Laravel-Excel)
 
--   **Export classes:** `app/Exports/*Export.php` - Implement `FromCollection`, `WithHeadings`, `WithMapping`, `WithStyles`
--   **Import classes:** `app/Imports/*Import.php` - Implement `ToModel`, `WithHeadingRow`, `WithValidation`
--   **Usage:** `Excel::download(new AttendanceExport(...), 'filename.xlsx')`
+- **Export classes:** `app/Exports/*Export.php` - Implement `FromCollection`, `WithHeadings`, `WithMapping`, `WithStyles`
+- **Import classes:** `app/Imports/*Import.php` - Implement `ToModel`, `WithHeadingRow`, `WithValidation`
+- **Usage:** `Excel::download(new AttendanceExport(...), 'filename.xlsx')`
 
 ### WhatsApp Notifications (WhatsAppService)
 
 **Multi-Provider Support:**
 
--   **Fonnte API:** Commercial service (https://api.fonnte.com/send)
--   **Baileys:** Self-hosted WhatsApp Web API
--   Configuration: `whatsapp_settings` table stores API keys/URLs
--   Service: `app/Services/WhatsAppService.php` - Auto-detects provider via `WhatsAppSetting::getActive()`
+- **Fonnte API:** Commercial service (https://api.fonnte.com/send)
+- **Baileys:** Self-hosted WhatsApp Web API
+- Configuration: `whatsapp_settings` table stores API keys/URLs
+- Service: `app/Services/WhatsAppService.php` - Auto-detects provider via `WhatsAppSetting::getActive()`
 
 **Implementation Pattern:**
 
@@ -261,36 +261,36 @@ $whatsapp->send('628123456789', 'Message text', $imageUrl);
 
 ### Face Detection (Frontend Only)
 
--   Uses browser `navigator.mediaDevices.getUserMedia()` for webcam access
--   Captures Base64 image → sends to API as `photo` field
--   No server-side AI/ML processing - just stores images in `storage/app/public/attendance/`
+- Uses browser `navigator.mediaDevices.getUserMedia()` for webcam access
+- Captures Base64 image → sends to API as `photo` field
+- No server-side AI/ML processing - just stores images in `storage/app/public/attendance/`
 
 ## Important Files
 
 ### Configuration
 
--   `.env` - Database, app settings (copy from `.env.example`)
--   `config/excel.php` - Excel export settings
--   `bootstrap/providers.php` - Service provider registration
+- `.env` - Database, app settings (copy from `.env.example`)
+- `config/excel.php` - Excel export settings
+- `bootstrap/providers.php` - Service provider registration
 
 ### Key Controllers
 
--   `Admin/AttendanceController.php` - Attendance CRUD, check-in/out, reports, export
--   `Admin/KaryawanController.php` - Employee management, Excel import/export with template
--   `Admin/CronJobController.php` - Dashboard for cron setup with OS-specific commands
--   `Admin/PayrollController.php` - Payroll calculation and export
+- `Admin/AttendanceController.php` - Attendance CRUD, check-in/out, reports, export
+- `Admin/KaryawanController.php` - Employee management, Excel import/export with template
+- `Admin/CronJobController.php` - Dashboard for cron setup with OS-specific commands
+- `Admin/PayrollController.php` - Payroll calculation and export
 
 ### Scheduled Tasks
 
--   `routes/console.php` - Defines all scheduled commands
--   `app/Console/ScheduleRunMiddleware.php` - Tracks cron execution (updates cache/sentinel file)
--   `app/Console/Commands/GenerateAbsentAttendance.php` - Alpha generation logic
+- `routes/console.php` - Defines all scheduled commands
+- `app/Console/ScheduleRunMiddleware.php` - Tracks cron execution (updates cache/sentinel file)
+- `app/Console/Commands/GenerateAbsentAttendance.php` - Alpha generation logic
 
 ### Views Layout
 
--   `resources/views/layouts/app.blade.php` - Main layout (Sneat template)
--   `resources/views/layouts/partials/{sidebar,navbar,footer}.blade.php` - UI components
--   Blade directives: `@extends('layouts.app')`, `@section('content')`
+- `resources/views/layouts/app.blade.php` - Main layout (Sneat template)
+- `resources/views/layouts/partials/{sidebar,navbar,footer}.blade.php` - UI components
+- Blade directives: `@extends('layouts.app')`, `@section('content')`
 
 ## Common Pitfalls
 
@@ -301,6 +301,20 @@ $whatsapp->send('628123456789', 'Message text', $imageUrl);
 5. **Date Formats:** Database stores `Y-m-d` for dates, `H:i:s` for times. Use Carbon for parsing
 6. **API vs Web Routes:** Never put POST/PUT/DELETE in `web.php` - keep data operations in `api.php`
 7. **Role Access:** Manager role has same access as Admin - middleware should check for `'admin'` OR `'manager'`, not just `'admin'`
+8. **WorkSchedule Time Casting:** `WorkSchedule` model uses `datetime:H:i:s` cast for `start_time` and `end_time`, so they return **Carbon objects**, not strings. Never use `substr()` on these fields - use `->format('H:i')` instead:
+
+    ```php
+    // WRONG - will fail silently or error
+    $startTimeStr = substr($schedule->start_time, 0, 5);
+
+    // CORRECT - handle Carbon object
+    if ($schedule->start_time instanceof Carbon) {
+        $startTimeStr = $schedule->start_time->format('H:i');
+    } else {
+        preg_match('/(\d{1,2}):(\d{2})/', (string) $schedule->start_time, $m);
+        $startTimeStr = $m ? $m[1] . ':' . $m[2] : '08:00';
+    }
+    ```
 
 ## Quick Reference Commands
 

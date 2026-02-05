@@ -183,7 +183,7 @@ Route::prefix('fingerspot')->group(function () {
     Route::post('/webhook', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'handleWebhook']);
     Route::get('/test', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'test']);
     Route::get('/debug-logs', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'debugLogs']);
-    Route::post('/test-photo-download', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'testPhotoDownload']);
+    Route::post('/test-photo-url', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'testPhotoUrl']);
 });
 
 // Fingerspot Admin API (Requires Auth)

@@ -134,14 +134,15 @@
                                 <i class="bx bx-code-alt text-info"></i> Expected Payload
                             </h6>
                             <pre class="bg-light p-2 rounded small mb-0"><code>{
-  "attlog": [
-    {
-      "pin": "123",
-      "datetime": "2026-02-03 08:00:00",
-      "status_scan": "0",
-      "verify_mode": "1"
-    }
-  ]
+  "type": "attlog",
+  "cloud_id": "S118000033",
+  "data": {
+    "pin": "0004",
+    "scan": "2026-02-05 18:58:46",
+    "verify": "4",
+    "status_scan": "0",
+    "photo_url": "https://fingerspot-dev.s3...."
+  }
 }</code></pre>
                         </div>
 
@@ -160,7 +161,7 @@
                 </div>
 
                 <!-- PIN Mapping Info -->
-                <div class="card">
+                <div class="card mb-4">
                     <div class="card-header">
                         <h5 class="mb-0">PIN Mapping</h5>
                     </div>
@@ -177,6 +178,31 @@
                             <i class="bx bx-info-circle"></i> Pastikan PIN di mesin sesuai dengan kode karyawan atau set
                             fingerspot_pin di data karyawan.
                         </p>
+                    </div>
+                </div>
+
+                <!-- Photo URL Info -->
+                <div class="card">
+                    <div class="card-header bg-label-info">
+                        <h5 class="mb-0"><i class="bx bx-image"></i> Photo Direct URL</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info small mb-3">
+                            <i class="bx bx-cloud"></i> <strong>Fingerspot S3 Direct Access</strong>
+                        </div>
+                        <p class="text-muted small mb-2">
+                            Foto dari Fingerspot webhook <strong>tidak di-download</strong> ke server lokal.
+                            Sistem langsung menggunakan URL dari Fingerspot S3:
+                        </p>
+                        <pre class="bg-light p-2 rounded small mb-3" style="font-size: 0.7rem; word-break: break-all;"><code>https://fingerspot-dev.s3.ap-southeast-1.amazonaws.com/attendance/front-photo/...</code></pre>
+                        <ul class="small text-muted mb-0">
+                            <li><i class="bx bx-check text-success"></i> <strong>Hemat Storage:</strong> Tidak ada foto
+                                disimpan lokal</li>
+                            <li><i class="bx bx-check text-success"></i> <strong>Lebih Cepat:</strong> Tidak ada proses
+                                download</li>
+                            <li><i class="bx bx-check text-success"></i> <strong>Real-time:</strong> Foto langsung dari S3
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>
@@ -828,7 +854,7 @@
             $('#reprocess-pending').on('click', function() {
                 Swal.fire({
                     title: 'Reprocess Log?',
-                    text: 'Sistem akan memproses ulang semua log dengan status pending dan failed.',
+                    html: 'Sistem akan memproses ulang:<br><ul class="text-start small mt-2"><li>Log dengan status <strong>pending</strong> dan <strong>failed</strong></li><li>Log <strong>success</strong> yang attendance-nya hilang/kosong</li></ul>',
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonText: 'Ya, Proses Ulang',
@@ -862,6 +888,7 @@
                                     <p><strong>Total Diproses:</strong> ${data.total}</p>
                                     <p><strong>Berhasil:</strong> ${data.processed}</p>
                                     <p><strong>Gagal:</strong> ${data.failed}</p>
+                                    ${data.recreated > 0 ? `<p class="text-success"><strong>Attendance Dibuat Ulang:</strong> ${data.recreated}</p>` : ''}
                                 </div>
                             `
                         });
