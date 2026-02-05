@@ -46,12 +46,29 @@
                     </div>
                 </div>
 
-                <!-- Camera Card -->
+                <!-- Attendance Status Card -->
                 <div class="card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0">Absensi dengan Face Detection</h5>
+                        <h5 class="mb-0">Status Absensi</h5>
                     </div>
                     <div class="card-body">
+                        <!-- Fingerspot Announcement -->
+                        <div class="alert alert-warning mb-4" id="fingerspotAnnouncement">
+                            <div class="d-flex align-items-start">
+                                <i class='bx bx-info-circle fs-3 me-3 text-warning'></i>
+                                <div>
+                                    <h6 class="alert-heading mb-2">Pemberitahuan Penting</h6>
+                                    <p class="mb-2">
+                                        <strong>Absensi melalui kamera sudah tidak tersedia.</strong>
+                                    </p>
+                                    <p class="mb-0">
+                                        Silakan gunakan mesin <strong>Fingerspot</strong> Didepan Ruang HRD untuk melakukan
+                                        absensi check-in dan check-out.
+                                        Hubungi HRD jika Anda mengalami kendala dengan mesin Fingerspot.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                         <!-- Status Today -->
                         <div id="statusToday" style="display: none;" class="mb-4">
                             <div class="alert alert-info">
@@ -79,79 +96,36 @@
                                         </div>
                                     </div>
                                 </div>
+                                <!-- Photo Preview from Fingerspot -->
+                                <div class="row mt-3" id="photoPreviewContainer" style="display: none;">
+                                    <div class="col-6" id="photoInContainer" style="display: none;">
+                                        <div class="text-center">
+                                            <small class="text-muted d-block mb-1">Foto Check In</small>
+                                            <img id="photoInPreview" class="rounded border"
+                                                style="max-width: 100%; max-height: 120px; cursor: pointer;"
+                                                onclick="showFullPhoto(this.src, 'Foto Check In')">
+                                        </div>
+                                    </div>
+                                    <div class="col-6" id="photoOutContainer" style="display: none;">
+                                        <div class="text-center">
+                                            <small class="text-muted d-block mb-1">Foto Check Out</small>
+                                            <img id="photoOutPreview" class="rounded border"
+                                                style="max-width: 100%; max-height: 120px; cursor: pointer;"
+                                                onclick="showFullPhoto(this.src, 'Foto Check Out')">
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="mt-2" id="lateBadgeContainer" style="display: none;">
                                     <span class="badge bg-warning" id="lateBadge"></span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Camera Section -->
-                        <div id="cameraSection" style="display: none;">
-                            <!-- Camera Preview -->
-                            <div class="position-relative mb-3">
-                                <video id="videoElement" width="100%" autoplay playsinline class="rounded border"
-                                    style="background: #000; max-height: 400px; height: auto; transform: scaleX(-1);"></video>
-                                <canvas id="canvasElement" style="display: none;"></canvas>
-
-                                <!-- Face Detection Indicator -->
-                                <div class="position-absolute top-0 start-0 m-2 m-md-3">
-                                    <span class="badge bg-warning" id="faceDetected"
-                                        style="display: none; font-size: 0.75rem;">
-                                        <i class='bx bx-loader-circle bx-spin'></i> <span
-                                            class="d-none d-sm-inline">Mendeteksi wajah...</span><span
-                                            class="d-sm-none">Deteksi...</span>
-                                    </span>
-                                </div>
-                            </div>
-
-                            <!-- Capture Button -->
-                            <div class="d-grid gap-2 mb-3" id="captureSection">
-                                <button type="button" class="btn btn-lg btn-secondary" id="captureBtn" disabled>
-                                    <i class='bx bx-camera me-1 me-md-2'></i>
-                                    <span class="d-none d-sm-inline">Ambil Foto (Tunggu Wajah Terdeteksi)</span>
-                                    <span class="d-sm-none">Ambil Foto</span>
-                                </button>
-                                <small class="text-muted text-center">
-                                    <i class='bx bx-info-circle'></i> Tombol aktif saat wajah terdeteksi
-                                </small>
-                            </div>
-
-                            <!-- Preview Captured Image -->
-                            <div id="capturedPreview" style="display: none;" class="mb-3">
-                                <img id="capturedImage" class="img-fluid rounded border mb-3" alt="Captured">
-
-                                <div class="alert alert-info mb-3">
-                                    <i class='bx bx-info-circle'></i>
-                                    <strong>Penting:</strong> Tetap hadapkan wajah ke kamera saat menekan tombol
-                                    check-in/out
-                                </div>
-
-                                <div class="d-grid gap-2">
-                                    <button type="button" class="btn btn-success btn-lg" id="checkInBtn">
-                                        <i class='bx bx-log-in-circle me-1 me-md-2'></i>
-                                        <span class="d-none d-sm-inline">Check In Sekarang</span>
-                                        <span class="d-sm-none">Check In</span>
-                                    </button>
-                                    <button type="button" class="btn btn-warning btn-lg" id="checkOutBtn">
-                                        <i class='bx bx-log-out-circle me-1 me-md-2'></i>
-                                        <span class="d-none d-sm-inline">Check Out Sekarang</span>
-                                        <span class="d-sm-none">Check Out</span>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary" id="retakeBtn">
-                                        <i class='bx bx-refresh me-1 me-md-2'></i>
-                                        Ambil Ulang
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Start Camera Button -->
-                        <div class="text-center" id="startSection">
-                            <button type="button" class="btn btn-lg btn-primary" id="startCameraBtn">
-                                <i class='bx bx-camera-movie me-2'></i>
-                                Mulai Absensi
-                            </button>
-                        </div>
+                        <!-- Camera functionality disabled - Hidden elements for JS compatibility -->
+                        <div id="cameraSection" style="display: none;"></div>
+                        <div id="startSection" style="display: none;"></div>
+                        <video id="videoElement" style="display: none;"></video>
+                        <canvas id="canvasElement" style="display: none;"></canvas>
                     </div>
                 </div>
 
@@ -159,24 +133,22 @@
                 <div class="card d-none d-lg-block">
                     <div class="card-body">
                         <h6 class="card-title mb-3">
-                            <i class='bx bx-info-circle me-2'></i>
-                            Petunjuk Absensi
+                            <i class='bx bx-fingerprint me-2'></i>
+                            Petunjuk Absensi Fingerspot
                         </h6>
                         <ol class="mb-0 ps-3">
-                            <li class="mb-2">Klik tombol <strong>"Mulai Absensi"</strong></li>
-                            <li class="mb-2">Izinkan akses kamera saat diminta browser</li>
-                            <li class="mb-2">Posisikan wajah Anda di tengah kamera</li>
-                            <li class="mb-2">Pastikan pencahayaan cukup terang</li>
-                            <li class="mb-2">Klik <strong>"Ambil Foto"</strong> untuk capture wajah</li>
-                            <li class="mb-2">Pilih <strong>"Check In"</strong> (masuk) atau <strong>"Check Out"</strong>
-                                (pulang)</li>
-                            <li>Sistem akan menyimpan foto dan lokasi GPS Anda</li>
+                            <li class="mb-2">Pastikan jari Anda <strong>bersih dan kering</strong></li>
+                            <li class="mb-2">Tempelkan jari yang terdaftar pada mesin Fingerspot</li>
+                            <li class="mb-2">Tunggu hingga mesin menampilkan <strong>pesan sukses</strong></li>
+                            <li class="mb-2">Data absensi akan otomatis tercatat di sistem</li>
+                            <li class="mb-2">Cek status absensi Anda di halaman ini atau <strong>Riwayat Absensi</strong>
+                            </li>
                         </ol>
-                        <div class="alert alert-warning mt-3 mb-0">
+                        <div class="alert alert-info mt-3 mb-0">
                             <small>
-                                <i class='bx bx-error-circle me-1'></i>
-                                <strong>Penting:</strong> Pastikan wajah terlihat jelas dan tidak terhalang.
-                                Sistem akan mendeteksi wajah secara otomatis.
+                                <i class='bx bx-help-circle me-1'></i>
+                                <strong>Masalah dengan Fingerspot?</strong> Hubungi HRD atau administrator
+                                untuk bantuan pendaftaran sidik jari atau masalah teknis lainnya.
                             </small>
                         </div>
                     </div>
@@ -324,19 +296,18 @@
     </div>
 
     @push('scripts')
-        <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-        <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
-
         <script>
-            let video = document.getElementById('videoElement');
-            let canvas = document.getElementById('canvasElement');
-            let capturedImage = document.getElementById('capturedImage');
-            let stream = null;
-            let model = null;
-            let capturedPhoto = null;
-            let currentLocation = null;
-            let lastLocationCheck = null;
-            let isFaceDetected = false; // Track face detection status
+            // Show full photo in SweetAlert
+            function showFullPhoto(src, title) {
+                Swal.fire({
+                    title: title,
+                    imageUrl: src,
+                    imageAlt: title,
+                    imageWidth: 400,
+                    showCloseButton: true,
+                    showConfirmButton: false
+                });
+            }
 
             // Update current time
             function updateTime() {
@@ -361,142 +332,9 @@
             updateTime();
             setInterval(updateTime, 1000);
 
-            // Detect fake GPS
-            function detectFakeGPS(position) {
-                const warnings = [];
-
-                // 1. Check if mocked (Android & some browsers)
-                if (position.coords.mocked === true) {
-                    warnings.push('Mock location detected');
-                }
-
-                // 2. Check accuracy - Fake GPS often has suspiciously perfect accuracy
-                const accuracy = position.coords.accuracy;
-                if (accuracy < 5) {
-                    warnings.push(`Accuracy terlalu sempurna (${accuracy.toFixed(2)}m) - kemungkinan fake GPS`);
-                } else if (accuracy > 100) {
-                    warnings.push(`Accuracy rendah (${accuracy.toFixed(2)}m) - sinyal GPS lemah`);
-                }
-
-                // 3. Check altitude accuracy (fake GPS often provides 0 or null)
-                if (position.coords.altitude === 0 || position.coords.altitude === null) {
-                    warnings.push('Altitude data tidak valid - kemungkinan fake GPS');
-                }
-
-                // 4. Check speed (fake GPS often has speed = 0 or null even when moving)
-                if (position.coords.speed === 0 && lastLocationCheck) {
-                    const timeDiff = (Date.now() - lastLocationCheck.timestamp) / 1000; // seconds
-                    if (timeDiff < 60) { // Check if less than 1 minute
-                        const distance = calculateDistance(
-                            lastLocationCheck.coords.latitude,
-                            lastLocationCheck.coords.longitude,
-                            position.coords.latitude,
-                            position.coords.longitude
-                        );
-                        // If moved more than 10 meters but speed is 0, suspicious
-                        if (distance > 10) {
-                            warnings.push('Movement detected but speed is 0 - kemungkinan fake GPS');
-                        }
-                    }
-                }
-
-                // 5. Check if all coordinates are whole numbers (very suspicious)
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                if (lat === Math.floor(lat) && lng === Math.floor(lng)) {
-                    warnings.push('Koordinat terlalu bulat - kemungkinan fake GPS');
-                }
-
-                // Store current check for next comparison
-                lastLocationCheck = {
-                    coords: position.coords,
-                    timestamp: Date.now()
-                };
-
-                return {
-                    isSuspicious: warnings.length > 0,
-                    warnings: warnings,
-                    accuracy: accuracy
-                };
-            }
-
-            // Calculate distance between two coordinates (in meters)
-            function calculateDistance(lat1, lon1, lat2, lon2) {
-                const R = 6371000; // Earth radius in meters
-                const dLat = (lat2 - lat1) * Math.PI / 180;
-                const dLon = (lon2 - lon1) * Math.PI / 180;
-                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                return R * c;
-            }
-
-            // Get current location with fake GPS detection
-            function getCurrentLocation() {
-                return new Promise((resolve, reject) => {
-                    if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                            position => {
-                                // Detect fake GPS
-                                const fakeCheck = detectFakeGPS(position);
-
-                                const loc = {
-                                    latitude: position.coords.latitude,
-                                    longitude: position.coords.longitude,
-                                    accuracy: position.coords.accuracy,
-                                    altitude: position.coords.altitude,
-                                    altitudeAccuracy: position.coords.altitudeAccuracy,
-                                    heading: position.coords.heading,
-                                    speed: position.coords.speed,
-                                    timestamp: position.timestamp,
-                                    isMocked: position.coords.mocked || false,
-                                    fakeGpsWarnings: fakeCheck.warnings
-                                };
-
-                                currentLocation = loc;
-
-                                // Show warning if suspicious
-                                if (fakeCheck.isSuspicious) {
-                                    document.getElementById('gpsLocation').innerHTML =
-                                        `<i class='bx bx-error-circle text-warning'></i> ⚠️ GPS Mencurigakan (Accuracy: ${fakeCheck.accuracy.toFixed(0)}m)`;
-
-                                    console.warn('Fake GPS Detection:', fakeCheck.warnings);
-
-                                    // Show warning to user
-                                    Swal.fire({
-                                        icon: 'warning',
-                                        title: 'Peringatan GPS',
-                                        html: '<strong>Terdeteksi kemungkinan Fake GPS:</strong><br>' +
-                                            fakeCheck.warnings.join('<br>'),
-                                        footer: 'Penggunaan Fake GPS dapat mengakibatkan absensi ditolak',
-                                        confirmButtonText: 'Saya Mengerti'
-                                    });
-                                } else {
-                                    document.getElementById('gpsLocation').innerHTML =
-                                        `<i class='bx bx-map text-success'></i> Lokasi terdeteksi (${fakeCheck.accuracy.toFixed(0)}m)`;
-                                }
-
-                                resolve(loc);
-                            },
-                            error => {
-                                document.getElementById('gpsLocation').innerHTML =
-                                    `<i class='bx bx-error text-danger'></i> Gagal mendeteksi lokasi`;
-                                reject(error);
-                            }, {
-                                enableHighAccuracy: true,
-                                timeout: 10000,
-                                maximumAge: 0
-                            }
-                        );
-                    } else {
-                        reject(new Error('Geolocation not supported'));
-                    }
-                });
-            }
-
-            // Initialize - get location immediately
-            getCurrentLocation().catch(err => console.error('GPS Error:', err));
+            // Hide GPS location info (not needed for Fingerspot)
+            document.getElementById('gpsLocation').innerHTML =
+                '<i class="bx bx-fingerprint text-primary"></i> Absensi via Fingerspot';
 
             // Load employee data
             async function loadEmployeeData() {
@@ -529,14 +367,14 @@
                         const avatarContainer = document.getElementById('empAvatarContainer');
                         if (emp.profile_photo) {
                             avatarContainer.innerHTML = `
-                                <img src="/storage/${emp.profile_photo}" alt="${emp.name}" 
-                                     class="rounded-circle" 
+                                <img src="/storage/${emp.profile_photo}" alt="${emp.name}"
+                                     class="rounded-circle"
                                      style="width: 48px; height: 48px; object-fit: cover;">
                             `;
                         } else {
                             const initial = emp.name.charAt(0).toUpperCase();
                             avatarContainer.innerHTML = `
-                                <span class="avatar-initial rounded-circle bg-label-primary" 
+                                <span class="avatar-initial rounded-circle bg-label-primary"
                                       style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
                                     ${initial}
                                 </span>
@@ -573,6 +411,29 @@
                         document.getElementById('statusToday').style.display = 'block';
                         document.getElementById('checkInTime').textContent = att.check_in || '-';
                         document.getElementById('checkOutTime').textContent = att.check_out || '-';
+
+                        // Show photos if available (support Fingerspot S3 direct URL)
+                        if (att.photo_in || att.photo_out) {
+                            document.getElementById('photoPreviewContainer').style.display = 'flex';
+
+                            if (att.photo_in) {
+                                const photoIn = String(att.photo_in);
+                                const isExternalIn = photoIn.startsWith('http://') || photoIn.startsWith('https://');
+                                const photoInUrl = isExternalIn ? photoIn : '/storage/' + photoIn;
+
+                                document.getElementById('photoInContainer').style.display = 'block';
+                                document.getElementById('photoInPreview').src = photoInUrl;
+                            }
+
+                            if (att.photo_out) {
+                                const photoOut = String(att.photo_out);
+                                const isExternalOut = photoOut.startsWith('http://') || photoOut.startsWith('https://');
+                                const photoOutUrl = isExternalOut ? photoOut : '/storage/' + photoOut;
+
+                                document.getElementById('photoOutContainer').style.display = 'block';
+                                document.getElementById('photoOutPreview').src = photoOutUrl;
+                            }
+                        }
 
                         // Status badge mapping
                         const statusConfig = {
@@ -633,47 +494,6 @@
                                 `Terlambat ${att.late_minutes} menit`;
                             document.getElementById('lateBadgeContainer').style.display = 'block';
                         }
-
-                        // Status yang tidak boleh absen lagi - termasuk alpha
-                        const blockedStatuses = ['cuti', 'leave', 'izin', 'sick', 'sakit', 'alpha', 'absent'];
-                        const isBlocked = blockedStatuses.includes(att.status.toLowerCase());
-
-                        // Jika sudah cuti/izin/sakit/alpha, disable semua tombol absensi dan tampilkan pesan
-                        if (isBlocked) {
-                            // Hide semua tombol check in/out
-                            document.getElementById('checkInBtn').style.display = 'none';
-                            document.getElementById('checkOutBtn').style.display = 'none';
-
-                            // Disable tombol mulai absensi
-                            const startBtn = document.getElementById('startCameraBtn');
-                            startBtn.disabled = true;
-                            startBtn.innerHTML = '<i class="bx bx-block me-2"></i>Absensi Tidak Tersedia';
-
-                            // Tampilkan alert di status today
-                            const statusDiv = document.getElementById('statusToday');
-                            const alertHtml = `
-                                <div class="alert alert-warning mt-3 mb-0">
-                                    <i class="bx bx-info-circle me-2"></i>
-                                    <strong>Absensi Tidak Tersedia</strong><br>
-                                    Anda sedang dalam status <strong>${config.label}</strong>.
-                                    Tidak dapat melakukan absensi hari ini.
-                                </div>
-                            `;
-                            statusDiv.insertAdjacentHTML('beforeend', alertHtml);
-                        } else {
-                            // Logic normal untuk hadir/terlambat
-                            if (att.check_in) {
-                                document.getElementById('checkInBtn').style.display = 'none';
-                            }
-                            if (att.check_out) {
-                                document.getElementById('checkOutBtn').style.display = 'none';
-
-                                // Jika sudah check out, disable tombol mulai absensi
-                                const startBtn = document.getElementById('startCameraBtn');
-                                startBtn.disabled = true;
-                                startBtn.innerHTML = '<i class="bx bx-check-circle me-2"></i>Absensi Hari Ini Selesai';
-                            }
-                        }
                     }
                 } catch (error) {
                     console.error('Error checking attendance:', error);
@@ -705,370 +525,6 @@
                 } catch (error) {
                     console.error('Error loading summary:', error);
                 }
-            }
-
-            // Start camera
-            document.getElementById('startCameraBtn').addEventListener('click', async function() {
-                // Check if button is disabled (already blocked)
-                if (this.disabled) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Absensi Tidak Tersedia',
-                        text: 'Anda sudah melakukan absensi hari ini atau sedang dalam status cuti/izin/sakit/alpha.',
-                        confirmButtonText: 'OK'
-                    });
-                    return;
-                }
-
-                try {
-                    // Request location first
-                    if (!currentLocation) {
-                        await getCurrentLocation();
-                    }
-
-                    stream = await navigator.mediaDevices.getUserMedia({
-                        video: {
-                            width: 640,
-                            height: 480,
-                            facingMode: 'user'
-                        }
-                    });
-                    video.srcObject = stream;
-
-                    document.getElementById('cameraSection').style.display = 'block';
-                    document.getElementById('startSection').style.display = 'none';
-
-                    // Load face detection model
-                    if (!model) {
-                        model = await blazeface.load();
-                        console.log('Face detection model loaded');
-                        detectFaces();
-                    }
-                } catch (error) {
-                    console.error('Error accessing camera:', error);
-                    Swal.fire('Error', 'Gagal mengakses kamera. Pastikan izin kamera diberikan.', 'error');
-                }
-            });
-
-            // Face detection loop
-            async function detectFaces() {
-                if (!video.srcObject) return;
-
-                try {
-                    const predictions = await model.estimateFaces(video, false);
-
-                    const captureBtn = document.getElementById('captureBtn');
-                    const faceIndicator = document.getElementById('faceDetected');
-
-                    if (predictions.length > 0) {
-                        // Face detected
-                        isFaceDetected = true;
-                        faceIndicator.style.display = 'inline-block';
-                        faceIndicator.className = 'badge bg-success';
-                        faceIndicator.innerHTML = '<i class="bx bx-check-circle"></i> Wajah Terdeteksi';
-
-                        // Enable capture button
-                        captureBtn.disabled = false;
-                        captureBtn.classList.remove('btn-secondary');
-                        captureBtn.classList.add('btn-primary');
-                    } else {
-                        // No face detected
-                        isFaceDetected = false;
-                        faceIndicator.style.display = 'inline-block';
-                        faceIndicator.className = 'badge bg-warning';
-                        faceIndicator.innerHTML = '<i class="bx bx-error"></i> Wajah Tidak Terdeteksi';
-
-                        // Disable capture button
-                        captureBtn.disabled = true;
-                        captureBtn.classList.remove('btn-primary');
-                        captureBtn.classList.add('btn-secondary');
-                    }
-                } catch (error) {
-                    console.error('Face detection error:', error);
-                }
-
-                requestAnimationFrame(detectFaces);
-            }
-
-            // Capture photo
-            document.getElementById('captureBtn').addEventListener('click', function() {
-                if (!isFaceDetected) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Wajah Tidak Terdeteksi',
-                        text: 'Pastikan wajah Anda terlihat jelas di kamera'
-                    });
-                    return;
-                }
-
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const ctx = canvas.getContext('2d');
-
-                // Flip horizontally to match the mirrored video preview
-                ctx.translate(canvas.width, 0);
-                ctx.scale(-1, 1);
-                ctx.drawImage(video, 0, 0);
-
-                // Reset transform
-                ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-                capturedPhoto = canvas.toDataURL('image/png');
-                capturedImage.src = capturedPhoto;
-
-                document.getElementById('capturedPreview').style.display = 'block';
-                document.getElementById('captureSection').style.display = 'none';
-                video.style.display = 'none';
-            });
-
-            // Retake photo
-            document.getElementById('retakeBtn').addEventListener('click', function() {
-                document.getElementById('capturedPreview').style.display = 'none';
-                document.getElementById('captureSection').style.display = 'block';
-                video.style.display = 'block';
-                capturedPhoto = null;
-
-                // Restart face detection
-                if (model && video.srcObject) {
-                    detectFaces();
-                }
-            });
-
-            // Verify face before action
-            async function verifyFaceBeforeAction() {
-                if (!model) {
-                    throw new Error('Model deteksi wajah belum dimuat');
-                }
-
-                // Check if video is still active
-                if (!video.srcObject) {
-                    throw new Error('Kamera tidak aktif. Silakan mulai ulang kamera.');
-                }
-
-                // Do a final face detection check
-                const predictions = await model.estimateFaces(video, false);
-
-                if (predictions.length === 0) {
-                    throw new Error('Wajah tidak terdeteksi. Pastikan wajah Anda terlihat di kamera saat menekan tombol.');
-                }
-
-                return true;
-            }
-
-            // Check In
-            document.getElementById('checkInBtn').addEventListener('click', async function() {
-                if (!capturedPhoto) {
-                    Swal.fire('Error', 'Ambil foto terlebih dahulu', 'error');
-                    return;
-                }
-
-                if (!currentLocation) {
-                    Swal.fire('Error', 'Lokasi GPS belum terdeteksi', 'error');
-                    return;
-                }
-
-                // Verify face is still detected
-                try {
-                    await verifyFaceBeforeAction();
-                } catch (error) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Verifikasi Wajah Gagal',
-                        text: error.message,
-                        footer: 'Pastikan wajah Anda terlihat jelas di kamera'
-                    });
-                    return;
-                }
-
-                // Konfirmasi check in
-                const confirmResult = await Swal.fire({
-                    title: 'Konfirmasi Check In',
-                    text: 'Apakah Anda yakin ingin melakukan check in sekarang?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Ya, Check In',
-                    cancelButtonText: 'Batal',
-                    confirmButtonColor: '#28a745'
-                });
-
-                if (!confirmResult.isConfirmed) {
-                    return;
-                }
-
-                const btn = this;
-                btn.disabled = true;
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Memproses...';
-
-                try {
-                    const response = await fetch('/api/employee/attendance/check-in', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                        },
-                        body: JSON.stringify({
-                            photo: capturedPhoto,
-                            latitude: currentLocation.latitude,
-                            longitude: currentLocation.longitude,
-                            accuracy: currentLocation.accuracy,
-                            is_mocked: currentLocation.isMocked,
-                            fake_gps_warnings: currentLocation.fakeGpsWarnings || []
-                        })
-                    });
-
-                    const result = await response.json();
-
-                    if (result.success) {
-                        await Swal.fire('Berhasil!', result.message, 'success');
-                        resetCamera();
-                        checkTodayAttendance();
-                        loadMonthlySummary();
-                    } else {
-                        // Check for specific error messages
-                        if (result.message.includes('cuti') || result.message.includes('izin') || result.message
-                            .includes('sakit') || result.message.includes('alpha')) {
-                            await Swal.fire({
-                                icon: 'warning',
-                                title: 'Absensi Ditolak',
-                                html: `<p class="mb-0">${result.message}</p>`,
-                                confirmButtonText: 'OK, Saya Mengerti'
-                            });
-                            resetCamera();
-                            checkTodayAttendance(); // Refresh status
-                        } else {
-                            Swal.fire('Error', result.message, 'error');
-                        }
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="bx bx-log-in-circle me-2"></i>Check In Sekarang';
-                    }
-                } catch (error) {
-                    console.error('Check-in error:', error);
-                    Swal.fire('Error', 'Gagal melakukan check-in: ' + error.message, 'error');
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="bx bx-log-in-circle me-2"></i>Check In Sekarang';
-                }
-            });
-
-            // Check Out
-            document.getElementById('checkOutBtn').addEventListener('click', async function() {
-                if (!capturedPhoto) {
-                    Swal.fire('Error', 'Ambil foto terlebih dahulu', 'error');
-                    return;
-                }
-
-                if (!currentLocation) {
-                    Swal.fire('Error', 'Lokasi GPS belum terdeteksi', 'error');
-                    return;
-                }
-
-                // Verify face is still detected
-                try {
-                    await verifyFaceBeforeAction();
-                } catch (error) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Verifikasi Wajah Gagal',
-                        text: error.message,
-                        footer: 'Pastikan wajah Anda terlihat jelas di kamera'
-                    });
-                    return;
-                }
-
-                // Konfirmasi check out
-                const confirmResult = await Swal.fire({
-                    title: 'Konfirmasi Check Out',
-                    text: 'Apakah Anda yakin ingin melakukan check out sekarang?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Ya, Check Out',
-                    cancelButtonText: 'Batal',
-                    confirmButtonColor: '#ffc107'
-                });
-
-                if (!confirmResult.isConfirmed) {
-                    return;
-                }
-
-                const btn = this;
-                btn.disabled = true;
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Memproses...';
-
-                try {
-                    const response = await fetch('/api/employee/attendance/check-out', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                        },
-                        body: JSON.stringify({
-                            photo: capturedPhoto,
-                            latitude: currentLocation.latitude,
-                            longitude: currentLocation.longitude,
-                            accuracy: currentLocation.accuracy,
-                            is_mocked: currentLocation.isMocked,
-                            fake_gps_warnings: currentLocation.fakeGpsWarnings || []
-                        })
-                    });
-
-                    const result = await response.json();
-
-                    if (result.success) {
-                        await Swal.fire('Berhasil!', result.message, 'success');
-                        resetCamera();
-                        checkTodayAttendance();
-                        loadMonthlySummary();
-                    } else {
-                        // Handle specific error scenarios
-                        if (response.status === 403 && result.shift_end) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Belum Saatnya Check-Out',
-                                html: `<div class="text-center">
-                                           <p class="mb-3"><strong>${result.message}</strong></p>
-                                           <div class="alert alert-warning mb-0">
-                                               <i class="bx bx-time"></i> Shift berakhir jam <strong>${result.shift_end}</strong><br>
-                                               <i class="bx bx-clock"></i> Sekarang jam <strong>${result.current_time}</strong>
-                                           </div>
-                                       </div>`,
-                                confirmButtonText: 'OK, Saya Mengerti'
-                            });
-                        } else if (result.message.includes('cuti') || result.message.includes('izin') || result
-                            .message.includes('sakit') || result.message.includes('alpha')) {
-                            await Swal.fire({
-                                icon: 'warning',
-                                title: 'Check Out Ditolak',
-                                html: `<p class="mb-0">${result.message}</p>`,
-                                confirmButtonText: 'OK, Saya Mengerti'
-                            });
-                            resetCamera();
-                            checkTodayAttendance(); // Refresh status
-                        } else {
-                            Swal.fire('Error', result.message, 'error');
-                        }
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="bx bx-log-out-circle me-2"></i>Check Out Sekarang';
-                    }
-                } catch (error) {
-                    console.error('Check-out error:', error);
-                    Swal.fire('Error', 'Gagal melakukan check-out: ' + error.message, 'error');
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="bx bx-log-out-circle me-2"></i>Check Out Sekarang';
-                }
-            });
-
-            // Reset camera
-            function resetCamera() {
-                if (stream) {
-                    stream.getTracks().forEach(track => track.stop());
-                    stream = null;
-                }
-                video.srcObject = null;
-                document.getElementById('cameraSection').style.display = 'none';
-                document.getElementById('capturedPreview').style.display = 'none';
-                document.getElementById('startSection').style.display = 'block';
-                document.getElementById('captureSection').style.display = 'block';
-                video.style.display = 'block';
-                capturedPhoto = null;
             }
 
             // Initialize
