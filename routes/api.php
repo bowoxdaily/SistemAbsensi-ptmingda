@@ -177,3 +177,24 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('settings/holidays')->group(
 Route::prefix('karyawan')->group(function () {
     Route::post('/import', [\App\Http\Controllers\Admin\KaryawanController::class, 'import']);
 });
+
+// Fingerspot Webhook API (No Auth - uses token)
+Route::prefix('fingerspot')->group(function () {
+    Route::post('/webhook', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'handleWebhook']);
+    Route::get('/test', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'test']);
+    Route::get('/debug-logs', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'debugLogs']);
+    Route::post('/test-photo-download', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'testPhotoDownload']);
+});
+
+// Fingerspot Admin API (Requires Auth)
+Route::middleware(['web', 'auth', 'admin'])->prefix('settings/fingerspot')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Admin\FingerspotSettingController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Admin\FingerspotSettingController::class, 'store']);
+    Route::put('/{id}', [\App\Http\Controllers\Admin\FingerspotSettingController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Admin\FingerspotSettingController::class, 'destroy']);
+    Route::post('/{id}/regenerate-token', [\App\Http\Controllers\Admin\FingerspotSettingController::class, 'regenerateToken']);
+    Route::get('/logs', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'logs']);
+    Route::post('/logs/reprocess', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'reprocess']);
+    Route::post('/logs/reprocess-all', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'reprocessAll']);
+    Route::post('/fetch', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'fetchFromApi']);
+});

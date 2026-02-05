@@ -585,18 +585,50 @@
                                 </div>
 
                                 <div class="row mt-3">
-                                    ${data.photo_in ? `
-                                                                                        <div class="col-md-6 text-center">
-                                                                                            <h6>Foto Check In</h6>
-                                                                                            <img src="/storage/${data.photo_in}" class="img-fluid rounded border" alt="Check In" style="max-height: 300px;">
-                                                                                        </div>
-                                                                                    ` : ''}
-                                    ${data.photo_out ? `
-                                                                                        <div class="col-md-6 text-center">
-                                                                                            <h6>Foto Check Out</h6>
-                                                                                            <img src="/storage/${data.photo_out}" class="img-fluid rounded border" alt="Check Out" style="max-height: 300px;">
-                                                                                        </div>
-                                                                                    ` : ''}
+                                    ${data.photo_in ? (() => {
+                                        const photoIn = String(data.photo_in);
+                                        const isExternal = photoIn.startsWith('http://') || photoIn.startsWith('https://');
+                                        const photoUrl = isExternal ? photoIn : '/storage/' + photoIn;
+                                        console.log('Photo In:', photoIn, 'IsExternal:', isExternal, 'URL:', photoUrl);
+                                        return `
+                                            <div class="col-md-6 text-center">
+                                                <h6>Foto Check In</h6>
+                                                <img src="${photoUrl}" 
+                                                     class="img-fluid rounded border" 
+                                                     alt="Check In" 
+                                                     style="max-height: 300px;"
+                                                     crossorigin="anonymous"
+                                                     onerror="console.error('Failed to load image:', this.src); this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                                <div style="display:none;" class="text-muted mt-2">
+                                                    <i class="bx bx-error-circle bx-lg"></i>
+                                                    <p>Foto tidak dapat dimuat</p>
+                                                    <small>${photoUrl}</small>
+                                                </div>
+                                            </div>
+                                        `;
+                                    })() : ''}
+                                    ${data.photo_out ? (() => {
+                                        const photoOut = String(data.photo_out);
+                                        const isExternal = photoOut.startsWith('http://') || photoOut.startsWith('https://');
+                                        const photoUrl = isExternal ? photoOut : '/storage/' + photoOut;
+                                        console.log('Photo Out:', photoOut, 'IsExternal:', isExternal, 'URL:', photoUrl);
+                                        return `
+                                            <div class="col-md-6 text-center">
+                                                <h6>Foto Check Out</h6>
+                                                <img src="${photoUrl}" 
+                                                     class="img-fluid rounded border" 
+                                                     alt="Check Out" 
+                                                     style="max-height: 300px;"
+                                                     crossorigin="anonymous"
+                                                     onerror="console.error('Failed to load image:', this.src); this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                                <div style="display:none;" class="text-muted mt-2">
+                                                    <i class="bx bx-error-circle bx-lg"></i>
+                                                    <p>Foto tidak dapat dimuat</p>
+                                                    <small>${photoUrl}</small>
+                                                </div>
+                                            </div>
+                                        `;
+                                    })() : ''}
                                 </div>
 
                                 ${data.notes ? `

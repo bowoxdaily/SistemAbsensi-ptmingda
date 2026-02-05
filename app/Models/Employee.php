@@ -11,6 +11,7 @@ class Employee extends Model
     protected $fillable = [
         // Identitas Pribadi
         'employee_code',
+        'fingerspot_pin',
         'nik',
         'name',
         'gender',
