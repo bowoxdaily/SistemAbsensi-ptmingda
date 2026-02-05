@@ -201,8 +201,13 @@
                                     </td>
                                     <td>
                                         @if ($attendance->photo_in)
-                                            <a href="{{ asset('storage/' . $attendance->photo_in) }}" target="_blank">
-                                                <img src="{{ asset('storage/' . $attendance->photo_in) }}"
+                                            @php
+                                                $photoInUrl = (str_starts_with($attendance->photo_in, 'http://') || str_starts_with($attendance->photo_in, 'https://')) 
+                                                    ? $attendance->photo_in 
+                                                    : asset('storage/' . $attendance->photo_in);
+                                            @endphp
+                                            <a href="{{ $photoInUrl }}" target="_blank">
+                                                <img src="{{ $photoInUrl }}"
                                                     alt="Foto Check In" class="rounded"
                                                     style="width: 40px; height: 40px; object-fit: cover; cursor: pointer;"
                                                     data-bs-toggle="tooltip" title="Klik untuk memperbesar">
@@ -221,8 +226,13 @@
                                     </td>
                                     <td>
                                         @if ($attendance->photo_out)
-                                            <a href="{{ asset('storage/' . $attendance->photo_out) }}" target="_blank">
-                                                <img src="{{ asset('storage/' . $attendance->photo_out) }}"
+                                            @php
+                                                $photoOutUrl = (str_starts_with($attendance->photo_out, 'http://') || str_starts_with($attendance->photo_out, 'https://')) 
+                                                    ? $attendance->photo_out 
+                                                    : asset('storage/' . $attendance->photo_out);
+                                            @endphp
+                                            <a href="{{ $photoOutUrl }}" target="_blank">
+                                                <img src="{{ $photoOutUrl }}"
                                                     alt="Foto Check Out" class="rounded"
                                                     style="width: 40px; height: 40px; object-fit: cover; cursor: pointer;"
                                                     data-bs-toggle="tooltip" title="Klik untuk memperbesar">
@@ -351,9 +361,14 @@
                                             @endif
                                             <div class="mt-2">
                                                 @if ($attendance->photo_in)
-                                                    <a href="{{ asset('storage/' . $attendance->photo_in) }}"
+                                                    @php
+                                                        $photoInUrl = (str_starts_with($attendance->photo_in, 'http://') || str_starts_with($attendance->photo_in, 'https://')) 
+                                                            ? $attendance->photo_in 
+                                                            : asset('storage/' . $attendance->photo_in);
+                                                    @endphp
+                                                    <a href="{{ $photoInUrl }}"
                                                         target="_blank">
-                                                        <img src="{{ asset('storage/' . $attendance->photo_in) }}"
+                                                        <img src="{{ $photoInUrl }}"
                                                             alt="Foto In" class="rounded"
                                                             style="width: 50px; height: 50px; object-fit: cover;">
                                                     </a>
@@ -374,9 +389,14 @@
                                             @endif
                                             <div class="mt-2">
                                                 @if ($attendance->photo_out)
-                                                    <a href="{{ asset('storage/' . $attendance->photo_out) }}"
+                                                    @php
+                                                        $photoOutUrl = (str_starts_with($attendance->photo_out, 'http://') || str_starts_with($attendance->photo_out, 'https://')) 
+                                                            ? $attendance->photo_out 
+                                                            : asset('storage/' . $attendance->photo_out);
+                                                    @endphp
+                                                    <a href="{{ $photoOutUrl }}"
                                                         target="_blank">
-                                                        <img src="{{ asset('storage/' . $attendance->photo_out) }}"
+                                                        <img src="{{ $photoOutUrl }}"
                                                             alt="Foto Out" class="rounded"
                                                             style="width: 50px; height: 50px; object-fit: cover;">
                                                     </a>
@@ -783,45 +803,69 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <h6 class="mb-3">Foto Check In</h6>
-                                    ${data.photo_in ? `
-                                                                                                                                <div class="text-center">
-                                                                                                                                    <a href="/storage/${data.photo_in}" target="_blank">
-                                                                                                                                        <img src="/storage/${data.photo_in}"
-                                                                                                                                             alt="Foto Check In"
-                                                                                                                                             class="img-fluid rounded border"
-                                                                                                                                             style="max-height: 300px; cursor: pointer;">
-                                                                                                                                    </a>
-                                                                                                                                    <p class="text-muted mt-2 mb-0">
-                                                                                                                                        <small><i class='bx bx-time-five'></i> ${data.check_in || '-'}</small>
-                                                                                                                                    </p>
-                                                                                                                                </div>
-                                                                                                                            ` : `
-                                                                                                                                <div class="text-center py-4">
-                                                                                                                                    <i class='bx bx-image-add bx-lg text-muted'></i>
-                                                                                                                                    <p class="text-muted mt-2 mb-0">Tidak ada foto check in</p>
-                                                                                                                                </div>
-                                                                                                                            `}
+                                    ${data.photo_in ? (() => {
+                                        const photoIn = String(data.photo_in);
+                                        const isExternal = photoIn.startsWith('http://') || photoIn.startsWith('https://');
+                                        const photoUrl = isExternal ? photoIn : '/storage/' + photoIn;
+                                        console.log('Photo In:', photoIn, 'IsExternal:', isExternal, 'URL:', photoUrl);
+                                        return `
+                                            <div class="text-center">
+                                                <a href="${photoUrl}" target="_blank">
+                                                    <img src="${photoUrl}"
+                                                         alt="Foto Check In"
+                                                         class="img-fluid rounded border"
+                                                         style="max-height: 300px; cursor: pointer;"
+                                                         crossorigin="anonymous"
+                                                         onerror="console.error('Failed to load:', this.src); this.onerror=null; this.style.display='none'; this.parentElement.nextElementSibling.style.display='block';">
+                                                </a>
+                                                <div style="display:none;" class="text-muted mt-2">
+                                                    <i class="bx bx-error-circle"></i>
+                                                    <p>Foto tidak dapat dimuat</p>
+                                                </div>
+                                                <p class="text-muted mt-2 mb-0">
+                                                    <small><i class='bx bx-time-five'></i> ${data.check_in || '-'}</small>
+                                                </p>
+                                            </div>
+                                        `;
+                                    })() : `
+                                        <div class="text-center py-4">
+                                            <i class='bx bx-image-add bx-lg text-muted'></i>
+                                            <p class="text-muted mt-2 mb-0">Tidak ada foto check in</p>
+                                        </div>
+                                    `}
                                 </div>
                                 <div class="col-md-6">
                                     <h6 class="mb-3">Foto Check Out</h6>
-                                    ${data.photo_out ? `
-                                                                                                                                <div class="text-center">
-                                                                                                                                    <a href="/storage/${data.photo_out}" target="_blank">
-                                                                                                                                        <img src="/storage/${data.photo_out}"
-                                                                                                                                             alt="Foto Check Out"
-                                                                                                                                             class="img-fluid rounded border"
-                                                                                                                                             style="max-height: 300px; cursor: pointer;">
-                                                                                                                                    </a>
-                                                                                                                                    <p class="text-muted mt-2 mb-0">
-                                                                                                                                        <small><i class='bx bx-time-five'></i> ${data.check_out || '-'}</small>
-                                                                                                                                    </p>
-                                                                                                                                </div>
-                                                                                                                            ` : `
-                                                                                                                                <div class="text-center py-4">
-                                                                                                                                    <i class='bx bx-image-add bx-lg text-muted'></i>
-                                                                                                                                    <p class="text-muted mt-2 mb-0">Tidak ada foto check out</p>
-                                                                                                                                </div>
-                                                                                                                            `}
+                                    ${data.photo_out ? (() => {
+                                        const photoOut = String(data.photo_out);
+                                        const isExternal = photoOut.startsWith('http://') || photoOut.startsWith('https://');
+                                        const photoUrl = isExternal ? photoOut : '/storage/' + photoOut;
+                                        console.log('Photo Out:', photoOut, 'IsExternal:', isExternal, 'URL:', photoUrl);
+                                        return `
+                                            <div class="text-center">
+                                                <a href="${photoUrl}" target="_blank">
+                                                    <img src="${photoUrl}"
+                                                         alt="Foto Check Out"
+                                                         class="img-fluid rounded border"
+                                                         style="max-height: 300px; cursor: pointer;"
+                                                         crossorigin="anonymous"
+                                                         onerror="console.error('Failed to load:', this.src); this.onerror=null; this.style.display='none'; this.parentElement.nextElementSibling.style.display='block';">
+                                                </a>
+                                                <div style="display:none;" class="text-muted mt-2">
+                                                    <i class="bx bx-error-circle"></i>
+                                                    <p>Foto tidak dapat dimuat</p>
+                                                </div>
+                                                <p class="text-muted mt-2 mb-0">
+                                                    <small><i class='bx bx-time-five'></i> ${data.check_out || '-'}</small>
+                                                </p>
+                                            </div>
+                                        `;
+                                    })() : `
+                                        <div class="text-center py-4">
+                                            <i class='bx bx-image-add bx-lg text-muted'></i>
+                                            <p class="text-muted mt-2 mb-0">Tidak ada foto check out</p>
+                                        </div>
+                                    `}
                                 </div>
                             </div>
                         `);

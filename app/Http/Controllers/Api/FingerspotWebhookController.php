@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class FingerspotWebhookController extends Controller
 {
@@ -220,6 +221,62 @@ class FingerspotWebhookController extends Controller
     }
 
     /**
+     * Download photo from external URL and save to local storage
+     * Returns local storage path or null if failed
+     */
+    protected function downloadAndSavePhoto(?string $photoUrl, string $type = 'fingerspot'): ?string
+    {
+        if (!$photoUrl) {
+            return null;
+        }
+
+        try {
+            // Skip if already a local path (no http/https)
+            if (!filter_var($photoUrl, FILTER_VALIDATE_URL)) {
+                return $photoUrl;
+            }
+
+            $client = new \GuzzleHttp\Client([
+                'timeout' => 15,
+                'verify' => false,
+            ]);
+
+            $response = $client->get($photoUrl);
+            $imageContent = $response->getBody()->getContents();
+
+            // Get file extension from content type or URL
+            $contentType = $response->getHeader('Content-Type')[0] ?? 'image/jpeg';
+            $extension = match(true) {
+                str_contains($contentType, 'png') => 'png',
+                str_contains($contentType, 'jpg'), str_contains($contentType, 'jpeg') => 'jpg',
+                str_contains($contentType, 'gif') => 'gif',
+                default => 'jpg',
+            };
+
+            // Generate unique filename
+            $filename = $type . '_' . time() . '_' . uniqid() . '.' . $extension;
+            $path = 'attendance/' . $filename;
+
+            // Save to storage
+            Storage::disk('public')->put($path, $imageContent);
+
+            Log::info('Fingerspot: Photo downloaded and saved', [
+                'source_url' => substr($photoUrl, 0, 100),
+                'saved_path' => $path,
+            ]);
+
+            return $path;
+        } catch (\Exception $e) {
+            Log::warning('Fingerspot: Failed to download photo', [
+                'url' => $photoUrl,
+                'error' => $e->getMessage(),
+            ]);
+            // Return null instead of photoUrl to avoid saving external URL
+            return null;
+        }
+    }
+
+    /**
      * Process single attlog entry
      */
     protected function processAttlog(array $attlog, FingerspotSetting $setting, array $rawData): array
@@ -230,9 +287,19 @@ class FingerspotWebhookController extends Controller
         $datetime = $attlog['scan'] ?? $attlog['datetime'] ?? $attlog['scan_date'] ?? $attlog['date_time'] ?? null;
         $statusScan = $attlog['status_scan'] ?? $attlog['status'] ?? null;
         $verifyMode = $attlog['verify_mode'] ?? $attlog['verify'] ?? null;
-        $photoUrl = $attlog['photo_url'] ?? $attlog['photo'] ?? null;
+        // Try multiple field names for photo: photo_url, photo, image, image_url, foto, foto_url
+        $photoUrl = $attlog['photo_url'] ?? $attlog['photo'] ?? $attlog['image'] ?? $attlog['image_url'] ?? $attlog['foto'] ?? $attlog['foto_url'] ?? null;
         $cloudId = $attlog['cloud_id'] ?? $rawData['cloud_id'] ?? null;
         $sn = $attlog['sn'] ?? $attlog['SN'] ?? $rawData['sn'] ?? $cloudId ?? $setting->sn ?? null;
+        
+        // Log data yang diterima untuk debugging
+        Log::info('Fingerspot: Processing attlog', [
+            'pin' => $pin,
+            'datetime' => $datetime,
+            'photo_url' => $photoUrl,
+            'photo_found' => !empty($photoUrl),
+            'available_fields' => array_keys($attlog),
+        ]);
 
         if (!$pin || !$datetime) {
             return [
@@ -323,13 +390,72 @@ class FingerspotWebhookController extends Controller
         $attendance = Attendance::where('employee_id', $employee->id)
             ->whereDate('attendance_date', $attendanceDate)
             ->first();
+        
+        // Check if there's already a fingerspot log for this employee on this date that was processed before this one
+        // Rule: Jika ada 2 attlog dari API, pakai yang pertama (skip yang kedua untuk check-in)
+        $existingCheckIn = FingerspotLog::where('employee_id', $employee->id)
+            ->whereDate('scan_time', $attendanceDate)
+            ->where('process_status', 'success')
+            ->where('scan_time', '<', $scanTime)
+            ->where('id', '!=', $log->id)
+            ->exists();
 
         DB::beginTransaction();
         try {
             if (!$attendance) {
                 // No attendance yet - this is a potential check-in
-                // Rule: Accept scans before or around work start time as check-in
-                $attendance = $this->createCheckIn($employee, $scanTime, $attendanceDate, $photoUrl);
+                
+                // Rule: Jika ada attlog yang lebih awal di hari ini yang sudah diproses, skip ini (pakai yang pertama)
+                if ($existingCheckIn) {
+                    $log->markAsSkipped('Already has earlier check-in scan today - using first scan only');
+                    DB::commit();
+                    return [
+                        'status' => 'skipped',
+                        'message' => 'Earlier scan already processed for today',
+                    ];
+                }
+                
+                // Rule: Accept scans before work end time as check-in (scans after work end time should be check-out)
+                $isBeforeWorkEnd = true;
+                if ($workEndTime && $scanTime->gte($workEndTime)) {
+                    $isBeforeWorkEnd = false;
+                }
+                
+                if (!$isBeforeWorkEnd) {
+                    // Scan is after work end time but no check-in exists - skip this (likely late arrival)
+                    $log->markAsSkipped('Scan after work end time but no check-in exists');
+                    DB::commit();
+                    return [
+                        'status' => 'skipped',
+                        'message' => 'Scan after work end time - no check-in recorded',
+                    ];
+                }
+                
+                // Download and save photo if URL provided
+                $localPhotoPath = null;
+                if ($photoUrl) {
+                    Log::info('Fingerspot: Attempting to download check-in photo', [
+                        'employee_id' => $employee->id,
+                        'photo_url' => $photoUrl,
+                    ]);
+                    $localPhotoPath = $this->downloadAndSavePhoto($photoUrl, 'checkin');
+                    if ($localPhotoPath) {
+                        Log::info('Fingerspot: Check-in photo saved successfully', [
+                            'employee_id' => $employee->id,
+                            'saved_path' => $localPhotoPath,
+                        ]);
+                    } else {
+                        // If download failed, save the original URL for direct access
+                        $localPhotoPath = $photoUrl;
+                        Log::warning('Fingerspot: Failed to download check-in photo, using original URL', [
+                            'employee_id' => $employee->id,
+                            'photo_url' => $photoUrl,
+                        ]);
+                    }
+                }
+                
+                // Create check-in
+                $attendance = $this->createCheckIn($employee, $scanTime, $attendanceDate, $localPhotoPath, $workStartTime);
 
                 $log->markAsSuccess($attendance->id, 'Check-in recorded');
 
@@ -344,7 +470,8 @@ class FingerspotWebhookController extends Controller
             }
 
             // Existing attendance - determine if this scan should update check-out
-            // Rule: Only update check-out if scan is AFTER work end time
+            // Rule: Hanya update check-out jika scan SETELAH jam kerja selesai (misal 16:00)
+            // Scan selama jam kerja akan di-skip untuk check-out
             // Note: check_in is cast to datetime by Eloquent, so we need to format it back to time string
             $checkInTimeStr = $attendance->check_in instanceof \Carbon\Carbon
                 ? $attendance->check_in->format('H:i:s')
@@ -352,9 +479,18 @@ class FingerspotWebhookController extends Controller
             $checkInTime = Carbon::parse($attendanceDate . ' ' . $checkInTimeStr);
 
             // Check if scan is valid for check-out (after work end time)
-            $isAfterWorkEnd = true; // Default to true if no schedule
+            // Default: gunakan jam 16:00 jika tidak ada work schedule
+            $isAfterWorkEnd = false;
             if ($workEndTime) {
                 $isAfterWorkEnd = $scanTime->gte($workEndTime);
+            } else {
+                // Fallback: gunakan jam 16:00 sebagai batas default untuk check-out
+                try {
+                    $defaultEndTime = Carbon::createFromFormat('Y-m-d H:i', $attendanceDate . ' 16:00');
+                    $isAfterWorkEnd = $scanTime->gte($defaultEndTime);
+                } catch (\Exception $e) {
+                    $isAfterWorkEnd = false;
+                }
             }
 
             if ($setting->scan_mode === 'first_last') {
@@ -368,7 +504,26 @@ class FingerspotWebhookController extends Controller
                         // Update check-out time
                         $updateData = ['check_out' => $scanTime->format('H:i:s')];
                         if ($photoUrl) {
-                            $updateData['photo_out'] = $photoUrl;
+                            // Download and save photo if URL provided
+                            Log::info('Fingerspot: Attempting to download check-out photo', [
+                                'employee_id' => $employee->id,
+                                'photo_url' => $photoUrl,
+                            ]);
+                            $localPhotoPath = $this->downloadAndSavePhoto($photoUrl, 'checkout');
+                            if ($localPhotoPath) {
+                                $updateData['photo_out'] = $localPhotoPath;
+                                Log::info('Fingerspot: Check-out photo saved successfully', [
+                                    'employee_id' => $employee->id,
+                                    'saved_path' => $localPhotoPath,
+                                ]);
+                            } else {
+                                // If download failed, save the original URL
+                                $updateData['photo_out'] = $photoUrl;
+                                Log::warning('Fingerspot: Failed to download check-out photo, using original URL', [
+                                    'employee_id' => $employee->id,
+                                    'photo_url' => $photoUrl,
+                                ]);
+                            }
                         }
                         $attendance->update($updateData);
 
@@ -409,7 +564,22 @@ class FingerspotWebhookController extends Controller
                 if ($isAfterWorkEnd && $scanTime->gt($checkInTime)) {
                     $updateData = ['check_out' => $scanTime->format('H:i:s')];
                     if ($photoUrl) {
-                        $updateData['photo_out'] = $photoUrl;
+                        // Download and save photo if URL provided
+                        Log::info('Fingerspot: Attempting to download check-out photo (all mode)', [
+                            'employee_id' => $employee->id,
+                            'photo_url' => $photoUrl,
+                        ]);
+                        $localPhotoPath = $this->downloadAndSavePhoto($photoUrl, 'checkout');
+                        if ($localPhotoPath) {
+                            $updateData['photo_out'] = $localPhotoPath;
+                            Log::info('Fingerspot: Check-out photo saved successfully (all mode)', [
+                                'employee_id' => $employee->id,
+                                'saved_path' => $localPhotoPath,
+                            ]);
+                        } else {
+                            // If download failed, save the original URL
+                            $updateData['photo_out'] = $photoUrl;
+                        }
                     }
                     $attendance->update($updateData);
 
@@ -442,8 +612,11 @@ class FingerspotWebhookController extends Controller
 
     /**
      * Create check-in attendance record
+     * 
+     * Rule baru: Jika attlog masuk jam 8:00 AM atau setelahnya dan belum ada attlog sebelumnya di hari itu,
+     * maka dianggap terlambat (status = 'terlambat')
      */
-    protected function createCheckIn(Employee $employee, Carbon $scanTime, string $attendanceDate, ?string $photoUrl = null): Attendance
+    protected function createCheckIn(Employee $employee, Carbon $scanTime, string $attendanceDate, ?string $photoUrl = null, ?Carbon $workStartTime = null): Attendance
     {
         $checkInTime = $scanTime->format('H:i:s');
 
@@ -453,13 +626,11 @@ class FingerspotWebhookController extends Controller
 
         $schedule = $employee->workSchedule;
 
-        if ($schedule) {
+        if ($schedule && $workStartTime) {
             try {
-                $startTime = substr($schedule->start_time, 0, 5); // HH:MM
-                $scheduledTime = Carbon::createFromFormat('Y-m-d H:i', $attendanceDate . ' ' . $startTime);
-
-                if ($scanTime->gt($scheduledTime)) {
-                    $lateMinutes = $scheduledTime->diffInMinutes($scanTime);
+                // Rule: Jika scan jam 8:00 AM atau lebih (dan ini scan pertama hari ini), langsung terlambat
+                if ($scanTime->gte($workStartTime)) {
+                    $lateMinutes = $workStartTime->diffInMinutes($scanTime);
                     $status = 'terlambat';
                 }
             } catch (\Exception $e) {
@@ -468,6 +639,17 @@ class FingerspotWebhookController extends Controller
                     'schedule' => $schedule->toArray(),
                     'error' => $e->getMessage(),
                 ]);
+            }
+        } else {
+            // Fallback jika tidak ada work schedule - gunakan jam 8:00 AM sebagai batas default
+            try {
+                $defaultStartTime = Carbon::createFromFormat('Y-m-d H:i', $attendanceDate . ' 08:00');
+                if ($scanTime->gte($defaultStartTime)) {
+                    $lateMinutes = $defaultStartTime->diffInMinutes($scanTime);
+                    $status = 'terlambat';
+                }
+            } catch (\Exception $e) {
+                // Ignore error, use default status 'hadir'
             }
         }
 
@@ -501,6 +683,66 @@ class FingerspotWebhookController extends Controller
             'success' => (bool) $setting,
             'message' => $setting ? 'Connection OK' : 'Invalid token',
             'server_time' => now()->toDateTimeString(),
+        ]);
+    }
+
+    /**
+     * Test photo download functionality
+     */
+    public function testPhotoDownload(Request $request)
+    {
+        $photoUrl = $request->input('photo_url');
+        
+        if (!$photoUrl) {
+            return response()->json([
+                'success' => false,
+                'message' => 'photo_url parameter required'
+            ], 400);
+        }
+
+        try {
+            $result = $this->downloadAndSavePhoto($photoUrl, 'test');
+            
+            return response()->json([
+                'success' => (bool) $result,
+                'message' => $result ? 'Photo downloaded successfully' : 'Failed to download photo',
+                'local_path' => $result,
+                'full_url' => $result ? asset('storage/' . $result) : null,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Debug endpoint to see latest fingerspot logs with photo data
+     */
+    public function debugLogs(Request $request)
+    {
+        $logs = FingerspotLog::with('employee')
+            ->latest()
+            ->limit(10)
+            ->get()
+            ->map(function($log) {
+                return [
+                    'id' => $log->id,
+                    'pin' => $log->pin,
+                    'employee' => $log->employee?->name,
+                    'scan_time' => $log->scan_time,
+                    'photo_url' => $log->photo_url,
+                    'has_photo' => !empty($log->photo_url),
+                    'process_status' => $log->process_status,
+                    'raw_data_keys' => is_array($log->raw_data) ? array_keys($log->raw_data) : [],
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'logs' => $logs,
         ]);
     }
 
@@ -643,6 +885,9 @@ class FingerspotWebhookController extends Controller
                     $failed++;
                     continue;
                 }
+                
+                // Reset log to pending before reprocessing
+                $log->update(['process_status' => 'pending', 'process_message' => null]);
 
                 $result = $this->processAttendance($log, $employee, Carbon::parse($log->scan_time), $setting, $log->photo_url);
 
