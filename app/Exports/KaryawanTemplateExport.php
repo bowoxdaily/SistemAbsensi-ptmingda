@@ -6,6 +6,7 @@ use App\Models\Department;
 use App\Models\SubDepartment;
 use App\Models\Position;
 use App\Models\WorkSchedule;
+use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
@@ -13,8 +14,10 @@ use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use Illuminate\Support\Collection;
 
-class KaryawanTemplateExport implements WithHeadings, WithStyles, WithColumnWidths, WithEvents
+class KaryawanTemplateExport implements FromCollection, WithHeadings, WithStyles, WithColumnWidths, WithEvents
 {
     protected $departments;
     protected $subDepartments;
@@ -47,6 +50,63 @@ class KaryawanTemplateExport implements WithHeadings, WithStyles, WithColumnWidt
             ->orderBy('name')
             ->pluck('name')
             ->toArray();
+    }
+
+    /**
+     * Generate collection with example row and empty rows
+     */
+    public function collection()
+    {
+        // Create example row
+        $exampleRow = [
+            'EMP001',  // Kode Karyawan
+            '1234567890123456',  // NIK
+            'John Doe',  // Nama Lengkap
+            'Laki-laki',  // Jenis Kelamin
+            'Jakarta',  // Tempat Lahir
+            '1990-01-15',  // Tanggal Lahir
+            'Menikah',  // Status Perkawinan
+            '2',  // Tanggungan Anak
+            'Islam',  // Agama
+            'Indonesia',  // Bangsa
+            'WNI',  // Status Kependudukan
+            'Siti Aminah',  // Nama Ibu Kandung
+            '1234567890123456',  // Kartu Keluarga
+            !empty($this->departments) ? $this->departments[0] : 'IT & Development',  // Departemen
+            !empty($this->subDepartments) ? $this->subDepartments[0] : '',  // Sub Departemen
+            !empty($this->positions) ? $this->positions[0] : 'Staff IT',  // Posisi
+            'S1 Informatika',  // Lulusan Sekolah
+            '2023-01-10',  // Tanggal Bergabung
+            'Tetap',  // Status Kerja
+            'Non Serikat',  // Status Serikat
+            !empty($this->workSchedules) ? $this->workSchedules[0] : 'Shift Pagi',  // Jadwal Kerja
+            '',  // Tanggal Resign
+            'BCA',  // Bank
+            '1234567890',  // Nomor Rekening
+            '12.345.678.9-012.000',  // NPWP
+            '0001234567890',  // BPJS Kesehatan
+            '0001234567890',  // BPJS Ketenagakerjaan
+            'Aktif',  // Status
+            'Jl. Contoh No. 123',  // Alamat
+            'Jakarta Selatan',  // Kota
+            'DKI Jakarta',  // Provinsi
+            '12345',  // Kode Pos
+            '081234567890',  // No. HP
+            'john.doe@example.com',  // Email
+            'Jane Doe',  // Kontak Darurat (Nama)
+            '081234567891',  // Kontak Darurat (No)
+        ];
+
+        // Create collection with example row and 10 empty rows for data entry
+        $collection = new Collection();
+        $collection->push($exampleRow);
+        
+        // Add 10 empty rows for user to fill
+        for ($i = 0; $i < 10; $i++) {
+            $collection->push(array_fill(0, 36, ''));
+        }
+
+        return $collection;
     }
     /**
      * @return array
@@ -144,64 +204,6 @@ class KaryawanTemplateExport implements WithHeadings, WithStyles, WithColumnWidt
      */
     public function styles(Worksheet $sheet)
     {
-        // Add example data in row 2
-        $sheet->setCellValue('A2', 'EMP001');
-        $sheet->setCellValue('B2', '1234567890123456');
-        $sheet->setCellValue('C2', 'John Doe');
-        $sheet->setCellValue('D2', 'Laki-laki');
-        $sheet->setCellValue('E2', 'Jakarta');
-        $sheet->setCellValue('F2', '1990-01-15');
-        $sheet->setCellValue('G2', 'Menikah');
-        $sheet->setCellValue('H2', '2');
-        $sheet->setCellValue('I2', 'Islam');
-        $sheet->setCellValue('J2', 'Indonesia');
-        $sheet->setCellValue('K2', 'WNI');
-        $sheet->setCellValue('L2', 'Siti Aminah');
-        $sheet->setCellValue('M2', '1234567890123456');
-        $sheet->setCellValue('N2', 'IT & Development');
-        $sheet->setCellValue('O2', 'IT & Development - Development');
-        $sheet->setCellValue('P2', 'Staff IT');
-        $sheet->setCellValue('Q2', 'S1 Informatika');
-        $sheet->setCellValue('R2', '2023-01-10');
-        $sheet->setCellValue('S2', 'Tetap');
-        $sheet->setCellValue('T2', 'Non Serikat');
-        $sheet->setCellValue('U2', 'Shift Pagi');
-        $sheet->setCellValue('V2', '');
-        $sheet->setCellValue('W2', 'BCA');
-        $sheet->setCellValue('W2', 'BCA');
-        $sheet->setCellValue('X2', '1234567890');
-        $sheet->setCellValue('Y2', '12.345.678.9-012.000');
-        $sheet->setCellValue('Z2', '0001234567890');
-        $sheet->setCellValue('AA2', '0001234567890');
-        $sheet->setCellValue('AB2', 'Aktif');
-        $sheet->setCellValue('AC2', 'Jl. Contoh No. 123');
-        $sheet->setCellValue('AD2', 'Jakarta Selatan');
-        $sheet->setCellValue('AE2', 'DKI Jakarta');
-        $sheet->setCellValue('AF2', '12345');
-        $sheet->setCellValue('AG2', '081234567890');
-        $sheet->setCellValue('AH2', 'john.doe@example.com');
-        $sheet->setCellValue('AI2', 'Jane Doe');
-        $sheet->setCellValue('AJ2', '081234567891');
-
-        // Add notes in row 3
-        $sheet->setCellValue('A3', 'Contoh: EMP002');
-        $sheet->setCellValue('D3', 'Pilih dari dropdown ⬇');
-        $sheet->setCellValue('F3', 'Format: YYYY-MM-DD');
-        $sheet->setCellValue('G3', 'Pilih dari dropdown ⬇');
-        $sheet->setCellValue('H3', 'Angka, contoh: 0, 1, 2');
-        $sheet->setCellValue('I3', 'Islam/Kristen/Katolik/Hindu/Buddha/Konghucu');
-        $sheet->setCellValue('K3', 'WNI/WNA');
-        $sheet->setCellValue('N3', 'Pilih dari dropdown ⬇');
-        $sheet->setCellValue('O3', 'Pilih dari dropdown ⬇ (opsional)');
-        $sheet->setCellValue('P3', 'Pilih dari dropdown ⬇');
-        $sheet->setCellValue('R3', 'Format: YYYY-MM-DD');
-        $sheet->setCellValue('S3', 'Pilih dari dropdown ⬇');
-        $sheet->setCellValue('T3', 'Pilih dari dropdown ⬇');
-        $sheet->setCellValue('U3', 'Pilih dari dropdown ⬇');
-        $sheet->setCellValue('V3', 'Kosongkan jika belum resign');
-        $sheet->setCellValue('AB3', 'Pilih dari dropdown ⬇');
-        $sheet->setCellValue('AH3', 'Harus unique');
-
         return [
             // Style header row
             1 => [
@@ -215,19 +217,11 @@ class KaryawanTemplateExport implements WithHeadings, WithStyles, WithColumnWidt
                     'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
                 ],
             ],
-            // Style example row
+            // Style example row 
             2 => [
                 'fill' => [
                     'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
                     'startColor' => ['rgb' => 'E8F5E9']
-                ],
-            ],
-            // Style notes row
-            3 => [
-                'font' => ['italic' => true, 'size' => 9, 'color' => ['rgb' => '666666']],
-                'fill' => [
-                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => 'FFF9C4']
                 ],
             ],
         ];
@@ -241,180 +235,224 @@ class KaryawanTemplateExport implements WithHeadings, WithStyles, WithColumnWidt
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
+                $spreadsheet = $sheet->getParent();
 
-                // Set dropdown untuk Jenis Kelamin (Column D) - dari row 2 sampai 1000
-                $genderValidation = $sheet->getCell('D2')->getDataValidation();
-                $genderValidation->setType(DataValidation::TYPE_LIST);
-                $genderValidation->setErrorStyle(DataValidation::STYLE_INFORMATION);
-                $genderValidation->setAllowBlank(false);
-                $genderValidation->setShowInputMessage(true);
-                $genderValidation->setShowErrorMessage(true);
-                $genderValidation->setShowDropDown(true);
-                $genderValidation->setErrorTitle('Input error');
-                $genderValidation->setError('Pilih dari dropdown');
-                $genderValidation->setPromptTitle('Jenis Kelamin');
-                $genderValidation->setPrompt('Pilih Laki-laki atau Perempuan');
-                $genderValidation->setFormula1('"Laki-laki,Perempuan"');
+                // Create a hidden sheet for dropdown data to avoid 255 char limit
+                $dataSheet = new \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet($spreadsheet, '_DropdownData');
+                $spreadsheet->addSheet($dataSheet);
+                $dataSheet->setSheetState(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet::SHEETSTATE_HIDDEN);
 
-                // Copy validation ke row lainnya
-                for ($i = 2; $i <= 1000; $i++) {
-                    $sheet->getCell('D' . $i)->setDataValidation(clone $genderValidation);
+                // Add dropdown data to hidden sheet
+                // Departments
+                $deptRow = 1;
+                if (!empty($this->departments)) {
+                    foreach ($this->departments as $dept) {
+                        $dataSheet->setCellValue('A' . $deptRow, $dept);
+                        $deptRow++;
+                    }
+                }
+
+                // Sub Departments
+                $subDeptRow = 1;
+                if (!empty($this->subDepartments)) {
+                    foreach ($this->subDepartments as $subDept) {
+                        $dataSheet->setCellValue('B' . $subDeptRow, $subDept);
+                        $subDeptRow++;
+                    }
+                }
+
+                // Positions
+                $posRow = 1;
+                if (!empty($this->positions)) {
+                    foreach ($this->positions as $pos) {
+                        $dataSheet->setCellValue('C' . $posRow, $pos);
+                        $posRow++;
+                    }
+                }
+
+                // Work Schedules
+                $scheduleRow = 1;
+                if (!empty($this->workSchedules)) {
+                    foreach ($this->workSchedules as $schedule) {
+                        $dataSheet->setCellValue('D' . $scheduleRow, $schedule);
+                        $scheduleRow++;
+                    }
+                }
+
+                // Set dropdown untuk Jenis Kelamin (Column D)
+                $validation = $sheet->getCell('D2')->getDataValidation();
+                $validation->setType(DataValidation::TYPE_LIST);
+                $validation->setErrorStyle(DataValidation::STYLE_INFORMATION);
+                $validation->setAllowBlank(false);
+                $validation->setShowInputMessage(true);
+                $validation->setShowErrorMessage(true);
+                $validation->setShowDropDown(true);
+                $validation->setErrorTitle('Input error');
+                $validation->setError('Pilih dari dropdown');
+                $validation->setPromptTitle('Jenis Kelamin');
+                $validation->setPrompt('Pilih Laki-laki atau Perempuan');
+                $validation->setFormula1('"Laki-laki,Perempuan"');
+                
+                for ($i = 3; $i <= 100; $i++) {
+                    $sheet->getCell('D' . $i)->setDataValidation(clone $validation);
                 }
 
                 // Set dropdown untuk Status Perkawinan (Column G)
-                $maritalValidation = $sheet->getCell('G2')->getDataValidation();
-                $maritalValidation->setType(DataValidation::TYPE_LIST);
-                $maritalValidation->setErrorStyle(DataValidation::STYLE_INFORMATION);
-                $maritalValidation->setAllowBlank(false);
-                $maritalValidation->setShowInputMessage(true);
-                $maritalValidation->setShowErrorMessage(true);
-                $maritalValidation->setShowDropDown(true);
-                $maritalValidation->setErrorTitle('Input error');
-                $maritalValidation->setError('Pilih dari dropdown');
-                $maritalValidation->setPromptTitle('Status Perkawinan');
-                $maritalValidation->setPrompt('Pilih status perkawinan');
-                $maritalValidation->setFormula1('"Belum Menikah,Menikah,Duda,Janda"');
-
-                for ($i = 2; $i <= 1000; $i++) {
-                    $sheet->getCell('G' . $i)->setDataValidation(clone $maritalValidation);
+                $validation = $sheet->getCell('G2')->getDataValidation();
+                $validation->setType(DataValidation::TYPE_LIST);
+                $validation->setErrorStyle(DataValidation::STYLE_INFORMATION);
+                $validation->setAllowBlank(false);
+                $validation->setShowInputMessage(true);
+                $validation->setShowErrorMessage(true);
+                $validation->setShowDropDown(true);
+                $validation->setErrorTitle('Input error');
+                $validation->setError('Pilih dari dropdown');
+                $validation->setPromptTitle('Status Perkawinan');
+                $validation->setPrompt('Pilih status perkawinan');
+                $validation->setFormula1('"Belum Menikah,Menikah,Duda,Janda"');
+                
+                for ($i = 3; $i <= 100; $i++) {
+                    $sheet->getCell('G' . $i)->setDataValidation(clone $validation);
                 }
 
-                // Set dropdown untuk Departemen (Column N) - dari database
-                if (count($this->departments) > 0) {
-                    $departmentList = '"' . implode(',', $this->departments) . '"';
-                    $deptValidation = $sheet->getCell('N2')->getDataValidation();
-                    $deptValidation->setType(DataValidation::TYPE_LIST);
-                    $deptValidation->setErrorStyle(DataValidation::STYLE_INFORMATION);
-                    $deptValidation->setAllowBlank(false);
-                    $deptValidation->setShowInputMessage(true);
-                    $deptValidation->setShowErrorMessage(true);
-                    $deptValidation->setShowDropDown(true);
-                    $deptValidation->setErrorTitle('Input error');
-                    $deptValidation->setError('Pilih departemen yang valid dari dropdown');
-                    $deptValidation->setPromptTitle('Departemen');
-                    $deptValidation->setPrompt('Pilih departemen yang sudah terdaftar');
-                    $deptValidation->setFormula1($departmentList);
-
-                    for ($i = 2; $i <= 1000; $i++) {
-                        $sheet->getCell('N' . $i)->setDataValidation(clone $deptValidation);
+                // Set dropdown untuk Departemen (Column N)
+                if (!empty($this->departments) && $deptRow > 1) {
+                    $validation = $sheet->getCell('N2')->getDataValidation();
+                    $validation->setType(DataValidation::TYPE_LIST);
+                    $validation->setErrorStyle(DataValidation::STYLE_INFORMATION);
+                    $validation->setAllowBlank(false);
+                    $validation->setShowInputMessage(true);
+                    $validation->setShowErrorMessage(true);
+                    $validation->setShowDropDown(true);
+                    $validation->setErrorTitle('Input error');
+                    $validation->setError('Pilih departemen yang valid');
+                    $validation->setPromptTitle('Departemen');
+                    $validation->setPrompt('Pilih departemen dari list');
+                    $validation->setFormula1('_DropdownData!$A$1:$A$' . ($deptRow - 1));
+                    
+                    for ($i = 3; $i <= 100; $i++) {
+                        $sheet->getCell('N' . $i)->setDataValidation(clone $validation);
                     }
                 }
 
-                // Set dropdown untuk Sub Departemen (Column O) - dari database (optional)
-                if (count($this->subDepartments) > 0) {
-                    $subDeptList = '"' . implode(',', $this->subDepartments) . '"';
-                    $subDeptValidation = $sheet->getCell('O2')->getDataValidation();
-                    $subDeptValidation->setType(DataValidation::TYPE_LIST);
-                    $subDeptValidation->setErrorStyle(DataValidation::STYLE_INFORMATION);
-                    $subDeptValidation->setAllowBlank(true); // Allow blank karena optional
-                    $subDeptValidation->setShowInputMessage(true);
-                    $subDeptValidation->setShowErrorMessage(true);
-                    $subDeptValidation->setShowDropDown(true);
-                    $subDeptValidation->setErrorTitle('Input error');
-                    $subDeptValidation->setError('Pilih sub departemen yang valid dari dropdown');
-                    $subDeptValidation->setPromptTitle('Sub Departemen');
-                    $subDeptValidation->setPrompt('Pilih sub departemen (format: Departemen - Sub Departemen). Kosongkan jika tidak ada.');
-                    $subDeptValidation->setFormula1($subDeptList);
-
-                    for ($i = 2; $i <= 1000; $i++) {
-                        $sheet->getCell('O' . $i)->setDataValidation(clone $subDeptValidation);
+                // Set dropdown untuk Sub Departemen (Column O)
+                if (!empty($this->subDepartments) && $subDeptRow > 1) {
+                    $validation = $sheet->getCell('O2')->getDataValidation();
+                    $validation->setType(DataValidation::TYPE_LIST);
+                    $validation->setErrorStyle(DataValidation::STYLE_INFORMATION);
+                    $validation->setAllowBlank(true); // Allow blank - optional
+                    $validation->setShowInputMessage(true);
+                    $validation->setShowErrorMessage(true);
+                    $validation->setShowDropDown(true);
+                    $validation->setErrorTitle('Input error');
+                    $validation->setError('Pilih sub departemen yang valid');
+                    $validation->setPromptTitle('Sub Departemen');
+                    $validation->setPrompt('Pilih sub departemen (opsional)');
+                    $validation->setFormula1('_DropdownData!$B$1:$B$' . ($subDeptRow - 1));
+                    
+                    for ($i = 3; $i <= 100; $i++) {
+                        $sheet->getCell('O' . $i)->setDataValidation(clone $validation);
                     }
                 }
 
-                // Set dropdown untuk Posisi/Jabatan (Column P) - dari database
-                if (count($this->positions) > 0) {
-                    $positionList = '"' . implode(',', $this->positions) . '"';
-                    $posValidation = $sheet->getCell('P2')->getDataValidation();
-                    $posValidation->setType(DataValidation::TYPE_LIST);
-                    $posValidation->setErrorStyle(DataValidation::STYLE_INFORMATION);
-                    $posValidation->setAllowBlank(false);
-                    $posValidation->setShowInputMessage(true);
-                    $posValidation->setShowErrorMessage(true);
-                    $posValidation->setShowDropDown(true);
-                    $posValidation->setErrorTitle('Input error');
-                    $posValidation->setError('Pilih posisi yang valid dari dropdown');
-                    $posValidation->setPromptTitle('Posisi/Jabatan');
-                    $posValidation->setPrompt('Pilih posisi yang sudah terdaftar');
-                    $posValidation->setFormula1($positionList);
-
-                    for ($i = 2; $i <= 1000; $i++) {
-                        $sheet->getCell('P' . $i)->setDataValidation(clone $posValidation);
+                // Set dropdown untuk Posisi/Jabatan (Column P)
+                if (!empty($this->positions) && $posRow > 1) {
+                    $validation = $sheet->getCell('P2')->getDataValidation();
+                    $validation->setType(DataValidation::TYPE_LIST);
+                    $validation->setErrorStyle(DataValidation::STYLE_INFORMATION);
+                    $validation->setAllowBlank(false);
+                    $validation->setShowInputMessage(true);
+                    $validation->setShowErrorMessage(true);
+                    $validation->setShowDropDown(true);
+                    $validation->setErrorTitle('Input error');
+                    $validation->setError('Pilih posisi yang valid');
+                    $validation->setPromptTitle('Posisi/Jabatan');
+                    $validation->setPrompt('Pilih posisi dari list');
+                    $validation->setFormula1('_DropdownData!$C$1:$C$' . ($posRow - 1));
+                    
+                    for ($i = 3; $i <= 100; $i++) {
+                        $sheet->getCell('P' . $i)->setDataValidation(clone $validation);
                     }
                 }
 
                 // Set dropdown untuk Status Kerja (Column S)
-                $empStatusValidation = $sheet->getCell('S2')->getDataValidation();
-                $empStatusValidation->setType(DataValidation::TYPE_LIST);
-                $empStatusValidation->setErrorStyle(DataValidation::STYLE_INFORMATION);
-                $empStatusValidation->setAllowBlank(false);
-                $empStatusValidation->setShowInputMessage(true);
-                $empStatusValidation->setShowErrorMessage(true);
-                $empStatusValidation->setShowDropDown(true);
-                $empStatusValidation->setErrorTitle('Input error');
-                $empStatusValidation->setError('Pilih dari dropdown');
-                $empStatusValidation->setPromptTitle('Status Kerja');
-                $empStatusValidation->setPrompt('Pilih status kerja karyawan');
-                $empStatusValidation->setFormula1('"Tetap,Kontrak,Probation"');
-
-                for ($i = 2; $i <= 1000; $i++) {
-                    $sheet->getCell('S' . $i)->setDataValidation(clone $empStatusValidation);
+                $validation = $sheet->getCell('S2')->getDataValidation();
+                $validation->setType(DataValidation::TYPE_LIST);
+                $validation->setErrorStyle(DataValidation::STYLE_INFORMATION);
+                $validation->setAllowBlank(false);
+                $validation->setShowInputMessage(true);
+                $validation->setShowErrorMessage(true);
+                $validation->setShowDropDown(true);
+                $validation->setErrorTitle('Input error');
+                $validation->setError('Pilih dari dropdown');
+                $validation->setPromptTitle('Status Kerja');
+                $validation->setPrompt('Pilih status kerja');
+                $validation->setFormula1('"Tetap,Kontrak,Probation"');
+                
+                for ($i = 3; $i <= 100; $i++) {
+                    $sheet->getCell('S' . $i)->setDataValidation(clone $validation);
                 }
 
                 // Set dropdown untuk Status Serikat (Column T)
-                $serikatValidation = $sheet->getCell('T2')->getDataValidation();
-                $serikatValidation->setType(DataValidation::TYPE_LIST);
-                $serikatValidation->setErrorStyle(DataValidation::STYLE_INFORMATION);
-                $serikatValidation->setAllowBlank(false);
-                $serikatValidation->setShowInputMessage(true);
-                $serikatValidation->setShowErrorMessage(true);
-                $serikatValidation->setShowDropDown(true);
-                $serikatValidation->setErrorTitle('Input error');
-                $serikatValidation->setError('Pilih dari dropdown');
-                $serikatValidation->setPromptTitle('Status Serikat');
-                $serikatValidation->setPrompt('Pilih status keanggotaan serikat pekerja');
-                $serikatValidation->setFormula1('"Serikat GARTEKS,Non Serikat"');
-
-                for ($i = 2; $i <= 1000; $i++) {
-                    $sheet->getCell('T' . $i)->setDataValidation(clone $serikatValidation);
+                $validation = $sheet->getCell('T2')->getDataValidation();
+                $validation->setType(DataValidation::TYPE_LIST);
+                $validation->setErrorStyle(DataValidation::STYLE_INFORMATION);
+                $validation->setAllowBlank(false);
+                $validation->setShowInputMessage(true);
+                $validation->setShowErrorMessage(true);
+                $validation->setShowDropDown(true);
+                $validation->setErrorTitle('Input error');
+                $validation->setError('Pilih dari dropdown');
+                $validation->setPromptTitle('Status Serikat');
+                $validation->setPrompt('Pilih status serikat');
+                $validation->setFormula1('"Serikat GARTEKS,Non Serikat"');
+                
+                for ($i = 3; $i <= 100; $i++) {
+                    $sheet->getCell('T' . $i)->setDataValidation(clone $validation);
                 }
 
-                // Set dropdown untuk Jadwal Kerja (Column U) - dari database
-                if (!empty($this->workSchedules)) {
-                    $scheduleValidation = $sheet->getCell('U2')->getDataValidation();
-                    $scheduleValidation->setType(DataValidation::TYPE_LIST);
-                    $scheduleValidation->setErrorStyle(DataValidation::STYLE_INFORMATION);
-                    $scheduleValidation->setAllowBlank(false);
-                    $scheduleValidation->setShowInputMessage(true);
-                    $scheduleValidation->setShowErrorMessage(true);
-                    $scheduleValidation->setShowDropDown(true);
-                    $scheduleValidation->setErrorTitle('Input error');
-                    $scheduleValidation->setError('Pilih dari dropdown');
-                    $scheduleValidation->setPromptTitle('Jadwal Kerja');
-                    $scheduleValidation->setPrompt('Pilih jadwal kerja dari list');
-                    $scheduleValidation->setFormula1('"' . implode(',', $this->workSchedules) . '"');
-
-                    for ($i = 2; $i <= 1000; $i++) {
-                        $sheet->getCell('U' . $i)->setDataValidation(clone $scheduleValidation);
+                // Set dropdown untuk Jadwal Kerja (Column U)
+                if (!empty($this->workSchedules) && $scheduleRow > 1) {
+                    $validation = $sheet->getCell('U2')->getDataValidation();
+                    $validation->setType(DataValidation::TYPE_LIST);
+                    $validation->setErrorStyle(DataValidation::STYLE_INFORMATION);
+                    $validation->setAllowBlank(false);
+                    $validation->setShowInputMessage(true);
+                    $validation->setShowErrorMessage(true);
+                    $validation->setShowDropDown(true);
+                    $validation->setErrorTitle('Input error');
+                    $validation->setError('Pilih jadwal kerja yang valid');
+                    $validation->setPromptTitle('Jadwal Kerja');
+                    $validation->setPrompt('Pilih jadwal kerja dari list');
+                    $validation->setFormula1('_DropdownData!$D$1:$D$' . ($scheduleRow - 1));
+                    
+                    for ($i = 3; $i <= 100; $i++) {
+                        $sheet->getCell('U' . $i)->setDataValidation(clone $validation);
                     }
                 }
 
                 // Set dropdown untuk Status Karyawan (Column AB)
-                $statusValidation = $sheet->getCell('AB2')->getDataValidation();
-                $statusValidation->setType(DataValidation::TYPE_LIST);
-                $statusValidation->setErrorStyle(DataValidation::STYLE_INFORMATION);
-                $statusValidation->setAllowBlank(false);
-                $statusValidation->setShowInputMessage(true);
-                $statusValidation->setShowErrorMessage(true);
-                $statusValidation->setShowDropDown(true);
-                $statusValidation->setErrorTitle('Input error');
-                $statusValidation->setError('Pilih dari dropdown');
-                $statusValidation->setPromptTitle('Status Karyawan');
-                $statusValidation->setPrompt('Pilih status aktif karyawan');
-                $statusValidation->setFormula1('"Aktif,Tidak Aktif,Resign"');
-
-                for ($i = 2; $i <= 1000; $i++) {
-                    $sheet->getCell('AB' . $i)->setDataValidation(clone $statusValidation);
+                $validation = $sheet->getCell('AB2')->getDataValidation();
+                $validation->setType(DataValidation::TYPE_LIST);
+                $validation->setErrorStyle(DataValidation::STYLE_INFORMATION);
+                $validation->setAllowBlank(false);
+                $validation->setShowInputMessage(true);
+                $validation->setShowErrorMessage(true);
+                $validation->setShowDropDown(true);
+                $validation->setErrorTitle('Input error');
+                $validation->setError('Pilih dari dropdown');
+                $validation->setPromptTitle('Status Karyawan');
+                $validation->setPrompt('Pilih status karyawan');
+                $validation->setFormula1('"Aktif,Tidak Aktif,Resign"');
+                
+                for ($i = 3; $i <= 100; $i++) {
+                    $sheet->getCell('AB' . $i)->setDataValidation(clone $validation);
                 }
+
+                // Add comment/note to first data row for guidance
+                $sheet->getComment('A3')->getText()->createTextRun('Hapus baris contoh (baris 2) sebelum import. Mulai isi data dari baris ini.');
+                $sheet->getComment('A3')->setWidth('250pt');
+                $sheet->getComment('A3')->setHeight('50pt');
             },
         ];
     }
