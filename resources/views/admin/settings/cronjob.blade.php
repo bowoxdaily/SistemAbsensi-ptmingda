@@ -229,8 +229,7 @@
                                         </td>
                                         <td>
                                             Generate absensi alpha untuk karyawan yang tidak hadir<br>
-                                            <small class="text-muted">Dijalankan setiap jam, cek apakah karyawan sudah
-                                                melewati jam checkout + 30 menit</small>
+                                            <small class="text-muted">Dijalankan setiap jam, karyawan dianggap alpha jika <strong>melewati jam check-in + 2 jam</strong> dan belum absen</small>
                                         </td>
                                         <td>
                                             <button class="btn btn-sm btn-outline-success"
@@ -387,7 +386,8 @@
                                     • Command <code>attendance:generate-absent</code> hanya jalan:<br>
                                     &nbsp;&nbsp;- Senin-Jumat (weekdays)<br>
                                     &nbsp;&nbsp;- Jam 08:00 - 23:59 WIB<br>
-                                    &nbsp;&nbsp;- Setiap jam (hourly)
+                                    &nbsp;&nbsp;- Setiap jam (hourly)<br>
+                                    &nbsp;&nbsp;- Setelah jam check-in + 2 jam grace period
                                 </div>
                             </div>
                         </div>

@@ -23,7 +23,7 @@ class GenerateAbsentAttendance extends Command
      *
      * @var string
      */
-    protected $description = 'Generate attendance records for absent employees (mark as alpha)';
+    protected $description = 'Generate attendance records for absent employees (mark as alpha after check-in + 2 hours grace period)';
 
     /**
      * Execute the console command.
@@ -81,27 +81,36 @@ class GenerateAbsentAttendance extends Command
                 continue;
             }
 
-            // Parse checkout time dari work schedule
-            // Handle if end_time is datetime or time only
+            // Parse check-in time dari work schedule
+            // Handle if start_time is datetime or time only
             try {
-                if (strlen($workSchedule->end_time) > 8) {
-                    // Format datetime: "2025-10-23 17:00:00"
-                    $checkoutTime = Carbon::parse($workSchedule->end_time);
+                if ($workSchedule->start_time instanceof \Carbon\Carbon) {
+                    // Already Carbon instance
+                    $checkinTime = $workSchedule->start_time;
+                } elseif (strlen((string) $workSchedule->start_time) > 8) {
+                    // Format datetime: "2025-10-23 08:00:00"
+                    $checkinTime = Carbon::parse($workSchedule->start_time);
                 } else {
-                    // Format time only: "17:00:00"
-                    $checkoutTime = Carbon::createFromFormat('H:i:s', $workSchedule->end_time);
+                    // Format time only: "08:00:00"
+                    preg_match('/(\d{1,2}):(\d{2})/', (string) $workSchedule->start_time, $matches);
+                    if ($matches) {
+                        $checkinTime = Carbon::createFromFormat('H:i', $matches[1] . ':' . $matches[2]);
+                    } else {
+                        throw new \Exception("Cannot parse time");
+                    }
                 }
             } catch (\Exception $e) {
-                $this->warn("Invalid end_time format for {$employee->name}, skipped.");
+                $this->warn("Invalid start_time format for {$employee->name}: {$e->getMessage()}, skipped.");
                 $skippedCount++;
                 continue;
             }
 
-            // Set tanggal checkout ke tanggal yang dicek
-            $checkoutDateTime = Carbon::parse($date->format('Y-m-d') . ' ' . $checkoutTime->format('H:i:s'));
+            // Set tanggal check-in ke tanggal yang dicek
+            $checkinDateTime = Carbon::parse($date->format('Y-m-d') . ' ' . $checkinTime->format('H:i:s'));
 
-            // Tambahkan grace period 30 menit setelah checkout
-            $gracePeriodEnd = $checkoutDateTime->copy()->addMinutes(30);
+            // Tambahkan grace period 2 jam setelah jam check-in
+            // Jadi jika jam masuk 08:00, alpha akan di-generate setelah jam 10:00
+            $gracePeriodEnd = $checkinDateTime->copy()->addHours(2);
 
             // Hanya generate alpha jika sudah melewati grace period
             if ($currentTime->lt($gracePeriodEnd)) {
@@ -154,10 +163,10 @@ class GenerateAbsentAttendance extends Command
                 'check_out' => null,
                 'status' => 'alpha',
                 'late_minutes' => 0,
-                'notes' => 'Auto-generated: Tidak melakukan absensi (melewati jam checkout + 30 menit)',
+                'notes' => 'Auto-generated: Tidak melakukan absensi (melewati jam masuk + 2 jam)',
             ]);
 
-            $this->line("✓ Generated alpha for: {$employee->name} ({$employee->employee_code}) - Checkout time: {$checkoutTime->format('H:i')}");
+            $this->line("✓ Generated alpha for: {$employee->name} ({$employee->employee_code}) - Check-in time: {$checkinTime->format('H:i')}, Grace period until: {$gracePeriodEnd->format('H:i')}");
             $generatedCount++;
         }
 
