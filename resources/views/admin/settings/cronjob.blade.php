@@ -223,13 +223,13 @@
                                     <tr>
                                         <td><code>attendance:generate-absent</code></td>
                                         <td>
-                                            <span class="badge bg-label-primary">Hourly</span>
-                                            <span class="badge bg-label-info">08:00 - 23:59</span>
+                                            <span class="badge bg-label-primary">Daily</span>
+                                            <span class="badge bg-label-info">08:00 AM</span>
                                             <span class="badge bg-label-secondary">Weekdays</span>
                                         </td>
                                         <td>
                                             Generate absensi alpha untuk karyawan yang tidak hadir<br>
-                                            <small class="text-muted">Dijalankan setiap jam, karyawan dianggap alpha jika <strong>melewati jam check-in + 2 jam</strong> dan belum absen</small>
+                                            <small class="text-muted">Dijalankan setiap hari jam <strong>08:00 pagi</strong>, mengecek dan generate alpha untuk <strong>hari kemarin</strong></small>
                                         </td>
                                         <td>
                                             <button class="btn btn-sm btn-outline-success"
@@ -385,9 +385,9 @@
                                     • Untuk production, gunakan Task Scheduler Windows<br>
                                     • Command <code>attendance:generate-absent</code> hanya jalan:<br>
                                     &nbsp;&nbsp;- Senin-Jumat (weekdays)<br>
-                                    &nbsp;&nbsp;- Jam 08:00 - 23:59 WIB<br>
-                                    &nbsp;&nbsp;- Setiap jam (hourly)<br>
-                                    &nbsp;&nbsp;- Setelah jam check-in + 2 jam grace period
+                                    &nbsp;&nbsp;- Setiap hari jam 08:00 pagi<br>
+                                    &nbsp;&nbsp;- Mengecek & generate alpha untuk <strong>hari kemarin</strong><br>
+                                    &nbsp;&nbsp;- Secara manual: bisa specify tanggal dengan parameter
                                 </div>
                             </div>
                         </div>
@@ -672,20 +672,94 @@
             }
 
             function runAbsentCommand() {
+                // Get today's date in YYYY-MM-DD format
+                const today = new Date();
+                const todayStr = today.toISOString().split('T')[0];
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toISOString().split('T')[0];
+
                 Swal.fire({
                     title: 'Generate Absent Attendance',
-                    text: 'Menjalankan command generate absent untuk hari ini?',
+                    html: '<div class="text-start">' +
+                          '<p class="mb-3"><strong>Pilih tanggal untuk generate alpha:</strong></p>' +
+                          '<div class="form-group">' +
+                          '<label class="form-label mb-2">Tanggal:</label>' +
+                          '<input type="date" id="absentDate" class="form-control" value="' + todayStr + '" max="' + todayStr + '">' +
+                          '</div>' +
+                          '<div id="dateInfo" class="mt-3"></div>' +
+                          '<div class="alert alert-info mt-3 mb-0 small">' +
+                          '<strong><i class="bx bx-info-circle"></i> Info:</strong><br>' +
+                          '• <strong>Hari kemarin:</strong> Generate langsung tanpa grace period<br>' +
+                          '• <strong>Hari ini:</strong> Hanya generate karyawan yang melewati jam masuk + 10 menit<br>' +
+                          '• Data yang sudah ada tidak akan ditimpa (akan di-skip)' +
+                          '</div>' +
+                          '</div>',
                     icon: 'question',
                     showCancelButton: true,
-                    confirmButtonText: 'Ya, Jalankan',
+                    confirmButtonText: 'Generate',
                     cancelButtonText: 'Batal',
                     confirmButtonColor: '#696cff',
-                    cancelButtonColor: '#8592a3'
+                    cancelButtonColor: '#8592a3',
+                    width: 600,
+                    didOpen: () => {
+                        // Check existing data when date changes
+                        const dateInput = document.getElementById('absentDate');
+                        const checkExistingData = (date) => {
+                            $.ajax({
+                                url: '/api/attendance/check-existing',
+                                method: 'GET',
+                                data: { date: date },
+                                headers: { 'Accept': 'application/json' },
+                                success: function(response) {
+                                    const infoDiv = document.getElementById('dateInfo');
+                                    if (response.count > 0) {
+                                        infoDiv.innerHTML = '<div class="alert alert-warning shadow-none border small">' +
+                                            '<i class="bx bx-error-circle"></i> <strong>Perhatian:</strong> ' +
+                                            'Sudah ada <strong>' + response.count + ' data attendance</strong> untuk tanggal ini. ' +
+                                            'Data yang sudah ada akan di-skip dan tidak ditimpa.' +
+                                            '</div>';
+                                    } else {
+                                        infoDiv.innerHTML = '<div class="alert alert-success shadow-none border small">' +
+                                            '<i class="bx bx-check-circle"></i> Belum ada data attendance untuk tanggal ini.' +
+                                            '</div>';
+                                    }
+                                },
+                                error: function() {
+                                    document.getElementById('dateInfo').innerHTML = '';
+                                }
+                            });
+                        };
+                        
+                        // Check on load
+                        checkExistingData(dateInput.value);
+                        
+                        // Check when date changes
+                        dateInput.addEventListener('change', function() {
+                            checkExistingData(this.value);
+                        });
+                    },
+                    preConfirm: () => {
+                        const date = document.getElementById('absentDate').value;
+                        if (!date) {
+                            Swal.showValidationMessage('Pilih tanggal terlebih dahulu');
+                            return false;
+                        }
+                        return date;
+                    }
                 }).then((result) => {
                     if (result.isConfirmed) {
+                        const selectedDate = result.value;
+                        const isToday = selectedDate === todayStr;
+                        const isYesterday = selectedDate === yesterdayStr;
+                        
+                        let dateLabel = selectedDate;
+                        if (isToday) dateLabel = 'hari ini (' + selectedDate + ')';
+                        else if (isYesterday) dateLabel = 'kemarin (' + selectedDate + ')';
+
                         Swal.fire({
                             title: 'Menjalankan command...',
-                            html: 'Mengecek karyawan yang belum absen...<br><small class="text-muted">Mohon tunggu</small>',
+                            html: 'Mengecek karyawan yang belum absen untuk <strong>' + dateLabel + '</strong>...<br><small class="text-muted">Mohon tunggu</small>',
                             allowOutsideClick: false,
                             didOpen: () => {
                                 Swal.showLoading();
@@ -697,23 +771,44 @@
                             method: 'POST',
                             data: {
                                 _token: '{{ csrf_token() }}',
-                                command: 'attendance:generate-absent'
+                                command: 'attendance:generate-absent ' + selectedDate
                             },
                             headers: {
                                 'Accept': 'application/json'
                             },
                             success: function(response) {
+                                // Parse output untuk cek berapa yang generated dan skipped
+                                const outputText = response.output || '';
+                                const generatedMatch = outputText.match(/Generated:\s*(\d+)/);
+                                const skippedMatch = outputText.match(/Skipped:\s*(\d+)/);
+                                
+                                const generatedCount = generatedMatch ? parseInt(generatedMatch[1]) : 0;
+                                const skippedCount = skippedMatch ? parseInt(skippedMatch[1]) : 0;
+                                
+                                let resultIcon = 'success';
+                                let resultTitle = 'Selesai!';
+                                
+                                if (generatedCount === 0 && skippedCount > 0) {
+                                    resultIcon = 'info';
+                                    resultTitle = 'Tidak Ada Data Baru';
+                                }
+                                
                                 Swal.fire({
-                                    icon: 'success',
-                                    title: 'Berhasil!',
+                                    icon: resultIcon,
+                                    title: resultTitle,
                                     html: '<div class="text-start">' +
-                                        '<p class="mb-2">' + response.message + '</p>' +
+                                        '<p class="mb-2"><strong>Tanggal:</strong> ' + dateLabel + '</p>' +
+                                        '<div class="alert alert-' + (generatedCount > 0 ? 'success' : 'warning') + ' shadow-none border mb-2">' +
+                                        '<strong>Generated:</strong> ' + generatedCount + ' alpha records<br>' +
+                                        '<strong>Skipped:</strong> ' + skippedCount + ' karyawan' +
+                                        (skippedCount > 0 ? '<br><small class="text-muted">Data sudah ada atau masih dalam grace period</small>' : '') +
+                                        '</div>' +
                                         '<hr>' +
-                                        '<small><strong>Output:</strong></small>' +
+                                        '<small><strong>Detail Output:</strong></small>' +
                                         '<pre class="text-start small bg-light p-2 rounded" style="max-height: 300px; overflow-y: auto;">' +
                                         response.output + '</pre>' +
                                         '</div>',
-                                    width: 600
+                                    width: 700
                                 });
                                 checkCronStatus();
                             },

@@ -33,15 +33,31 @@ class CronJobController extends Controller
                 'schedule:list'
             ];
 
-            if (!in_array($command, $allowedCommands)) {
+            // Extract base command (without parameters)
+            $baseCommand = explode(' ', trim($command))[0];
+
+            if (!in_array($baseCommand, $allowedCommands)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Command tidak diizinkan'
+                    'message' => 'Command tidak diizinkan: ' . $baseCommand
                 ], 403);
             }
 
-            // Run command
-            Artisan::call($command);
+            // Parse command and arguments
+            $parts = explode(' ', trim($command));
+            $commandName = array_shift($parts);
+            
+            // Build arguments array for Artisan
+            $arguments = [];
+            if (!empty($parts)) {
+                // For attendance:generate-absent, first argument is 'date'
+                if ($commandName === 'attendance:generate-absent' && isset($parts[0])) {
+                    $arguments['date'] = $parts[0];
+                }
+            }
+
+            // Run command with arguments
+            Artisan::call($commandName, $arguments);
             $output = Artisan::output();
 
             // Update last run time

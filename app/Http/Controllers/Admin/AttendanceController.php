@@ -428,6 +428,30 @@ class AttendanceController extends Controller
     }
 
     /**
+     * Check existing attendance by date
+     */
+    public function checkExistingByDate(Request $request)
+    {
+        $date = $request->get('date');
+        
+        if (!$date) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Date parameter required',
+                'count' => 0
+            ]);
+        }
+
+        $count = Attendance::whereDate('attendance_date', $date)->count();
+
+        return response()->json([
+            'success' => true,
+            'count' => $count,
+            'date' => $date
+        ]);
+    }
+
+    /**
      * Verify employee face (compare with profile photo)
      */
     public function verifyFace(Request $request)
