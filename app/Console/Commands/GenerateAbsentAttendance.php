@@ -23,19 +23,21 @@ class GenerateAbsentAttendance extends Command
      *
      * @var string
      */
-    protected $description = 'Generate attendance records for absent employees (mark as alpha after check-in + 2 hours grace period)';
+    protected $description = 'Generate attendance records for absent employees (default: yesterday). For today, requires check-in + 10 minutes grace period.';
 
     /**
      * Execute the console command.
      */
     public function handle()
     {
-        // Get date parameter or use today (check untuk hari ini)
+        // Get date parameter or use yesterday (untuk auto-run di pagi hari)
+        // Jika command jalan otomatis jam 08:00 pagi, generate alpha untuk hari kemarin
+        // Jika ada parameter date, gunakan tanggal yang ditentukan
         $date = $this->argument('date')
             ? Carbon::parse($this->argument('date'))
-            : Carbon::today();
+            : Carbon::yesterday();
 
-        $this->info("Generating absent attendance for: " . $date->format('Y-m-d'));
+        $this->info("Generating absent attendance for: " . $date->format('Y-m-d') . " (" . $date->format('l') . ")");
 
         // Get day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
         $dayOfWeek = $date->dayOfWeek;
@@ -108,14 +110,20 @@ class GenerateAbsentAttendance extends Command
             // Set tanggal check-in ke tanggal yang dicek
             $checkinDateTime = Carbon::parse($date->format('Y-m-d') . ' ' . $checkinTime->format('H:i:s'));
 
-            // Tambahkan grace period 2 jam setelah jam check-in
-            // Jadi jika jam masuk 08:00, alpha akan di-generate setelah jam 10:00
-            $gracePeriodEnd = $checkinDateTime->copy()->addHours(2);
-
-            // Hanya generate alpha jika sudah melewati grace period
-            if ($currentTime->lt($gracePeriodEnd)) {
-                $skippedCount++;
-                continue;
+            // Tambahkan grace period 10 menit setelah jam check-in
+            // Grace period hanya dicek jika tanggal yang di-generate adalah hari ini
+            // Untuk hari kemarin/sebelumnya, langsung generate tanpa cek grace period
+            $isToday = $date->isToday();
+            $gracePeriodEnd = null;
+            
+            if ($isToday) {
+                $gracePeriodEnd = $checkinDateTime->copy()->addMinutes(10);
+                
+                // Hanya generate alpha jika sudah melewati grace period
+                if ($currentTime->lt($gracePeriodEnd)) {
+                    $skippedCount++;
+                    continue;
+                }
             }
 
             // Check if attendance record already exists
@@ -163,10 +171,11 @@ class GenerateAbsentAttendance extends Command
                 'check_out' => null,
                 'status' => 'alpha',
                 'late_minutes' => 0,
-                'notes' => 'Auto-generated: Tidak melakukan absensi (melewati jam masuk + 2 jam)',
+                'notes' => 'Auto-generated: Tidak melakukan absensi',
             ]);
 
-            $this->line("✓ Generated alpha for: {$employee->name} ({$employee->employee_code}) - Check-in time: {$checkinTime->format('H:i')}, Grace period until: {$gracePeriodEnd->format('H:i')}");
+            $gracePeriodInfo = $isToday ? " (Grace period: {$gracePeriodEnd->format('H:i')})" : "";
+            $this->line("✓ Generated alpha for: {$employee->name} ({$employee->employee_code}) - Check-in time: {$checkinTime->format('H:i')}{$gracePeriodInfo}");
             $generatedCount++;
         }
 

@@ -51,6 +51,7 @@ Route::prefix('attendance')->group(function () {
     Route::get('/', [AttendanceController::class, 'list']);
     Route::get('/today/{employeeId}', [AttendanceController::class, 'getTodayAttendance']);
     Route::get('/by-date/{employeeId}', [AttendanceController::class, 'getAttendanceByDate']);
+    Route::get('/check-existing', [AttendanceController::class, 'checkExistingByDate']);
     Route::post('/check-in', [AttendanceController::class, 'checkIn']);
     Route::post('/check-out', [AttendanceController::class, 'checkOut']);
     Route::post('/verify-face', [AttendanceController::class, 'verifyFace']);

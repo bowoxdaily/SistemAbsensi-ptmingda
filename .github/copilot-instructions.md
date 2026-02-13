@@ -57,11 +57,14 @@ Route::get('/api/attendance/list', [AttendanceController::class, 'list']);
 **Alpha Auto-Generation:**
 
 - Command: `php artisan attendance:generate-absent {date?}`
-- Runs: Hourly 08:00-23:59 on weekdays (see `routes/console.php`)
+- Runs: Daily at 08:00 AM on weekdays (see `routes/console.php`)
+- Default: Generates alpha for **yesterday** (without grace period check)
+- With date parameter: Can specify any date; today's date requires check-in + 10 minutes grace period
 - Logic in `GenerateAbsentAttendance`:
     - Checks each active employee with `work_schedule_id`
     - Verifies if date is working day for their shift (uses `WorkSchedule->work_*` columns)
-    - Skips if check-out time + 30min grace period hasn't passed
+    - For yesterday/past dates: No grace period check (direct generation)
+    - For today: Requires check-in + 10 minutes grace period (e.g., 07:30 → 07:40)
     - Creates `alpha` record only if no attendance/leave exists
     - Never overwrites existing attendance
 

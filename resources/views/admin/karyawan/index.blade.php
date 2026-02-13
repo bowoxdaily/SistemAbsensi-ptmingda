@@ -151,6 +151,7 @@
                                     <th style="width: 12%;">Kode</th>
                                     <th style="width: 18%;">Nama</th>
                                     <th style="width: 13%;">Departemen</th>
+                                    <th style="width: 13%;">Sub Departemen</th>
                                     <th style="width: 13%;">Posisi</th>
                                     <th style="width: 13%;">Shift</th>
                                     <th style="width: 10%;" class="text-center">Status</th>
@@ -159,7 +160,7 @@
                             </thead>
                             <tbody class="table-border-bottom-0" id="karyawanTableBody">
                                 <tr id="loadingRow">
-                                    <td colspan="7" class="text-center py-4">
+                                    <td colspan="9" class="text-center py-4">
                                         <div class="spinner-border text-primary" role="status">
                                             <span class="visually-hidden">Loading...</span>
                                         </div>
@@ -1123,7 +1124,7 @@
 
             if (data.data.length === 0) {
                 tbody.append(`
-                    <tr><td colspan="8" class="text-center py-4">
+                    <tr><td colspan="9" class="text-center py-4">
                         <div class="mb-3"><i class='bx bx-user' style="font-size: 48px; color: #ddd;"></i></div>
                         <p class="text-muted mb-2">Belum ada data karyawan</p>
                         <button class="btn btn-sm btn-primary" onclick="openCreateModal()" data-bs-toggle="modal" data-bs-target="#karyawanModal">
@@ -1152,6 +1153,7 @@
                             <td style="white-space: nowrap;"><strong>${k.employee_code}</strong></td>
                             <td><strong>${k.name}</strong></td>
                             <td>${k.department ? k.department.name : '-'}</td>
+                            <td>${k.sub_department ? k.sub_department.name : '-'}</td>
                             <td>${k.position ? k.position.name : '-'}</td>
                             <td>${k.work_schedule ? '<span class="badge bg-label-info">' + k.work_schedule.name + '</span>' : '-'}</td>
                             <td class="text-center" style="white-space: nowrap;">${statusBadge}</td>
@@ -1182,7 +1184,7 @@
                                     <div class="flex-grow-1">
                                         <h6 class="mb-1 fw-bold">${k.name}</h6>
                                         <p class="text-muted small mb-1">${k.employee_code}</p>
-                                        <p class="text-muted small mb-1">${k.department ? k.department.name : '-'} - ${k.position ? k.position.name : '-'}</p>
+                                        <p class="text-muted small mb-1">${k.department ? k.department.name : '-'} ${k.sub_department ? '/ ' + k.sub_department.name : ''} - ${k.position ? k.position.name : '-'}</p>
                                         <p class="text-muted small mb-2">${k.work_schedule ? '<span class="badge bg-label-info">' + k.work_schedule.name + '</span>' : '-'}</p>
                                         ${statusBadge}
                                     </div>
