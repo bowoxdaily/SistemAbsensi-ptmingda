@@ -100,6 +100,8 @@
                             <option value="active">Aktif</option>
                             <option value="inactive">Tidak Aktif</option>
                             <option value="resign">Resign</option>
+                            <option value="mangkir">Mangkir</option>
+                            <option value="gagal_probation">Gagal Probation</option>
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -405,12 +407,15 @@
                                     <div class="col-sm-4 mb-2">
                                         <label for="employment_status" class="form-label small">Status Kerja <span
                                                 class="text-danger">*</span></label>
+                                        <!-- Updated 2026-02-14: Added Mangkir and Gagal Probation -->
                                         <select class="form-select form-select-sm" id="employment_status"
                                             name="employment_status">
                                             <option value="">Pilih...</option>
                                             <option value="Tetap">Tetap</option>
                                             <option value="Kontrak">Kontrak</option>
                                             <option value="Probation">Probation</option>
+                                            <option value="Mangkir">Mangkir</option>
+                                            <option value="Gagal Probation">Gagal Probation</option>
                                         </select>
                                         <div class="invalid-feedback" id="employment_statusError"></div>
                                     </div>
@@ -464,6 +469,8 @@
                                             <option value="active">Aktif</option>
                                             <option value="inactive">Tidak Aktif</option>
                                             <option value="resign">Resign</option>
+                                            <option value="mangkir">Mangkir</option>
+                                            <option value="gagal_probation">Gagal Probation</option>
                                         </select>
                                         <div class="invalid-feedback" id="statusError"></div>
                                     </div>
@@ -1050,7 +1057,9 @@
                 const statusLabel = {
                     'active': 'Aktif',
                     'inactive': 'Tidak Aktif',
-                    'resign': 'Resign'
+                    'resign': 'Resign',
+                    'mangkir': 'Mangkir',
+                    'gagal_probation': 'Gagal Probation'
                 };
                 container.append(
                     `<span class="badge bg-label-warning">Status: ${statusLabel[currentFilters.status]}</span>`);
@@ -1225,7 +1234,9 @@
             const badges = {
                 'active': '<span class="badge bg-label-success">Aktif</span>',
                 'inactive': '<span class="badge bg-label-warning">Tidak Aktif</span>',
-                'resign': '<span class="badge bg-label-danger">Resign</span>'
+                'resign': '<span class="badge bg-label-danger">Resign</span>',
+                'mangkir': '<span class="badge bg-label-dark">Mangkir</span>',
+                'gagal_probation': '<span class="badge bg-label-danger">Gagal Probation</span>'
             };
             return badges[status] || status;
         }

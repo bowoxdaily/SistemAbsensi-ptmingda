@@ -81,7 +81,7 @@ class KaryawanController extends Controller
             'position_id' => 'required|exists:positions,id',
             'lulusan_sekolah' => 'nullable|string|max:100',
             'join_date' => 'required|date',
-            'employment_status' => 'required|in:Tetap,Kontrak,Probation',
+            'employment_status' => 'required|in:Tetap,Kontrak,Probation,Mangkir,Gagal Probation',
             'serikat' => 'required|in:Serikat GARTEKS,Non Serikat',
             'work_schedule_id' => 'required|exists:work_schedules,id',
             'tanggal_resign' => 'nullable|date',
@@ -98,7 +98,7 @@ class KaryawanController extends Controller
             'email' => 'required|email|max:100|unique:employees,email',
             'emergency_contact_name' => 'required|string|max:100',
             'emergency_contact_phone' => 'required|string|max:20',
-            'status' => 'required|in:active,inactive,resign',
+            'status' => 'required|in:active,inactive,resign,mangkir,gagal_probation',
         ], [
             'employee_code.required' => 'Kode karyawan wajib diisi',
             'employee_code.unique' => 'Kode karyawan sudah ada',
@@ -212,7 +212,7 @@ class KaryawanController extends Controller
             'position_id' => 'required|exists:positions,id',
             'lulusan_sekolah' => 'nullable|string|max:100',
             'join_date' => 'required|date',
-            'employment_status' => 'required|in:Tetap,Kontrak,Probation',
+            'employment_status' => 'required|in:Tetap,Kontrak,Probation,Mangkir,Gagal Probation',
             'serikat' => 'required|in:Serikat GARTEKS,Non Serikat',
             'work_schedule_id' => 'required|exists:work_schedules,id',
             'tanggal_resign' => 'nullable|date',
@@ -229,7 +229,7 @@ class KaryawanController extends Controller
             'email' => 'required|email|max:100|unique:employees,email,' . $id,
             'emergency_contact_name' => 'required|string|max:100',
             'emergency_contact_phone' => 'required|string|max:20',
-            'status' => 'required|in:active,inactive,resign',
+            'status' => 'required|in:active,inactive,resign,mangkir,gagal_probation',
         ]);
 
         if ($validator->fails()) {

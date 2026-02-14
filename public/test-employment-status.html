@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Employment Status</title>
+</head>
+<body>
+    <h1>Test Employment Status Dropdown</h1>
+    <p>Jika Anda melihat halaman ini, berarti server sudah serve file baru.</p>
+
+    <label for="test_employment">Status Kerja Test:</label>
+    <select id="test_employment" name="test_employment">
+        <option value="">Pilih...</option>
+        <option value="Tetap">Tetap</option>
+        <option value="Kontrak">Kontrak</option>
+        <option value="Probation">Probation</option>
+        <option value="Mangkir">Mangkir</option>
+        <option value="Gagal Probation">Gagal Probation</option>
+    </select>
+
+    <hr>
+    <p><strong>Waktu file dibuat:</strong> <?php echo date('Y-m-d H:i:s'); ?></p>
+    <p><a href="/admin/karyawan">Kembali ke Halaman Karyawan</a></p>
+</body>
+</html>
