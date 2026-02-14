@@ -295,10 +295,16 @@
                                             <span class="badge bg-warning">TERLAMBAT</span>
                                         @elseif($attendance->status == 'cuti')
                                             <span class="badge bg-primary">CUTI</span>
+                                        @elseif($attendance->status == 'cuti_bersama')
+                                            <span class="badge bg-info">CUTI BERSAMA</span>
                                         @elseif($attendance->status == 'izin')
                                             <span class="badge bg-info">IZIN</span>
                                         @elseif($attendance->status == 'sakit')
                                             <span class="badge bg-secondary">SAKIT</span>
+                                        @elseif($attendance->status == 'libur')
+                                            <span class="badge bg-dark">LIBUR</span>
+                                        @elseif($attendance->status == 'off')
+                                            <span class="badge bg-secondary">OFF</span>
                                         @elseif($attendance->status == 'alpha')
                                             <span class="badge bg-danger">ALPHA</span>
                                         @else
@@ -514,10 +520,16 @@
                                             <span class="badge bg-warning">TERLAMBAT</span>
                                         @elseif($attendance->status == 'cuti')
                                             <span class="badge bg-primary">CUTI</span>
+                                        @elseif($attendance->status == 'cuti_bersama')
+                                            <span class="badge bg-info">CUTI BERSAMA</span>
                                         @elseif($attendance->status == 'izin')
                                             <span class="badge bg-info">IZIN</span>
                                         @elseif($attendance->status == 'sakit')
                                             <span class="badge bg-secondary">SAKIT</span>
+                                        @elseif($attendance->status == 'libur')
+                                            <span class="badge bg-dark">LIBUR</span>
+                                        @elseif($attendance->status == 'off')
+                                            <span class="badge bg-secondary">OFF</span>
                                         @elseif($attendance->status == 'alpha')
                                             <span class="badge bg-danger">ALPHA</span>
                                         @else

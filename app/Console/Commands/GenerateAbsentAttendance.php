@@ -42,16 +42,22 @@ class GenerateAbsentAttendance extends Command
         // Get day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
         $dayOfWeek = $date->dayOfWeek;
 
-        // If Sunday (0) or Saturday (6), skip (weekend)
-        if ($dayOfWeek == 0 || $dayOfWeek == 6) {
-            $this->warn("Skipping weekend date: " . $date->format('l, d F Y'));
-            return 0;
+        // Check if date is a holiday FIRST (before checking weekend)
+        // Because some holidays can fall on weekends
+        $isHoliday = Holiday::isHoliday($date);
+        $holiday = null;
+
+        if ($isHoliday) {
+            $holiday = Holiday::where('date', $date->format('Y-m-d'))->where('is_active', true)->first();
+            $this->info("Processing holiday: " . $date->format('l, d F Y') . " - {$holiday->name}");
+
+            // Generate holiday attendance for all active employees
+            return $this->generateHolidayAttendance($date, $holiday);
         }
 
-        // Check if date is a holiday
-        if (Holiday::isHoliday($date)) {
-            $holiday = Holiday::where('date', $date->format('Y-m-d'))->where('is_active', true)->first();
-            $this->warn("Skipping holiday: " . $date->format('l, d F Y') . " - {$holiday->name}");
+        // If not a holiday and it's Sunday (0) or Saturday (6), skip (weekend)
+        if ($dayOfWeek == 0 || $dayOfWeek == 6) {
+            $this->warn("Skipping weekend date: " . $date->format('l, d F Y'));
             return 0;
         }
 
@@ -229,5 +235,94 @@ class GenerateAbsentAttendance extends Command
 
         // Default: Monday to Friday (1-5)
         return $dayOfWeek >= 1 && $dayOfWeek <= 5;
+    }
+
+    /**
+     * Generate attendance for all active employees on holiday
+     * Status will match the holiday type:
+     * - Libur Nasional → 'libur'
+     * - Cuti Bersama → 'cuti_bersama'
+     * - Custom → 'libur'
+     * If employee checks in, the check-in process will override this to "Hadir"
+     */
+    private function generateHolidayAttendance($date, $holiday)
+    {
+        // Get all active employees
+        $employees = Employee::where('status', 'active')->get();
+
+        $generatedCount = 0;
+        $skippedCount = 0;
+
+        foreach ($employees as $employee) {
+            // Check if attendance record already exists
+            $existingAttendance = Attendance::where('employee_id', $employee->id)
+                ->whereDate('attendance_date', $date)
+                ->first();
+
+            if ($existingAttendance) {
+                // Attendance already exists (mungkin sudah check-in), skip
+                $skippedCount++;
+                continue;
+            }
+
+            // Check if employee has approved leave for this date
+            $approvedLeave = Leave::where('employee_id', $employee->id)
+                ->where('status', 'approved')
+                ->whereDate('start_date', '<=', $date)
+                ->whereDate('end_date', '>=', $date)
+                ->first();
+
+            if ($approvedLeave) {
+                // Employee has approved leave, create attendance with leave status
+                $leaveStatus = $approvedLeave->leave_type;
+
+                Attendance::create([
+                    'employee_id' => $employee->id,
+                    'attendance_date' => $date->format('Y-m-d'),
+                    'check_in' => null,
+                    'check_out' => null,
+                    'status' => $leaveStatus,
+                    'late_minutes' => 0,
+                    'notes' => "Hari Libur ({$holiday->name}) - {$leaveStatus} (approved): {$approvedLeave->reason}",
+                ]);
+
+                $this->line("✓ Generated {$leaveStatus} for: {$employee->name} ({$employee->employee_code})");
+                $generatedCount++;
+                continue;
+            }
+
+            // Create attendance record for holiday based on holiday type
+            // Map holiday type to attendance status:
+            // - 'nasional' → 'libur'
+            // - 'cuti_bersama' → 'cuti_bersama'
+            // - 'custom' → 'libur'
+            $attendanceStatus = match($holiday->type) {
+                'cuti_bersama' => 'cuti_bersama',
+                'nasional' => 'libur',
+                'custom' => 'libur',
+                default => 'libur'
+            };
+
+            Attendance::create([
+                'employee_id' => $employee->id,
+                'attendance_date' => $date->format('Y-m-d'),
+                'check_in' => null,
+                'check_out' => null,
+                'status' => $attendanceStatus,
+                'late_minutes' => 0,
+                'notes' => "Hari Libur ({$holiday->type_label}): {$holiday->name}",
+            ]);
+
+            $this->line("✓ Generated {$attendanceStatus} for: {$employee->name} ({$employee->employee_code})");
+            $generatedCount++;
+        }
+
+        $this->newLine();
+        $this->info("Holiday attendance generation completed!");
+        $this->info("Holiday: {$holiday->name} ({$holiday->type_label})");
+        $this->info("Generated: {$generatedCount} records");
+        $this->info("Skipped: {$skippedCount} employees (already have attendance)");
+
+        return 0;
     }
 }

@@ -37,8 +37,19 @@
                     </div>
                     <div class="card-body">
                         <div class="alert alert-info shadow-none border mb-3">
-                            <strong><i class='bx bx-info-circle'></i> Info:</strong><br>
-                            Hari libur yang ditambahkan akan dikecualikan dari perhitungan absensi alpha. Karyawan yang tidak absen pada hari libur tidak akan dianggap alpha.
+                            <strong><i class='bx bx-info-circle'></i> Pengaturan Hari Libur:</strong><br>
+                            <ul class="mb-0 mt-2">
+                                <li><strong>Status attendance mengikuti jenis hari libur:</strong>
+                                    <ul class="mt-1">
+                                        <li>Libur Nasional → <span class="badge bg-dark">LIBUR</span></li>
+                                        <li>Cuti Bersama → <span class="badge bg-info">CUTI BERSAMA</span></li>
+                                        <li>Custom → <span class="badge bg-dark">LIBUR</span></li>
+                                    </ul>
+                                </li>
+                                <li><strong>Jika ada yang masuk:</strong> Ketika karyawan check-in di hari libur, status akan otomatis berubah menjadi <span class="badge bg-success">Hadir</span></li>
+                                <li><strong>Yang seharusnya masuk tapi tidak:</strong> Admin dapat manual edit status menjadi <span class="badge bg-danger">Alpha</span> melalui menu Absensi</li>
+                                <li><strong>Yang sedang cuti:</strong> Status tetap sesuai jenis cuti yang diajukan (Cuti/Izin/Sakit)</li>
+                            </ul>
                         </div>
 
                         <!-- Filter Year & Month -->
