@@ -36,7 +36,7 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
      */
     public function collection()
     {
-        $query = Attendance::with(['employee.department', 'employee.position', 'employee.workSchedule']);
+        $query = Attendance::with(['employee.department', 'employee.subDepartment', 'employee.position', 'employee.workSchedule']);
 
         // Apply filters
         if ($this->search) {
@@ -98,6 +98,7 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
             $employeeCode,
             $attendance->employee->name ?? '-',
             $attendance->employee->department->name ?? '-',
+            $attendance->employee->subDepartment->name ?? '-',
             $attendance->employee->position->name ?? '-',
             Carbon::parse($attendance->attendance_date)->locale('id')->translatedFormat('l, d F Y'),
             $attendance->check_in ? Carbon::parse($attendance->check_in)->format('H:i') : '-',
@@ -107,6 +108,7 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
                 Carbon::parse($attendance->employee->workSchedule->end_time)->format('H:i') : '-',
             strtoupper($attendance->status),
             $attendance->late_minutes > 0 ? $attendance->late_minutes . ' menit' : '-',
+            $attendance->overtime_minutes > 0 ? $attendance->overtime_minutes . ' menit' : '-',
             $totalHadir,
             $attendance->notes ?? '-',
         ];
@@ -122,6 +124,7 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
             'NIP',
             'Nama Karyawan',
             'Departemen',
+            'Sub Departemen',
             'Jabatan',
             'Tanggal',
             'Check In',
@@ -129,6 +132,7 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
             'Jam Kerja',
             'Status',
             'Terlambat',
+            'Lembur',
             'Total Hadir',
             'Catatan',
         ];

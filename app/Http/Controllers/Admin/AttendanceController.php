@@ -28,7 +28,7 @@ class AttendanceController extends Controller
         $perPage = $request->get('per_page', 10);
 
         // Build query
-        $query = Attendance::with(['employee.department', 'employee.position', 'employee.workSchedule']);
+        $query = Attendance::with(['employee.department', 'employee.subDepartment', 'employee.position', 'employee.workSchedule']);
 
         // Apply filters
         if ($search) {
@@ -372,12 +372,44 @@ class AttendanceController extends Controller
                 $checkOutTime = now();
             }
 
+            // Calculate overtime if applicable
+            $overtimeMinutes = 0;
+            if (in_array($attendance->status, ['hadir', 'terlambat'])) {
+                try {
+                    $employee = Employee::with('workSchedule')->find($request->employee_id);
+                    if ($employee && $employee->workSchedule) {
+                        $schedule = $employee->workSchedule;
+                        $endTime = Carbon::parse($schedule->end_time);
+                        $overtimeThreshold = $schedule->overtime_threshold ?? 50;
+
+                        // Create scheduled end time
+                        $scheduledEndTime = Carbon::parse($dateString)
+                            ->setTime($endTime->hour, $endTime->minute, 0);
+
+                        // Calculate threshold time (end_time + overtime_threshold minutes)
+                        $thresholdTime = Carbon::parse($dateString)
+                            ->setTime($endTime->hour, $endTime->minute, 0)
+                            ->addMinutes($overtimeThreshold);
+
+                        // Only calculate overtime if checkout is after threshold time
+                        // But calculate from end_time, not from threshold
+                        if ($checkOutTime->greaterThan($thresholdTime)) {
+                            $overtimeMinutes = $scheduledEndTime->diffInMinutes($checkOutTime);
+                        }
+                    }
+                } catch (\Exception $e) {
+                    \Log::warning('Failed to calculate overtime: ' . $e->getMessage());
+                    $overtimeMinutes = 0;
+                }
+            }
+
             // Update attendance
             $attendance->update([
                 'check_out' => $checkOutTime->format('H:i:s'),
                 'photo_out' => null, // Always null for manual input
                 'location_out' => null, // Always null for manual input
                 'notes' => $attendance->notes ? $attendance->notes . ' | ' . $request->notes : $request->notes,
+                'overtime_minutes' => $overtimeMinutes,
             ]);
 
             return response()->json([
@@ -758,16 +790,16 @@ class AttendanceController extends Controller
             // Calculate late minutes automatically if status is 'terlambat' or 'hadir'
             $lateMinutes = 0;
             $schedule = $attendance->employee->workSchedule;
-            
+
             if (in_array($request->status, ['hadir', 'terlambat']) && $schedule && $request->check_in) {
                 try {
                     // Parse check-in time
                     $checkInTime = Carbon::createFromFormat('Y-m-d H:i', $request->attendance_date . ' ' . $request->check_in);
-                    
+
                     // Parse schedule start time
                     $startTime = substr($schedule->start_time, 0, 5); // Get HH:MM only
                     $scheduledTime = Carbon::createFromFormat('Y-m-d H:i', $request->attendance_date . ' ' . $startTime);
-                    
+
                     // Calculate late minutes if check-in is after scheduled time
                     if ($checkInTime->gt($scheduledTime)) {
                         $lateMinutes = $scheduledTime->diffInMinutes($checkInTime);
@@ -781,12 +813,44 @@ class AttendanceController extends Controller
                 $lateMinutes = $request->late_minutes ?? 0;
             }
 
+            // Calculate overtime minutes if check_out is provided
+            $overtimeMinutes = 0;
+            if (in_array($request->status, ['hadir', 'terlambat']) && $schedule && $request->check_out) {
+                try {
+                    // Parse check-out time
+                    $checkOutTime = Carbon::createFromFormat('Y-m-d H:i', $request->attendance_date . ' ' . $request->check_out);
+
+                    // Parse schedule end time
+                    $endTime = Carbon::parse($schedule->end_time);
+                    $overtimeThreshold = $schedule->overtime_threshold ?? 50;
+
+                    // Create scheduled end time
+                    $scheduledEndTime = Carbon::parse($request->attendance_date)
+                        ->setTime($endTime->hour, $endTime->minute, 0);
+
+                    // Calculate threshold time (end_time + overtime_threshold minutes)
+                    $thresholdTime = Carbon::parse($request->attendance_date)
+                        ->setTime($endTime->hour, $endTime->minute, 0)
+                        ->addMinutes($overtimeThreshold);
+
+                    // Only calculate overtime if checkout is after threshold time
+                    // But calculate from end_time, not from threshold
+                    if ($checkOutTime->greaterThan($thresholdTime)) {
+                        $overtimeMinutes = $scheduledEndTime->diffInMinutes($checkOutTime);
+                    }
+                } catch (\Exception $e) {
+                    \Log::warning('Failed to calculate overtime in update: ' . $e->getMessage());
+                    $overtimeMinutes = 0;
+                }
+            }
+
             // Update attendance data
             $attendance->attendance_date = $request->attendance_date;
             $attendance->check_in = $request->check_in;
             $attendance->check_out = $request->check_out;
             $attendance->status = $request->status;
             $attendance->late_minutes = $lateMinutes;
+            $attendance->overtime_minutes = $overtimeMinutes;
             $attendance->notes = $request->notes;
 
             $attendance->save();
@@ -905,5 +969,111 @@ class AttendanceController extends Controller
             new \App\Exports\AttendanceExport($dateFrom, $dateTo, $status, $department, $search),
             'absensi_' . $dateFrom . '_' . $dateTo . '.xlsx'
         );
+    }
+
+    /**
+     * Recalculate overtime for attendance records
+     */
+    public function recalculateOvertime(Request $request)
+    {
+        try {
+            $from = $request->get('from');
+            $to = $request->get('to');
+
+            // Build query
+            $query = Attendance::with(['employee.workSchedule'])
+                ->whereNotNull('check_out')
+                ->whereIn('status', ['hadir', 'terlambat']);
+
+            // Apply filters
+            if ($from) {
+                $query->whereDate('attendance_date', '>=', $from);
+            }
+
+            if ($to) {
+                $query->whereDate('attendance_date', '<=', $to);
+            }
+
+            $attendances = $query->get();
+            $total = $attendances->count();
+
+            if ($total === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak ada data attendance yang perlu dihitung ulang'
+                ]);
+            }
+
+            $processed = 0;
+            $updated = 0;
+            $skipped = 0;
+
+            foreach ($attendances as $attendance) {
+                $processed++;
+
+                // Skip if no work schedule
+                if (!$attendance->employee || !$attendance->employee->workSchedule) {
+                    $skipped++;
+                    continue;
+                }
+
+                $schedule = $attendance->employee->workSchedule;
+
+                try {
+                    // Parse check-out time
+                    $checkOutTimeStr = $attendance->check_out;
+
+                    if ($checkOutTimeStr instanceof \Carbon\Carbon) {
+                        $checkOutTime = Carbon::parse($attendance->attendance_date->format('Y-m-d') . ' ' . $checkOutTimeStr->format('H:i:s'));
+                    } else {
+                        $checkOutTime = Carbon::parse($attendance->attendance_date->format('Y-m-d') . ' ' . $checkOutTimeStr);
+                    }
+
+                    // Parse schedule end time
+                    $endTime = Carbon::parse($schedule->end_time);
+                    $overtimeThreshold = $schedule->overtime_threshold ?? 50;
+
+                    // Create scheduled end time
+                    $scheduledEndTime = Carbon::parse($attendance->attendance_date->format('Y-m-d'))
+                        ->setTime($endTime->hour, $endTime->minute, 0);
+
+                    // Calculate threshold time
+                    $thresholdTime = Carbon::parse($attendance->attendance_date->format('Y-m-d'))
+                        ->setTime($endTime->hour, $endTime->minute, 0)
+                        ->addMinutes($overtimeThreshold);
+
+                    // Calculate overtime
+                    $overtimeMinutes = 0;
+                    if ($checkOutTime->greaterThan($thresholdTime)) {
+                        $overtimeMinutes = $scheduledEndTime->diffInMinutes($checkOutTime);
+                    }
+
+                    // Update if different from current value
+                    if ($attendance->overtime_minutes != $overtimeMinutes) {
+                        $attendance->overtime_minutes = $overtimeMinutes;
+                        $attendance->save();
+                        $updated++;
+                    }
+                } catch (\Exception $e) {
+                    $skipped++;
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Berhasil menghitung ulang lembur',
+                'data' => [
+                    'total_processed' => $processed,
+                    'updated' => $updated,
+                    'skipped' => $skipped,
+                    'no_changes' => $processed - $updated - $skipped
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghitung ulang lembur: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

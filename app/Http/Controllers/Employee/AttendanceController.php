@@ -447,6 +447,33 @@ class AttendanceController extends Controller
             // Save photo
             $photoPath = $this->saveBase64Image($request->photo, 'attendance/check-out');
 
+            // Calculate overtime if applicable
+            $overtimeMinutes = 0;
+            if (in_array($attendance->status, ['hadir', 'terlambat'])) {
+                try {
+                    $checkOutTime = Carbon::now();
+                    $endTime = Carbon::parse($schedule->end_time);
+                    $overtimeThreshold = $schedule->overtime_threshold ?? 50;
+
+                    // Create end time for today
+                    $scheduledEndTime = Carbon::today()->setTime($endTime->hour, $endTime->minute, 0);
+
+                    // Calculate threshold time (end_time + overtime_threshold minutes)
+                    $thresholdTime = Carbon::today()
+                        ->setTime($endTime->hour, $endTime->minute, 0)
+                        ->addMinutes($overtimeThreshold);
+
+                    // Only calculate overtime if checkout is after threshold time
+                    // But calculate from end_time, not from threshold
+                    if ($checkOutTime->greaterThan($thresholdTime)) {
+                        $overtimeMinutes = $scheduledEndTime->diffInMinutes($checkOutTime);
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Failed to calculate overtime: ' . $e->getMessage());
+                    $overtimeMinutes = 0;
+                }
+            }
+
             // Update attendance
             $attendance->update([
                 'check_out' => now()->format('H:i:s'),
@@ -456,6 +483,7 @@ class AttendanceController extends Controller
                 'is_mocked_out' => $request->is_mocked ?? false,
                 'gps_warnings_out' => $request->fake_gps_warnings ? json_encode($request->fake_gps_warnings) : null,
                 'is_suspicious_out' => !empty($request->fake_gps_warnings),
+                'overtime_minutes' => $overtimeMinutes,
             ]);
 
             // Load employee relation for WhatsApp

@@ -136,6 +136,15 @@
                             </p>
                         </div>
 
+                        <div class="mb-3">
+                            <h6 class="mb-2">
+                                <i class="bx bx-time text-info"></i> Threshold Lembur
+                            </h6>
+                            <p class="text-muted small">
+                                Minimal waktu setelah jam selesai untuk memenuhi syarat lembur. Contoh: jam selesai 17:00, threshold 50 menit → karyawan harus checkout minimal jam 17:50 untuk dapat lembur. Lembur dihitung dari jam selesai (17:00), bukan dari threshold.
+                            </p>
+                        </div>
+
                         <div class="mb-0">
                             <h6 class="mb-2">
                                 <i class="bx bx-toggle-left text-success"></i> Status
@@ -214,6 +223,15 @@
                         </div>
 
                         <div class="mb-3">
+                            <label class="form-label" for="add_overtime_threshold">Threshold Lembur (menit) <span
+                                    class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="add_overtime_threshold" name="overtime_threshold"
+                                min="0" max="240" value="50" required>
+                            <small class="text-muted">Syarat minimal checkout untuk dapat lembur. Lembur dihitung dari jam selesai.</small>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="mb-3">
                             <div class="form-check form-switch">
                                 <input type="hidden" name="is_active" value="0">
                                 <input class="form-check-input" type="checkbox" id="add_is_active" name="is_active"
@@ -277,6 +295,15 @@
                             <input type="number" class="form-control" id="edit_late_tolerance" name="late_tolerance"
                                 min="0" max="120" required>
                             <small class="text-muted">Maksimal 120 menit (2 jam)</small>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="edit_overtime_threshold">Threshold Lembur (menit) <span
+                                    class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="edit_overtime_threshold" name="overtime_threshold"
+                                min="0" max="240" required>
+                            <small class="text-muted">Syarat minimal checkout untuk dapat lembur. Lembur dihitung dari jam selesai.</small>
                             <div class="invalid-feedback"></div>
                         </div>
 
@@ -400,6 +427,7 @@
                             $('#edit_start_time').val(schedule.start_time.substring(0, 5));
                             $('#edit_end_time').val(schedule.end_time.substring(0, 5));
                             $('#edit_late_tolerance').val(schedule.late_tolerance);
+                            $('#edit_overtime_threshold').val(schedule.overtime_threshold || 50);
                             $('#edit_is_active').prop('checked', schedule.is_active);
 
                             $('#editScheduleModal').modal('show');

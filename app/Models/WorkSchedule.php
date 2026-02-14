@@ -11,6 +11,7 @@ class WorkSchedule extends Model
         'start_time',
         'end_time',
         'late_tolerance',
+        'overtime_threshold',
         'is_active',
     ];
 
@@ -18,6 +19,7 @@ class WorkSchedule extends Model
         'start_time' => 'datetime:H:i:s',
         'end_time' => 'datetime:H:i:s',
         'late_tolerance' => 'integer',
+        'overtime_threshold' => 'integer',
         'is_active' => 'boolean',
     ];
 }

@@ -54,6 +54,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/attendance/manual', [AttendanceController::class, 'faceDetection'])->name('admin.attendance.manual');
         Route::get('/admin/attendance/report', [AttendanceController::class, 'report'])->name('admin.attendance.report');
         Route::get('/admin/attendance/export', [AttendanceController::class, 'export'])->name('admin.attendance.export');
+        Route::post('/admin/attendance/recalculate-overtime', [AttendanceController::class, 'recalculateOvertime'])->name('admin.attendance.recalculate-overtime');
         Route::delete('/admin/attendance/{id}', [AttendanceController::class, 'destroy'])->name('admin.attendance.destroy');
 
         // Office Settings (View only - API handles POST/PUT/DELETE)
