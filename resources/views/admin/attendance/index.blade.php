@@ -197,7 +197,34 @@
                         </thead>
                         <tbody>
                             @forelse($attendances as $index => $attendance)
-                                <tr>
+                                @if(isset($attendance->is_sunday_placeholder) && $attendance->is_sunday_placeholder)
+                                    {{-- Weekend Placeholder Row --}}
+                                    <tr class="table-secondary" style="background-color: #f8f9fa;">
+                                        <td></td>
+                                        <td>{{ $attendances->firstItem() + $index }}</td>
+                                        <td><strong>{{ $attendance->employee->employee_code ?? '-' }}</strong></td>
+                                        <td>{{ $attendance->employee->name ?? '-' }}</td>
+                                        <td>{{ $attendance->employee->department->name ?? '-' }}</td>
+                                        <td>{{ $attendance->employee->subDepartment->name ?? '-' }}</td>
+                                        <td>
+                                            <span class="text-muted">
+                                                {{ \Carbon\Carbon::parse($attendance->attendance_date)->locale('id')->translatedFormat('l, d F Y') }}
+                                            </span>
+                                        </td>
+                                        <td><span class="text-muted">-</span></td>
+                                        <td><span class="text-muted">-</span></td>
+                                        <td><span class="text-muted">-</span></td>
+                                        <td><span class="text-muted">-</span></td>
+                                        <td>
+                                            <span class="badge bg-secondary">HARI {{ strtoupper($attendance->weekend_day ?? 'MINGGU') }}</span>
+                                        </td>
+                                        <td><span class="text-muted">-</span></td>
+                                        <td><span class="text-muted">-</span></td>
+                                        <td><span class="text-muted">-</span></td>
+                                    </tr>
+                                @else
+                                    {{-- Normal Attendance Row --}}
+                                    <tr>
                                     <td>
                                         <input type="checkbox" class="form-check-input attendance-checkbox" 
                                                value="{{ $attendance->id }}"
@@ -319,6 +346,7 @@
                                         </div>
                                     </td>
                                 </tr>
+                                @endif
                             @empty
                                 <tr>
                                     <td colspan="15" class="text-center py-4">
@@ -334,7 +362,40 @@
                 <!-- Mobile Card View -->
                 <div class="d-lg-none">
                     @forelse($attendances as $index => $attendance)
-                        <div class="card mb-3 shadow-sm">
+                        @if(isset($attendance->is_sunday_placeholder) && $attendance->is_sunday_placeholder)
+                            {{-- Weekend Placeholder Card --}}
+                            <div class="card mb-3 shadow-sm" style="background-color: #f8f9fa;">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div>
+                                            <h6 class="mb-1">{{ $attendance->employee->name ?? '-' }}</h6>
+                                            <small class="text-muted">
+                                                <i class='bx bx-id-card'></i> {{ $attendance->employee->employee_code ?? '-' }}
+                                            </small>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <small class="text-muted d-block mb-1">
+                                            <i class='bx bx-buildings'></i> {{ $attendance->employee->department->name ?? '-' }}
+                                        </small>
+                                        <small class="text-muted d-block mb-1">
+                                            <i class='bx bx-briefcase'></i> {{ $attendance->employee->subDepartment->name ?? '-' }}
+                                        </small>
+                                        <small class="text-muted d-block">
+                                            <i class='bx bx-calendar'></i>
+                                            {{ \Carbon\Carbon::parse($attendance->attendance_date)->locale('id')->translatedFormat('l, d F Y') }}
+                                        </small>
+                                    </div>
+
+                                    <div class="text-center py-3">
+                                        <span class="badge bg-secondary" style="font-size: 1rem; padding: 0.5rem 1rem;">HARI {{ strtoupper($attendance->weekend_day ?? 'MINGGU') }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                            {{-- Normal Attendance Card --}}
+                            <div class="card mb-3 shadow-sm">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start mb-3">
                                     <div class="d-flex align-items-start gap-2 flex-grow-1">
@@ -478,6 +539,7 @@
                                 </div>
                             </div>
                         </div>
+                        @endif
                     @empty
                         <div class="text-center py-5">
                             <i class='bx bx-info-circle' style="font-size: 48px; color: #ccc;"></i>
@@ -851,7 +913,6 @@
                                         const photoIn = String(data.photo_in);
                                         const isExternal = photoIn.startsWith('http://') || photoIn.startsWith('https://');
                                         const photoUrl = isExternal ? photoIn : '/storage/' + photoIn;
-                                        console.log('Photo In:', photoIn, 'IsExternal:', isExternal, 'URL:', photoUrl);
                                         return `
                                             <div class="text-center">
                                                 <a href="${photoUrl}" target="_blank">
@@ -859,12 +920,13 @@
                                                          alt="Foto Check In"
                                                          class="img-fluid rounded border"
                                                          style="max-height: 300px; cursor: pointer;"
-                                                         crossorigin="anonymous"
-                                                         onerror="console.error('Failed to load:', this.src); this.onerror=null; this.style.display='none'; this.parentElement.nextElementSibling.style.display='block';">
+                                                         referrerpolicy="no-referrer"
+                                                         onerror="this.onerror=null; this.style.display='none'; this.parentElement.nextElementSibling.style.display='block';">
                                                 </a>
                                                 <div style="display:none;" class="text-muted mt-2">
-                                                    <i class="bx bx-error-circle"></i>
+                                                    <i class="bx bx-error-circle bx-lg"></i>
                                                     <p>Foto tidak dapat dimuat</p>
+                                                    <small><a href="${photoUrl}" target="_blank">Buka di tab baru</a></small>
                                                 </div>
                                                 <p class="text-muted mt-2 mb-0">
                                                     <small><i class='bx bx-time-five'></i> ${data.check_in || '-'}</small>
@@ -884,7 +946,6 @@
                                         const photoOut = String(data.photo_out);
                                         const isExternal = photoOut.startsWith('http://') || photoOut.startsWith('https://');
                                         const photoUrl = isExternal ? photoOut : '/storage/' + photoOut;
-                                        console.log('Photo Out:', photoOut, 'IsExternal:', isExternal, 'URL:', photoUrl);
                                         return `
                                             <div class="text-center">
                                                 <a href="${photoUrl}" target="_blank">
@@ -892,12 +953,13 @@
                                                          alt="Foto Check Out"
                                                          class="img-fluid rounded border"
                                                          style="max-height: 300px; cursor: pointer;"
-                                                         crossorigin="anonymous"
-                                                         onerror="console.error('Failed to load:', this.src); this.onerror=null; this.style.display='none'; this.parentElement.nextElementSibling.style.display='block';">
+                                                         referrerpolicy="no-referrer"
+                                                         onerror="this.onerror=null; this.style.display='none'; this.parentElement.nextElementSibling.style.display='block';">
                                                 </a>
                                                 <div style="display:none;" class="text-muted mt-2">
-                                                    <i class="bx bx-error-circle"></i>
+                                                    <i class="bx bx-error-circle bx-lg"></i>
                                                     <p>Foto tidak dapat dimuat</p>
+                                                    <small><a href="${photoUrl}" target="_blank">Buka di tab baru</a></small>
                                                 </div>
                                                 <p class="text-muted mt-2 mb-0">
                                                     <small><i class='bx bx-time-five'></i> ${data.check_out || '-'}</small>

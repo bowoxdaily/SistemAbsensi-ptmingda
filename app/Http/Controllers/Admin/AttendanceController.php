@@ -50,25 +50,38 @@ class AttendanceController extends Controller
 
         $query->whereBetween('attendance_date', [$dateFrom, $dateTo]);
 
-        // Get paginated results
-        // If per_page is 'all', get all records, otherwise paginate
+        // Get all data first (for Sunday placeholder generation)
+        $allAttendances = $query->orderBy('attendance_date', 'desc')
+            ->orderBy('check_in', 'desc')
+            ->get();
+
+        // Generate Sunday placeholders if there's a search filter (viewing specific employee)
+        if ($search) {
+            $sundayPlaceholders = $this->generateSundayPlaceholders($dateFrom, $dateTo, $allAttendances, $search);
+            $allAttendances = $allAttendances->concat($sundayPlaceholders)->sortByDesc('attendance_date');
+        }
+
+        // Manual pagination
         if ($perPage === 'all') {
-            $attendances = $query->orderBy('attendance_date', 'desc')
-                ->orderBy('check_in', 'desc')
-                ->get();
-            // Convert to paginator for compatibility with blade
             $attendances = new \Illuminate\Pagination\LengthAwarePaginator(
-                $attendances,
-                $attendances->count(),
-                $attendances->count(),
+                $allAttendances,
+                $allAttendances->count(),
+                $allAttendances->count(),
                 1,
                 ['path' => $request->url(), 'query' => $request->query()]
             );
         } else {
-            $attendances = $query->orderBy('attendance_date', 'desc')
-                ->orderBy('check_in', 'desc')
-                ->paginate((int)$perPage)
-                ->appends($request->all());
+            $currentPage = \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPage();
+            $perPageInt = (int)$perPage;
+            $currentPageData = $allAttendances->slice(($currentPage - 1) * $perPageInt, $perPageInt)->values();
+
+            $attendances = new \Illuminate\Pagination\LengthAwarePaginator(
+                $currentPageData,
+                $allAttendances->count(),
+                $perPageInt,
+                $currentPage,
+                ['path' => $request->url(), 'query' => $request->query()]
+            );
         }
 
         // Get statistics
@@ -84,6 +97,81 @@ class AttendanceController extends Controller
         $departments = \App\Models\Department::orderBy('name')->get();
 
         return view('admin.attendance.index', compact('attendances', 'stats', 'departments', 'dateFrom', 'dateTo'));
+    }
+
+    /**
+     * Generate weekend (Saturday & Sunday) placeholders for dates without attendance
+     */
+    private function generateSundayPlaceholders($dateFrom, $dateTo, $existingAttendances, $search)
+    {
+        $placeholders = collect();
+
+        // Get unique employees from existing attendances
+        $employees = $existingAttendances->pluck('employee')->unique('id');
+
+        // If no employees found, try to get from search
+        if ($employees->isEmpty() && $search) {
+            $employees = Karyawans::with(['department', 'subDepartment', 'position', 'workSchedule'])
+                ->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('employee_code', 'like', "%{$search}%");
+                })
+                ->get();
+        }
+
+        // Generate dates between dateFrom and dateTo
+        $start = Carbon::parse($dateFrom);
+        $end = Carbon::parse($dateTo);
+
+        // Get all existing attendance dates per employee
+        $existingDates = $existingAttendances->groupBy('employee_id')->map(function ($items) {
+            return $items->pluck('attendance_date')->map(function ($date) {
+                return Carbon::parse($date)->format('Y-m-d');
+            });
+        });
+
+        // For each employee, generate weekend placeholders
+        foreach ($employees as $employee) {
+            $current = $start->copy();
+
+            while ($current->lte($end)) {
+                // Check if it's Saturday (6) or Sunday (0)
+                if ($current->dayOfWeek === 6 || $current->dayOfWeek === 0) {
+                    $dateStr = $current->format('Y-m-d');
+
+                    // Check if there's no attendance for this employee on this date
+                    $hasAttendance = isset($existingDates[$employee->id]) &&
+                                    $existingDates[$employee->id]->contains($dateStr);
+
+                    if (!$hasAttendance) {
+                        // Create placeholder object
+                        $placeholder = new \stdClass();
+                        $placeholder->id = null;
+                        $placeholder->employee_id = $employee->id;
+                        $placeholder->employee = $employee;
+                        $placeholder->attendance_date = $current->copy();
+                        $placeholder->check_in = null;
+                        $placeholder->check_out = null;
+                        $placeholder->status = null;
+                        $placeholder->late_minutes = 0;
+                        $placeholder->overtime_minutes = 0;
+                        $placeholder->photo_in = null;
+                        $placeholder->photo_out = null;
+                        $placeholder->location_in = null;
+                        $placeholder->location_out = null;
+                        $placeholder->notes = null;
+                        $placeholder->is_sunday_placeholder = true;
+                        $placeholder->weekend_day = $current->dayOfWeek === 6 ? 'Sabtu' : 'Minggu';
+
+                        $placeholders->push($placeholder);
+                    }
+                }
+
+                $current->addDay();
+            }
+        }
+
+        return $placeholders;
     }
 
     /**
@@ -376,7 +464,7 @@ class AttendanceController extends Controller
             $overtimeMinutes = 0;
             if (in_array($attendance->status, ['hadir', 'terlambat'])) {
                 try {
-                    $employee = Employee::with('workSchedule')->find($request->employee_id);
+                    $employee = Karyawans::with('workSchedule')->find($request->employee_id);
                     if ($employee && $employee->workSchedule) {
                         $schedule = $employee->workSchedule;
                         $endTime = Carbon::parse($schedule->end_time);
@@ -746,7 +834,7 @@ class AttendanceController extends Controller
      */
     public function detail($id)
     {
-        $attendance = Attendance::with(['employee.department', 'employee.position', 'employee.workSchedule'])
+        $attendance = Attendance::with(['employee.department', 'employee.subDepartment', 'employee.position', 'employee.workSchedule'])
             ->findOrFail($id);
 
         // Format attendance_date to Y-m-d string to avoid timezone issues
