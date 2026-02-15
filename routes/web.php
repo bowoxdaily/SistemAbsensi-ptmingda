@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\OfficeSettingController;
 use App\Http\Controllers\Admin\WorkScheduleController;
 use App\Http\Controllers\Admin\CronJobController;
 use App\Http\Controllers\Admin\PayrollController;
+use App\Http\Controllers\Admin\InterviewController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\LoginController;
@@ -74,6 +75,9 @@ Route::middleware(['auth'])->group(function () {
 
         // Leave Management (View only - API handles POST/DELETE)
         Route::get('/admin/leave', [\App\Http\Controllers\Admin\LeaveController::class, 'index'])->name('admin.leave.index');
+
+        // Interview Management (View only - API handles POST/PUT/DELETE)
+        Route::get('/admin/interviews', [InterviewController::class, 'index'])->name('admin.interviews.index');
     });
 
     // Payroll Management (Manager only)

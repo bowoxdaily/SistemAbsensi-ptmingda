@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\SubDepartmentController;
 use App\Http\Controllers\Admin\KaryawanController;
 use App\Http\Controllers\Admin\PositionController;
 use App\Http\Controllers\Admin\PayrollController;
+use App\Http\Controllers\Admin\InterviewController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -137,6 +138,22 @@ Route::middleware(['web', 'auth'])->prefix('employee/leave')->group(function () 
     Route::get('/', [\App\Http\Controllers\Employee\LeaveController::class, 'index']);
     Route::post('/', [\App\Http\Controllers\Employee\LeaveController::class, 'store']);
     Route::delete('/{id}', [\App\Http\Controllers\Employee\LeaveController::class, 'cancel']);
+});
+
+// Interview Management API (Admin)
+Route::middleware(['web', 'auth', 'admin'])->prefix('admin/interviews')->group(function () {
+    Route::post('/', [InterviewController::class, 'store']);
+    Route::get('/{id}', [InterviewController::class, 'show']);
+    Route::put('/{id}', [InterviewController::class, 'update']);
+    Route::delete('/{id}', [InterviewController::class, 'destroy']);
+    Route::post('/{id}/send-notification', [InterviewController::class, 'sendNotification']);
+    Route::post('/bulk-send-notification', [InterviewController::class, 'bulkSendNotification']);
+    
+    // Message Templates
+    Route::get('/templates/list', [InterviewController::class, 'getTemplates']);
+    Route::post('/templates/save', [InterviewController::class, 'saveTemplate']);
+    Route::put('/templates/{id}', [InterviewController::class, 'updateTemplate']);
+    Route::delete('/templates/{id}', [InterviewController::class, 'deleteTemplate']);
 });
 
 // Employee Profile API

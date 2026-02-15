@@ -102,6 +102,19 @@
                 </ul>
             </li>
 
+            <!-- Menu Header - Rekrutmen -->
+            <li class="menu-header small text-uppercase">
+                <span class="menu-header-text">Rekrutmen</span>
+            </li>
+
+            <!-- Interview -->
+            <li class="menu-item {{ request()->routeIs('admin.interviews.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.interviews.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-chat"></i>
+                    <div data-i18n="Interview">Interview Kandidat</div>
+                </a>
+            </li>
+
             <!-- Menu Header - Keuangan -->
             <li class="menu-header small text-uppercase">
                 <span class="menu-header-text">Keuangan</span>

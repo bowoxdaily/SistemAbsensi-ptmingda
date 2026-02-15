@@ -110,8 +110,10 @@
                                 <option value="terlambat" {{ request('status') == 'terlambat' ? 'selected' : '' }}>Terlambat
                                 </option>
                                 <option value="cuti" {{ request('status') == 'cuti' ? 'selected' : '' }}>Cuti</option>
+                                <option value="cuti_bersama" {{ request('status') == 'cuti_bersama' ? 'selected' : '' }}>Cuti Bersama</option>
                                 <option value="izin" {{ request('status') == 'izin' ? 'selected' : '' }}>Izin</option>
                                 <option value="sakit" {{ request('status') == 'sakit' ? 'selected' : '' }}>Sakit</option>
+                                <option value="libur" {{ request('status') == 'libur' ? 'selected' : '' }}>Libur</option>
                                 <option value="alpha" {{ request('status') == 'alpha' ? 'selected' : '' }}>Alpha</option>
                             </select>
                         </div>
