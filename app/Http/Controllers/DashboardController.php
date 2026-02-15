@@ -22,6 +22,8 @@ class DashboardController extends Controller
                 return $this->adminDashboard();
             case 'manager':
                 return $this->managerDashboard();
+            case 'security':
+                return redirect()->route('security.scanner');
             case 'karyawan':
                 return $this->karyawanDashboard();
             default:

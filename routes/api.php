@@ -148,12 +148,24 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('admin/interviews')->group(f
     Route::delete('/{id}', [InterviewController::class, 'destroy']);
     Route::post('/{id}/send-notification', [InterviewController::class, 'sendNotification']);
     Route::post('/bulk-send-notification', [InterviewController::class, 'bulkSendNotification']);
+    Route::post('/bulk-delete', [InterviewController::class, 'bulkDelete']);
     
     // Message Templates
     Route::get('/templates/list', [InterviewController::class, 'getTemplates']);
     Route::post('/templates/save', [InterviewController::class, 'saveTemplate']);
     Route::put('/templates/{id}', [InterviewController::class, 'updateTemplate']);
     Route::delete('/templates/{id}', [InterviewController::class, 'deleteTemplate']);
+    
+    // Import/Export
+    Route::get('/template/download', [InterviewController::class, 'downloadTemplate']);
+    Route::post('/import', [InterviewController::class, 'import']);
+});
+
+// Security Scanner API Routes
+Route::middleware(['web', 'auth', 'security'])->prefix('security')->group(function () {
+    Route::post('/validate-token', [\App\Http\Controllers\Security\SecurityScannerController::class, 'validateToken']);
+    Route::post('/checkin', [\App\Http\Controllers\Security\SecurityScannerController::class, 'checkIn']);
+    Route::get('/history', [\App\Http\Controllers\Security\SecurityScannerController::class, 'history']);
 });
 
 // Employee Profile API

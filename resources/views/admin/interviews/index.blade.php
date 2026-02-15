@@ -9,9 +9,14 @@
             <h4 class="fw-bold mb-0">
                 <span class="text-muted fw-light">Rekrutmen /</span> Interview
             </h4>
-            <button type="button" class="btn btn-primary" id="addInterviewBtn">
-                <i class='bx bx-plus me-1'></i> Jadwalkan Interview
-            </button>
+            <div>
+                <button type="button" class="btn btn-success me-2" id="importBtn">
+                    <i class='bx bx-import me-1'></i> Import Excel
+                </button>
+                <button type="button" class="btn btn-primary" id="addInterviewBtn">
+                    <i class='bx bx-plus me-1'></i> Jadwalkan Interview
+                </button>
+            </div>
         </div>
 
         <!-- Statistics Cards -->
@@ -138,6 +143,9 @@
                             <button type="button" class="btn btn-success" id="bulkBlastBtn" style="display: none;">
                                 <i class='bx bxl-whatsapp me-1'></i> Blast WA (<span id="selectedCount">0</span>)
                             </button>
+                            <button type="button" class="btn btn-danger" id="bulkDeleteBtn" style="display: none;">
+                                <i class='bx bx-trash me-1'></i> Hapus Terpilih (<span id="deleteCount">0</span>)
+                            </button>
                         </div>
                     </div>
                 </form>
@@ -230,6 +238,9 @@
                                                 <a class="dropdown-item send-wa-btn" href="javascript:void(0);" data-id="{{ $interview->id }}">
                                                     <i class="bx bxl-whatsapp me-1"></i> Kirim WA
                                                 </a>
+                                                <a class="dropdown-item view-qr-btn" href="javascript:void(0);" data-id="{{ $interview->id }}" data-name="{{ $interview->candidate_name }}" data-token="{{ $interview->qr_code_token }}">
+                                                    <i class="bx bx-qr me-1"></i> Lihat QR Code
+                                                </a>
                                                 <a class="dropdown-item text-danger delete-btn" href="javascript:void(0);" 
                                                    data-id="{{ $interview->id }}" data-name="{{ $interview->candidate_name }}">
                                                     <i class="bx bx-trash me-1"></i> Hapus
@@ -279,6 +290,9 @@
                                             </a>
                                             <a class="dropdown-item send-wa-btn" href="javascript:void(0);" data-id="{{ $interview->id }}">
                                                 <i class="bx bxl-whatsapp me-1"></i> Kirim WA
+                                            </a>
+                                            <a class="dropdown-item view-qr-btn" href="javascript:void(0);" data-id="{{ $interview->id }}" data-name="{{ $interview->candidate_name }}" data-token="{{ $interview->qr_code_token }}">
+                                                <i class="bx bx-qr me-1"></i> Lihat QR Code
                                             </a>
                                             <a class="dropdown-item text-danger delete-btn" href="javascript:void(0);" 
                                                data-id="{{ $interview->id }}" data-name="{{ $interview->candidate_name }}">
@@ -568,9 +582,120 @@
         </div>
     </div>
 
-    @push('scripts')
-        <script>
-            let messageTemplates = [];
+    <!-- Import Modal -->
+    <div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Import Data Interview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="importForm" enctype="multipart/form-data">
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class='bx bx-info-circle'></i>
+                            <strong>Petunjuk Import:</strong>
+                            <ol class="mb-0 mt-2 ps-3">
+                                <li>Download template Excel terlebih dahulu</li>
+                                <li><strong>PENTING:</strong> Mulai isi data dari <u>BARIS KE-3</u> (baris 2 adalah contoh berwarna kuning yang akan di-skip otomatis)</li>
+                                <li><strong>Kolom WAJIB diisi:</strong> Nama Kandidat, No. HP, Posisi, Tanggal Interview, Waktu Interview</li>
+                                <li><strong>Kolom OPSIONAL:</strong> Email, Lokasi (default: Kantor PT Mingda), Catatan, Template Notifikasi</li>
+                                <li><strong>Format Tanggal:</strong> YYYY-MM-DD atau M/D/YYYY (contoh: 2026-02-20 atau 2/15/2026). Biarkan Excel format otomatis.</li>
+                                <li><strong>Format Waktu:</strong> HH:MM atau angka jam (contoh: 09:00, 9:30, atau ketik 9 untuk 09:00). Sistem support berbagai format waktu Excel.</li>
+                                <li>Kolom Posisi dan Template Notifikasi memiliki <strong>dropdown otomatis</strong> - pilih dari list</li>
+                                <li><strong>Template Notifikasi:</strong> Pilih dari dropdown untuk pakai template tersimpan. Kosongkan untuk pakai template default sistem.</li>
+                                <li>Baris kosong akan di-skip otomatis - tidak perlu dihapus</li>
+                                <li>Upload file yang sudah diisi</li>
+                            </ol>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Download Template</label>
+                            <div>
+                                <a href="/api/admin/interviews/template/download" class="btn btn-sm btn-outline-primary">
+                                    <i class='bx bx-download me-1'></i> Download Template Excel
+                                </a>
+                            </div>
+                            <small class="text-muted">File contoh dengan format yang benar + dropdown (Posisi & Template Notifikasi)</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Upload File Excel <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control" id="importFile" name="file" accept=".xlsx,.xls" required>
+                            <small class="text-muted">Format: .xlsx atau .xls (Maks. 5MB)</small>
+                        </div>
+
+                        <div id="importPreview" style="display: none;">
+                            <div class="alert alert-secondary">
+                                <strong>File dipilih:</strong> <span id="fileName"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary" id="uploadBtn">
+                            <i class="bx bx-upload me-1"></i> Upload & Import
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div class="modal fade" id="qrModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class='bx bx-qr me-2'></i> QR Code Check-in
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <h6 id="qrCandidateName" class="mb-3"></h6>
+                    
+                    <div class="qr-container mb-3">
+                        <img id="qrCodeImage" src="" alt="QR Code" class="img-fluid" style="max-width: 300px; border: 5px solid #f0f0f0; border-radius: 10px;">
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <small>
+                            <i class='bx bx-info-circle'></i>
+                            Kandidat dapat scan QR code ini saat tiba di lokasi untuk check-in otomatis
+                        </small>
+                    </div>
+                    
+                    <div class="btn-group w-100" role="group">
+                        <a id="qrDownloadBtn" href="#" download="qr-code.png" class="btn btn-outline-primary">
+                            <i class='bx bx-download me-1'></i> Download
+                        </a>
+                        <button type="button" class="btn btn-outline-secondary" onclick="printQRCode()">
+                            <i class='bx bx-printer me-1'></i> Print
+                        </button>
+                        <a id="qrOpenBtn" href="#" target="_blank" class="btn btn-outline-info">
+                            <i class='bx bx-link-external me-1'></i> Buka URL
+                        </a>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <strong>URL Check-in:</strong><br>
+                            <code id="qrUrlText" style="font-size: 10px; word-break: break-all;"></code>
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection
+
+@push('scripts')
+    <script>
+        let messageTemplates = [];
 
             // Load Templates on Page Load
             function loadTemplates() {
@@ -635,6 +760,92 @@
                 updateCharCount();
                 const modal = new bootstrap.Modal(document.getElementById('interviewModal'));
                 modal.show();
+            });
+
+            // Import Button
+            $('#importBtn').on('click', function() {
+                $('#importForm')[0].reset();
+                $('#importPreview').hide();
+                const modal = new bootstrap.Modal(document.getElementById('importModal'));
+                modal.show();
+            });
+
+            // File Selected
+            $('#importFile').on('change', function() {
+                const fileName = $(this).val().split('\\').pop();
+                if (fileName) {
+                    $('#fileName').text(fileName);
+                    $('#importPreview').show();
+                } else {
+                    $('#importPreview').hide();
+                }
+            });
+
+            // Import Form Submit
+            $('#importForm').on('submit', function(e) {
+                e.preventDefault();
+
+                const fileInput = $('#importFile')[0];
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    Swal.fire('Error', 'Pilih file Excel terlebih dahulu', 'error');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+
+                $('#uploadBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Mengimport...');
+
+                $.ajax({
+                    url: '/api/admin/interviews/import',
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil!',
+                            text: response.message,
+                            showConfirmButton: false,
+                            timer: 2000
+                        }).then(() => {
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('importModal'));
+                            modal.hide();
+                            window.location.reload();
+                        });
+                    },
+                    error: function(xhr) {
+                        let errorMessage = 'Gagal mengimport data';
+                        let errorDetails = '';
+
+                        if (xhr.responseJSON) {
+                            if (xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
+                            }
+                            if (xhr.responseJSON.errors && Array.isArray(xhr.responseJSON.errors)) {
+                                errorDetails = '<div class="text-start mt-3" style="max-height: 300px; overflow-y: auto;"><ul class="mb-0">';
+                                xhr.responseJSON.errors.forEach(error => {
+                                    errorDetails += `<li>${error}</li>`;
+                                });
+                                errorDetails += '</ul></div>';
+                            }
+                        }
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Import Gagal',
+                            html: errorMessage + errorDetails,
+                            width: '600px'
+                        });
+                    },
+                    complete: function() {
+                        $('#uploadBtn').prop('disabled', false).html('<i class="bx bx-upload me-1"></i> Upload & Import');
+                    }
+                });
             });
 
             // Save Interview (Add/Edit)
@@ -889,9 +1100,103 @@
                 });
             });
 
+            // View QR Code
+            $(document).on('click', '.view-qr-btn', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const id = $(this).data('id');
+                const name = $(this).data('name');
+                const token = $(this).data('token');
+
+                console.log('QR Button clicked:', { id, name, token });
+
+                if (!token || token === '' || token === 'null') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'QR Code Belum Ada',
+                        text: 'QR Code akan di-generate otomatis saat interview dibuat. Silakan refresh halaman.'
+                    });
+                    return;
+                }
+
+                // Build QR URL
+                const qrUrl = `${window.location.origin}/interview/scan/${token}`;
+                const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrUrl)}`;
+
+                console.log('QR URLs:', { qrUrl, qrImageUrl });
+
+                // Populate modal
+                $('#qrCandidateName').text(name);
+                $('#qrCodeImage').attr('src', qrImageUrl);
+                $('#qrUrlText').text(qrUrl);
+                $('#qrDownloadBtn').attr('href', qrImageUrl);
+                $('#qrOpenBtn').attr('href', qrUrl);
+
+                // Show modal
+                const qrModal = new bootstrap.Modal(document.getElementById('qrModal'));
+                qrModal.show();
+                
+                console.log('QR Modal shown');
+            });
+
+            // Print QR Code function
+            function printQRCode() {
+                const qrImage = document.getElementById('qrCodeImage').src;
+                const candidateName = document.getElementById('qrCandidateName').textContent;
+                const qrUrl = document.getElementById('qrUrlText').textContent;
+
+                const printWindow = window.open('', '_blank', 'width=600,height=700');
+                printWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Print QR Code - ${candidateName}</title>
+                        <style>
+                            body {
+                                font-family: Arial, sans-serif;
+                                text-align: center;
+                                padding: 20px;
+                            }
+                            h2 { margin: 10px 0; }
+                            img { 
+                                max-width: 300px; 
+                                border: 5px solid #f0f0f0; 
+                                margin: 20px 0;
+                            }
+                            .url { 
+                                font-size: 10px; 
+                                word-break: break-all; 
+                                color: #666;
+                                margin-top: 10px;
+                            }
+                            @media print {
+                                body { padding: 0; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <h2>QR Code Check-in Interview</h2>
+                        <h3>${candidateName}</h3>
+                        <img src="${qrImage}" alt="QR Code">
+                        <p><strong>Scan QR code saat tiba di lokasi</strong></p>
+                        <p class="url">${qrUrl}</p>
+                        <script>
+                            window.onload = function() {
+                                setTimeout(function() {
+                                    window.print();
+                                }, 500);
+                            }
+                        <\/script>
+                    </body>
+                    </html>
+                `);
+                printWindow.document.close();
+            }
+
             // Select All Checkbox
             $('#selectAll').on('change', function() {
-                $('.interview-checkbox').prop('checked', $(this).prop('checked'));
+                $('.interview-checkbox:visible').prop('checked', $(this).prop('checked'));
                 updateBulkButton();
             });
 
@@ -900,21 +1205,83 @@
             });
 
             function updateBulkButton() {
-                const count = $('.interview-checkbox:checked').length;
+                const count = $('.interview-checkbox:visible:checked').length;
                 if (count > 0) {
                     $('#bulkBlastBtn').show();
+                    $('#bulkDeleteBtn').show();
                     $('#selectedCount').text(count);
+                    $('#deleteCount').text(count);
                 } else {
                     $('#bulkBlastBtn').hide();
+                    $('#bulkDeleteBtn').hide();
                 }
             }
+
+            // Bulk Delete
+            $('#bulkDeleteBtn').on('click', function() {
+                const ids = [];
+                const names = [];
+
+                $('.interview-checkbox:visible:checked').each(function() {
+                    ids.push($(this).val());
+                    names.push($(this).data('name'));
+                });
+
+                if (ids.length === 0) return;
+
+                let namesList = '<div class="text-start mt-3" style="max-height: 200px; overflow-y: auto;">';
+                names.forEach((name, idx) => {
+                    namesList += `<small>${idx + 1}. ${name}</small><br>`;
+                });
+                namesList += '</div>';
+
+                Swal.fire({
+                    title: 'Hapus Interview Terpilih?',
+                    html: `Apakah Anda yakin ingin menghapus <strong>${ids.length}</strong> interview berikut?${namesList}`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Ya, Hapus Semua!',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '/api/admin/interviews/bulk-delete',
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Content-Type': 'application/json'
+                            },
+                            data: JSON.stringify({ ids: ids }),
+                            success: function(response) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil Dihapus!',
+                                    html: `<strong>${response.data.deleted}</strong> interview berhasil dihapus`,
+                                    confirmButtonText: 'OK'
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            },
+                            error: function(xhr) {
+                                Swal.fire(
+                                    'Error',
+                                    xhr.responseJSON?.message || 'Terjadi kesalahan saat menghapus interview',
+                                    'error'
+                                );
+                            }
+                        });
+                    }
+                });
+            });
 
             // Bulk Blast WhatsApp
             $('#bulkBlastBtn').on('click', function() {
                 const ids = [];
                 const names = [];
 
-                $('.interview-checkbox:checked').each(function() {
+                $('.interview-checkbox:visible:checked').each(function() {
                     ids.push($(this).val());
                     names.push($(this).data('name'));
                 });
@@ -1285,6 +1652,5 @@ Terima kasih dan sampai jumpa di hari interview.
                     confirmButtonText: 'OK'
                 });
             });
-        </script>
-    @endpush
-@endsection
+    </script>
+@endpush

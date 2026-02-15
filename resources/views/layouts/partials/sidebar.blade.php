@@ -182,6 +182,35 @@
                     <div data-i18n="Profile">Profil Saya</div>
                 </a>
             </li>
+
+        @elseif (Auth::user()->role == 'security')
+            <!-- Menu untuk Security -->
+            <!-- Menu Header - Security -->
+            <li class="menu-header small text-uppercase">
+                <span class="menu-header-text">Security</span>
+            </li>
+
+            <!-- QR Scanner -->
+            <li class="menu-item {{ request()->routeIs('security.scanner') ? 'active' : '' }}">
+                <a href="{{ route('security.scanner') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-qr-scan"></i>
+                    <div data-i18n="Scanner">QR Scanner Check-in</div>
+                </a>
+            </li>
+
+            <!-- Menu Header - Akun -->
+            <li class="menu-header small text-uppercase mt-3">
+                <span class="menu-header-text">Akun</span>
+            </li>
+
+            <!-- Profile -->
+            <li class="menu-item">
+                <a href="{{ route('employee.profile.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-user"></i>
+                    <div data-i18n="Profile">Profil Saya</div>
+                </a>
+            </li>
+
         @else
             <!-- Menu untuk Karyawan -->
             <!-- Menu Header - Absensi Saya -->

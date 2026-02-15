@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\WorkScheduleController;
 use App\Http\Controllers\Admin\CronJobController;
 use App\Http\Controllers\Admin\PayrollController;
 use App\Http\Controllers\Admin\InterviewController;
+use App\Http\Controllers\InterviewScanController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\LoginController;
@@ -32,6 +33,11 @@ Route::get('/forgot-password', [ForgotPasswordController::class, 'showLinkReques
 Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
 Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
 Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
+
+// Public Interview QR Scan Routes (no authentication required - for security gate)
+Route::get('/interview/scan/{token}', [InterviewScanController::class, 'scan'])->name('interview.scan');
+Route::post('/interview/scan/{token}/checkin', [InterviewScanController::class, 'checkIn'])->name('interview.checkin');
+Route::get('/interview/details/{token}', [InterviewScanController::class, 'getDetails'])->name('interview.details');
 
 // Protected Routes
 Route::middleware(['auth'])->group(function () {
@@ -102,6 +108,11 @@ Route::middleware(['auth'])->group(function () {
     // Admin Profile (View only - API handles PUT)
     Route::middleware(['admin'])->group(function () {
         Route::get('/admin/profile', [\App\Http\Controllers\Admin\AdminProfileController::class, 'index'])->name('admin.profile.index');
+    });
+
+    // Security Routes (protected by security middleware)
+    Route::middleware(['security'])->prefix('security')->group(function () {
+        Route::get('/scanner', [\App\Http\Controllers\Security\SecurityScannerController::class, 'index'])->name('security.scanner');
     });
 
 

@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'manager' => \App\Http\Middleware\EnsureUserIsManager::class,
+            'security' => \App\Http\Middleware\EnsureUserIsSecurity::class,
         ]);
         
         // Trust proxies for ngrok

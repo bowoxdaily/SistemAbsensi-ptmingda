@@ -10,6 +10,7 @@ use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use Maatwebsite\Excel\Facades\Excel;
 
 class InterviewController extends Controller
 {
@@ -215,6 +216,42 @@ class InterviewController extends Controller
     }
 
     /**
+     * Bulk delete interviews
+     */
+    public function bulkDelete(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'exists:interviews,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $deleted = Interview::whereIn('id', $request->ids)->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Berhasil menghapus {$deleted} interview",
+                'data' => [
+                    'deleted' => $deleted
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus interview: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Send WhatsApp notification to single candidate
      */
     public function sendNotification($id)
@@ -227,8 +264,11 @@ class InterviewController extends Controller
             // Format message
             $message = $this->formatWhatsAppMessage($interview);
 
-            // Send WhatsApp
-            $sent = $whatsapp->send($interview->phone, $message);
+            // Get QR code image URL (from Google Charts API)
+            $qrImageUrl = $interview->qr_code_image;
+
+            // Send WhatsApp with QR code image
+            $sent = $whatsapp->send($interview->phone, $message, $qrImageUrl);
 
             if ($sent) {
                 $interview->update([
@@ -239,7 +279,7 @@ class InterviewController extends Controller
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Notifikasi WhatsApp berhasil dikirim'
+                    'message' => 'Notifikasi WhatsApp berhasil dikirim (dengan QR Code)'
                 ]);
             }
 
@@ -280,10 +320,12 @@ class InterviewController extends Controller
             $sent = 0;
             $failed = 0;
 
+            /** @var Interview $interview */
             foreach ($interviews as $interview) {
                 $message = $this->formatWhatsAppMessage($interview);
+                $qrImageUrl = $interview->qr_code_image;
 
-                if ($whatsapp->send($interview->phone, $message)) {
+                if ($whatsapp->send($interview->phone, $message, $qrImageUrl)) {
                     $interview->update([
                         'status' => 'notified',
                         'wa_sent_at' => now(),
@@ -300,7 +342,7 @@ class InterviewController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Blast WhatsApp selesai: {$sent} berhasil, {$failed} gagal",
+                'message' => "Blast WhatsApp selesai: {$sent} berhasil, {$failed} gagal (dengan QR Code)",
                 'data' => [
                     'sent' => $sent,
                     'failed' => $failed,
@@ -333,21 +375,32 @@ class InterviewController extends Controller
             $message = str_replace('{waktu}', $time, $message);
             $message = str_replace('{lokasi}', $interview->location, $message);
             $message = str_replace('{catatan}', $interview->notes ?? '', $message);
-            return $message;
+        } else {
+            // Default template
+            $message = "*Undangan Interview - PT Mingda*\n\n"
+                . "Kepada Yth,\n"
+                . "*{$interview->candidate_name}*\n\n"
+                . "Berdasarkan hasil seleksi berkas Anda, kami mengundang Anda untuk mengikuti sesi interview untuk posisi *{$interview->position->name}*.\n\n"
+                . "📅 *Tanggal:* {$date}\n"
+                . "🕐 *Waktu:* {$time} WIB\n"
+                . "📍 *Lokasi:* {$interview->location}\n\n"
+                . ($interview->notes ? "📝 *Catatan:*\n{$interview->notes}\n\n" : '')
+                . "Mohon konfirmasi kehadiran Anda dengan membalas pesan ini.\n\n"
+                . "Terima kasih dan sampai jumpa di hari interview.\n\n"
+                . "*HRD PT Mingda*";
         }
 
-        // Default template
-        return "*Undangan Interview - PT Mingda*\n\n"
-            . "Kepada Yth,\n"
-            . "*{$interview->candidate_name}*\n\n"
-            . "Berdasarkan hasil seleksi berkas Anda, kami mengundang Anda untuk mengikuti sesi interview untuk posisi *{$interview->position->name}*.\n\n"
-            . "📅 *Tanggal:* {$date}\n"
-            . "🕐 *Waktu:* {$time} WIB\n"
-            . "📍 *Lokasi:* {$interview->location}\n\n"
-            . ($interview->notes ? "📝 *Catatan:*\n{$interview->notes}\n\n" : '')
-            . "Mohon konfirmasi kehadiran Anda dengan membalas pesan ini.\n\n"
-            . "Terima kasih dan sampai jumpa di hari interview.\n\n"
-            . "*HRD PT Mingda*";
+        // Add QR code section if token exists
+        if ($interview->qr_code_token) {
+            $qrUrl = route('interview.scan', $interview->qr_code_token);
+            $message .= "\n\n━━━━━━━━━━━━━━━━━\n\n"
+                . "🔐 *QR Code Check-in*\n\n"
+                . "Silakan tunjukkan QR Code berikut kepada petugas keamanan saat tiba di lokasi:\n\n"
+                . "{$qrUrl}\n\n"
+                . "Atau scan QR Code pada gambar yang kami kirimkan.";
+        }
+
+        return $message;
     }
 
     /**
@@ -482,6 +535,72 @@ class InterviewController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal menghapus template'
+            ], 500);
+        }
+    }
+
+    /**
+     * Download Excel template for import
+     */
+    public function downloadTemplate()
+    {
+        return Excel::download(new \App\Exports\InterviewTemplateExport, 'Template_Import_Interview.xlsx');
+    }
+
+    /**
+     * Import interviews from Excel
+     */
+    public function import(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'file' => 'required|mimes:xlsx,xls|max:5120', // Max 5MB
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File tidak valid. Pastikan file berformat Excel (.xlsx atau .xls) dan ukuran maksimal 5MB',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $file = $request->file('file');
+            $import = new \App\Imports\InterviewImport;
+            
+            Excel::import($import, $file);
+
+            $failures = $import->failures();
+            $errors = $import->errors();
+
+            if (count($failures) > 0 || count($errors) > 0) {
+                $errorMessages = [];
+                
+                // Format validation failures
+                foreach ($failures as $failure) {
+                    $errorMessages[] = "Baris {$failure->row()}: " . implode(', ', $failure->errors());
+                }
+                
+                // Format general errors
+                foreach ($errors as $error) {
+                    $errorMessages[] = $error->getMessage();
+                }
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Import gagal dengan ' . count($errorMessages) . ' error',
+                    'errors' => $errorMessages
+                ], 422);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data interview berhasil diimport'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengimport data: ' . $e->getMessage()
             ], 500);
         }
     }
