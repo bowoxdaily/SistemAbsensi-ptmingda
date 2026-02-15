@@ -92,9 +92,10 @@ class SecurityScannerController extends Controller
             ], 400);
         }
 
-        // Update check-in status
+        // Update check-in status and change interview status to confirmed
         $interview->checked_in_at = Carbon::now();
         $interview->checked_in_by = Auth::id();
+        $interview->status = 'confirmed';
         $interview->save();
 
         return response()->json([

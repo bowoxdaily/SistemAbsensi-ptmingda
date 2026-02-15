@@ -124,7 +124,7 @@
         @endif
         
         <div class="mt-4">
-            <a href="https://wa.me/62{{ ltrim(env('HRD_PHONE', '8123456789'), '0') }}" class="btn-contact" target="_blank">
+            <a href="https://wa.me/62{{ ltrim(env('HRD_PHONE', '87835506133'), '0') }}" class="btn-contact" target="_blank">
                 <i class="fab fa-whatsapp me-2"></i> Hubungi HRD
             </a>
         </div>

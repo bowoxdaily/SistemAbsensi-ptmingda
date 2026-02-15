@@ -167,7 +167,7 @@
         <div class="scan-header">
             <i class="fas fa-user-tie"></i>
             <h3 class="mb-0">Interview Check-in</h3>
-            <small>PT Mingda Indonesia</small>
+            <small>PT. Mingda International Footwear</small>
         </div>
         
         <div class="scan-body">
