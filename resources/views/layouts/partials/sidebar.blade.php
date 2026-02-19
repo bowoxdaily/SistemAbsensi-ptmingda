@@ -104,7 +104,7 @@
 
             <!-- Menu Header - Rekrutmen -->
             <li class="menu-header small text-uppercase">
-                <span class="menu-header-text">Rekrutmen</span>
+                <span class="menu-header-text">Rekrutmen & Komunikasi</span>
             </li>
 
             <!-- Interview -->
@@ -112,6 +112,14 @@
                 <a href="{{ route('admin.interviews.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-chat"></i>
                     <div data-i18n="Interview">Interview Kandidat</div>
+                </a>
+            </li>
+
+            <!-- Broadcast -->
+            <li class="menu-item {{ request()->routeIs('admin.broadcast.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.broadcast.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-broadcast"></i>
+                    <div data-i18n="Broadcast">Broadcast Pesan</div>
                 </a>
             </li>
 

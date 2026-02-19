@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\KaryawanController;
 use App\Http\Controllers\Admin\PositionController;
 use App\Http\Controllers\Admin\PayrollController;
 use App\Http\Controllers\Admin\InterviewController;
+use App\Http\Controllers\Admin\BroadcastController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -227,4 +228,16 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('settings/fingerspot')->grou
     Route::post('/logs/reprocess', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'reprocess']);
     Route::post('/logs/reprocess-all', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'reprocessAll']);
     Route::post('/fetch', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'fetchFromApi']);
+});
+
+// Broadcast Messages API (Admin)
+Route::middleware(['web', 'auth', 'admin'])->prefix('admin/broadcast')->group(function () {
+    Route::get('/', [BroadcastController::class, 'list']);
+    Route::get('/positions', [BroadcastController::class, 'getPositions']);
+    Route::get('/departments', [BroadcastController::class, 'getDepartments']);
+    Route::get('/employees', [BroadcastController::class, 'getEmployees']);
+    Route::post('/preview', [BroadcastController::class, 'preview']);
+    Route::post('/send', [BroadcastController::class, 'send']);
+    Route::get('/{id}', [BroadcastController::class, 'detail']);
+    Route::delete('/{id}', [BroadcastController::class, 'destroy']);
 });

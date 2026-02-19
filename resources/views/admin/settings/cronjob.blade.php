@@ -209,6 +209,45 @@
                             </div>
                             <small class="text-muted">Command langsung tanpa cd ke directory</small>
                         </div>
+
+                        <hr>
+
+                        <!-- Queue Worker Cron Commands -->
+                        <div class="alert alert-warning shadow-none border mb-3">
+                            <strong><i class='bx bx-bell-plus'></i> Queue Worker (Broadcast WhatsApp)</strong><br>
+                            <small>Diperlukan agar pesan broadcast dikirim di background. Tambahkan cron job berikut <em>terpisah</em> dari scheduler.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Queue Worker — cPanel/Shared Hosting</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control font-monospace" id="queueCronCPanel"
+                                    value="* * * * * /usr/local/bin/php {{ base_path() }}/artisan queue:work --stop-when-empty --tries=2 >> /dev/null 2>&1"
+                                    readonly>
+                                <button class="btn btn-outline-warning" type="button"
+                                    onclick="copyToClipboard('queueCronCPanel')">
+                                    <i class='bx bx-copy'></i> Copy
+                                </button>
+                            </div>
+                            <small class="text-muted">
+                                <i class='bx bx-info-circle'></i>
+                                Berjalan setiap menit, proses semua job antrian, lalu berhenti sendiri — aman untuk shared hosting
+                            </small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Queue Worker — VPS/Dedicated Server</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control font-monospace" id="queueCronVPS"
+                                    value="* * * * * cd {{ base_path() }} && php artisan queue:work --stop-when-empty --tries=2 >> /dev/null 2>&1"
+                                    readonly>
+                                <button class="btn btn-outline-warning" type="button"
+                                    onclick="copyToClipboard('queueCronVPS')">
+                                    <i class='bx bx-copy'></i> Copy
+                                </button>
+                            </div>
+                            <small class="text-muted">Untuk VPS Linux dengan full akses SSH</small>
+                        </div>
                     </div>
                 </div>
 
@@ -329,6 +368,28 @@
                                     • Tambahkan <code>>/dev/null 2>&1</code> di akhir command untuk disable email<br>
                                     • Gunakan <code>> /home/username/cron.log 2>&1</code> untuk save log<br>
                                     • Contoh provider: cPanel biasa pakai <code>/usr/local/bin/php</code>
+                                </div>
+
+                                <hr>
+
+                                <strong>📦 Langkah 3: Setup Queue Worker (Broadcast WhatsApp)</strong>
+                                <p class="text-muted mt-2 mb-2">Tambahkan <strong>cron job kedua yang terpisah</strong> agar pesan broadcast dikirim di background.</p>
+                                <ol class="mt-2">
+                                    <li>Masih di menu <strong>"Cron Jobs"</strong> cPanel</li>
+                                    <li>Klik <strong>"Add New Cron Job"</strong> lagi</li>
+                                    <li>Interval: <strong>Once Per Minute (* * * * *)</strong></li>
+                                    <li>Di field "Command", masukkan:<br>
+                                        <code class="d-block my-2 p-2 bg-light rounded">/usr/local/bin/php {{ base_path() }}/artisan queue:work --stop-when-empty --tries=2 >> /dev/null 2>&1</code>
+                                        <small class="text-muted">⚠️ Sesuaikan path PHP seperti langkah 1</small>
+                                    </li>
+                                    <li>Klik <strong>"Add New Cron Job"</strong></li>
+                                </ol>
+                                <div class="alert alert-success shadow-none border mt-2 mb-0">
+                                    <strong>✅ Cara kerja di cPanel:</strong><br>
+                                    • Setiap menit cron menjalankan queue worker<br>
+                                    • Worker memproses semua job broadcast yang antri<br>
+                                    • Setelah antrian kosong, worker berhenti otomatis (<code>--stop-when-empty</code>)<br>
+                                    • Jadi tidak ada proses yang "numpuk" di server — aman untuk shared hosting
                                 </div>
                             </div>
 

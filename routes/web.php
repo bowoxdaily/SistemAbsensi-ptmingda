@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\WorkScheduleController;
 use App\Http\Controllers\Admin\CronJobController;
 use App\Http\Controllers\Admin\PayrollController;
 use App\Http\Controllers\Admin\InterviewController;
+use App\Http\Controllers\Admin\BroadcastController;
 use App\Http\Controllers\InterviewScanController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
@@ -84,6 +85,9 @@ Route::middleware(['auth'])->group(function () {
 
         // Interview Management (View only - API handles POST/PUT/DELETE)
         Route::get('/admin/interviews', [InterviewController::class, 'index'])->name('admin.interviews.index');
+
+        // Broadcast Messages (View only - API handles POST/DELETE)
+        Route::get('/admin/broadcast', [BroadcastController::class, 'index'])->name('admin.broadcast.index');
     });
 
     // Payroll Management (Manager only)
