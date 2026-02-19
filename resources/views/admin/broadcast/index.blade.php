@@ -404,10 +404,16 @@
         }
 
         function renderEmployeeList(employeeList) {
+            // Simpan ID yang sudah dicentang sebelum re-render
+            const checkedIds = new Set();
+            $('.employee-checkbox:checked').each(function() {
+                checkedIds.add($(this).val());
+            });
+
             let checkboxes = '';
             employeeList.forEach(emp => {
                 checkboxes += `
-                    <div class="form-check mb-2 employee-item">
+                    <div class="form-check mb-2 employee-item" data-name="${(emp.name || '').toLowerCase()}" data-code="${(emp.employee_code || '').toLowerCase()}">
                         <input class="form-check-input employee-checkbox" type="checkbox" 
                                value="${emp.id}" id="emp_${emp.id}">
                         <label class="form-check-label" for="emp_${emp.id}">
@@ -418,22 +424,35 @@
                 `;
             });
             $('#employeeCheckboxList').html(checkboxes || '<div class="text-muted">Tidak ada karyawan</div>');
+
+            // Restore centang sebelumnya
+            checkedIds.forEach(id => {
+                $(`#emp_${id}`).prop('checked', true);
+            });
+
+            // Terapkan filter search yang aktif (jika ada)
+            const searchTerm = $('#employeeSearch').val().toLowerCase();
+            if (searchTerm) {
+                filterEmployeeList(searchTerm);
+            }
         }
 
         function filterEmployeeList(searchTerm) {
+            // Show/hide saja — TIDAK re-render, sehingga centang tetap tersimpan
             if (!searchTerm || searchTerm === '') {
-                renderEmployeeList(allEmployees);
+                $('.employee-item').show();
                 return;
             }
 
-            const filtered = allEmployees.filter(emp => {
-                const name = (emp.name || '').toLowerCase();
-                const code = (emp.employee_code || '').toLowerCase();
-                return name.includes(searchTerm) || code.includes(searchTerm);
+            $('.employee-item').each(function() {
+                const name = $(this).data('name') || '';
+                const code = $(this).data('code') || '';
+                if (name.includes(searchTerm) || code.includes(searchTerm)) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
             });
-            
-            console.log('Filtered employees:', filtered.length, 'from', allEmployees.length);
-            renderEmployeeList(filtered);
         }
 
         function loadBroadcasts(page = 1) {
