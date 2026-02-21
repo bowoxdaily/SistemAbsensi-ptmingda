@@ -64,9 +64,19 @@ class AttendanceController extends Controller
             // Format shift info
             $employee->shift_type = $employee->workSchedule ? $employee->workSchedule->name : '-';
             if ($employee->workSchedule) {
-                $startTime = Carbon::parse($employee->workSchedule->start_time)->format('H:i');
-                $endTime = Carbon::parse($employee->workSchedule->end_time)->format('H:i');
-                $employee->shift_type .= ' (' . $startTime . ' - ' . $endTime . ')';
+                // WorkSchedule times are already Carbon objects (datetime:H:i:s cast)
+                $startTime = $employee->workSchedule->start_time;
+                $endTime = $employee->workSchedule->end_time;
+                
+                $startTimeFormatted = ($startTime instanceof \Carbon\Carbon) 
+                    ? $startTime->format('H:i') 
+                    : (preg_match('/(\d{1,2}):(\d{2})/', (string) $startTime, $m) ? $m[1].':'.$m[2] : '08:00');
+                    
+                $endTimeFormatted = ($endTime instanceof \Carbon\Carbon) 
+                    ? $endTime->format('H:i') 
+                    : (preg_match('/(\d{1,2}):(\d{2})/', (string) $endTime, $m) ? $m[1].':'.$m[2] : '17:00');
+                    
+                $employee->shift_type .= ' (' . $startTimeFormatted . ' - ' . $endTimeFormatted . ')';
             }
 
             return response()->json([
@@ -420,12 +430,23 @@ class AttendanceController extends Controller
             try {
                 $now = Carbon::now();
 
-                // Parse end_time using Carbon (same as work-schedule.blade.php)
-                $endTime = Carbon::parse($schedule->end_time);
-                $endTimeFormatted = $endTime->format('H:i');
+                // WorkSchedule end_time is already a Carbon object (datetime:H:i:s cast)
+                $endTime = $schedule->end_time;
+                
+                // Handle if it's a Carbon object or string
+                if ($endTime instanceof \Carbon\Carbon) {
+                    $endHour = $endTime->hour;
+                    $endMinute = $endTime->minute;
+                    $endTimeFormatted = $endTime->format('H:i');
+                } else {
+                    preg_match('/(\d{1,2}):(\d{2})/', (string) $endTime, $match);
+                    $endHour = $match ? (int) $match[1] : 17;
+                    $endMinute = $match ? (int) $match[2] : 0;
+                    $endTimeFormatted = sprintf('%02d:%02d', $endHour, $endMinute);
+                }
 
                 // Create scheduled end time for today
-                $scheduledEndTime = Carbon::today()->setTime($endTime->hour, $endTime->minute, 0);
+                $scheduledEndTime = Carbon::today()->setTime($endHour, $endMinute, 0);
 
                 // Block checkout if current time is before scheduled end time
                 if ($now->lessThan($scheduledEndTime)) {
@@ -452,15 +473,27 @@ class AttendanceController extends Controller
             if (in_array($attendance->status, ['hadir', 'terlambat'])) {
                 try {
                     $checkOutTime = Carbon::now();
-                    $endTime = Carbon::parse($schedule->end_time);
+                    // WorkSchedule end_time is already a Carbon object (datetime:H:i:s cast)
+                    $endTime = $schedule->end_time;
+                    
+                    // Handle if it's a Carbon object or string
+                    if ($endTime instanceof \Carbon\Carbon) {
+                        $endHour = $endTime->hour;
+                        $endMinute = $endTime->minute;
+                    } else {
+                        preg_match('/(\d{1,2}):(\d{2})/', (string) $endTime, $match);
+                        $endHour = $match ? (int) $match[1] : 17;
+                        $endMinute = $match ? (int) $match[2] : 0;
+                    }
+                    
                     $overtimeThreshold = $schedule->overtime_threshold ?? 50;
 
                     // Create end time for today
-                    $scheduledEndTime = Carbon::today()->setTime($endTime->hour, $endTime->minute, 0);
+                    $scheduledEndTime = Carbon::today()->setTime($endHour, $endMinute, 0);
 
                     // Calculate threshold time (end_time + overtime_threshold minutes)
                     $thresholdTime = Carbon::today()
-                        ->setTime($endTime->hour, $endTime->minute, 0)
+                        ->setTime($endHour, $endMinute, 0)
                         ->addMinutes($overtimeThreshold);
 
                     // Only calculate overtime if checkout is after threshold time

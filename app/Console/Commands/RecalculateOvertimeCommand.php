@@ -110,17 +110,28 @@ class RecalculateOvertimeCommand extends Command
                     $checkOutTime = Carbon::parse($attendance->attendance_date->format('Y-m-d') . ' ' . $checkOutTimeStr);
                 }
 
-                // Parse schedule end time
-                $endTime = Carbon::parse($schedule->end_time);
+                // WorkSchedule end_time is already a Carbon object (datetime:H:i:s cast)
+                $endTime = $schedule->end_time;
+                
+                // Handle if it's a Carbon object or string
+                if ($endTime instanceof \Carbon\Carbon) {
+                    $endHour = $endTime->hour;
+                    $endMinute = $endTime->minute;
+                } else {
+                    preg_match('/(\d{1,2}):(\d{2})/', (string) $endTime, $match);
+                    $endHour = $match ? (int) $match[1] : 17;
+                    $endMinute = $match ? (int) $match[2] : 0;
+                }
+                
                 $overtimeThreshold = $schedule->overtime_threshold ?? 50;
 
                 // Create scheduled end time
                 $scheduledEndTime = Carbon::parse($attendance->attendance_date->format('Y-m-d'))
-                    ->setTime($endTime->hour, $endTime->minute, 0);
+                    ->setTime($endHour, $endMinute, 0);
 
                 // Calculate threshold time
                 $thresholdTime = Carbon::parse($attendance->attendance_date->format('Y-m-d'))
-                    ->setTime($endTime->hour, $endTime->minute, 0)
+                    ->setTime($endHour, $endMinute, 0)
                     ->addMinutes($overtimeThreshold);
 
                 // Calculate overtime

@@ -222,9 +222,17 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
             Carbon::parse($attendance->attendance_date)->locale('id')->translatedFormat('l, d F Y'),
             $attendance->check_in ? Carbon::parse($attendance->check_in)->format('H:i') : '-',
             $attendance->check_out ? Carbon::parse($attendance->check_out)->format('H:i') : '-',
-            $attendance->employee->workSchedule ?
-                Carbon::parse($attendance->employee->workSchedule->start_time)->format('H:i') . ' - ' .
-                Carbon::parse($attendance->employee->workSchedule->end_time)->format('H:i') : '-',
+            $attendance->employee->workSchedule ? (
+                // WorkSchedule times are already Carbon objects (datetime:H:i:s cast)
+                (($startTime = $attendance->employee->workSchedule->start_time) instanceof \Carbon\Carbon 
+                    ? $startTime->format('H:i') 
+                    : (preg_match('/(\d{1,2}):(\d{2})/', (string) $startTime, $m) ? $m[1].':'.$m[2] : '08:00')
+                ) . ' - ' .
+                (($endTime = $attendance->employee->workSchedule->end_time) instanceof \Carbon\Carbon 
+                    ? $endTime->format('H:i') 
+                    : (preg_match('/(\d{1,2}):(\d{2})/', (string) $endTime, $m) ? $m[1].':'.$m[2] : '17:00')
+                )
+            ) : '-',
             strtoupper($attendance->status),
             $attendance->late_minutes > 0 ? $attendance->late_minutes . ' menit' : '-',
             $attendance->overtime_minutes > 0 ? $attendance->overtime_minutes . ' menit' : '-',
