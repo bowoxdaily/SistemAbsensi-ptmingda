@@ -109,10 +109,13 @@
                                 <option value="hadir" {{ request('status') == 'hadir' ? 'selected' : '' }}>Hadir</option>
                                 <option value="terlambat" {{ request('status') == 'terlambat' ? 'selected' : '' }}>Terlambat
                                 </option>
+                                <option value="lembur" {{ request('status') == 'lembur' ? 'selected' : '' }}>Lembur</option>
                                 <option value="cuti" {{ request('status') == 'cuti' ? 'selected' : '' }}>Cuti</option>
+                                <option value="cuti_khusus" {{ request('status') == 'cuti_khusus' ? 'selected' : '' }}>Cuti Khusus</option>
                                 <option value="cuti_bersama" {{ request('status') == 'cuti_bersama' ? 'selected' : '' }}>Cuti Bersama</option>
                                 <option value="izin" {{ request('status') == 'izin' ? 'selected' : '' }}>Izin</option>
                                 <option value="sakit" {{ request('status') == 'sakit' ? 'selected' : '' }}>Sakit</option>
+                                <option value="off" {{ request('status') == 'off' ? 'selected' : '' }}>Off</option>
                                 <option value="libur" {{ request('status') == 'libur' ? 'selected' : '' }}>Libur</option>
                                 <option value="alpha" {{ request('status') == 'alpha' ? 'selected' : '' }}>Alpha</option>
                             </select>
@@ -298,18 +301,22 @@
                                             <span class="badge bg-success">HADIR</span>
                                         @elseif($attendance->status == 'terlambat')
                                             <span class="badge bg-warning">TERLAMBAT</span>
+                                        @elseif($attendance->status == 'lembur')
+                                            <span class="badge bg-info">LEMBUR</span>
                                         @elseif($attendance->status == 'cuti')
                                             <span class="badge bg-primary">CUTI</span>
+                                        @elseif($attendance->status == 'cuti_khusus')
+                                            <span class="badge bg-primary">CUTI KHUSUS</span>
                                         @elseif($attendance->status == 'cuti_bersama')
                                             <span class="badge bg-info">CUTI BERSAMA</span>
                                         @elseif($attendance->status == 'izin')
                                             <span class="badge bg-info">IZIN</span>
                                         @elseif($attendance->status == 'sakit')
                                             <span class="badge bg-secondary">SAKIT</span>
-                                        @elseif($attendance->status == 'libur')
-                                            <span class="badge bg-dark">LIBUR</span>
                                         @elseif($attendance->status == 'off')
                                             <span class="badge bg-secondary">OFF</span>
+                                        @elseif($attendance->status == 'libur')
+                                            <span class="badge bg-dark">LIBUR</span>
                                         @elseif($attendance->status == 'alpha')
                                             <span class="badge bg-danger">ALPHA</span>
                                         @else
@@ -523,18 +530,22 @@
                                             <span class="badge bg-success">HADIR</span>
                                         @elseif($attendance->status == 'terlambat')
                                             <span class="badge bg-warning">TERLAMBAT</span>
+                                        @elseif($attendance->status == 'lembur')
+                                            <span class="badge bg-info">LEMBUR</span>
                                         @elseif($attendance->status == 'cuti')
                                             <span class="badge bg-primary">CUTI</span>
+                                        @elseif($attendance->status == 'cuti_khusus')
+                                            <span class="badge bg-primary">CUTI KHUSUS</span>
                                         @elseif($attendance->status == 'cuti_bersama')
                                             <span class="badge bg-info">CUTI BERSAMA</span>
                                         @elseif($attendance->status == 'izin')
                                             <span class="badge bg-info">IZIN</span>
                                         @elseif($attendance->status == 'sakit')
                                             <span class="badge bg-secondary">SAKIT</span>
-                                        @elseif($attendance->status == 'libur')
-                                            <span class="badge bg-dark">LIBUR</span>
                                         @elseif($attendance->status == 'off')
                                             <span class="badge bg-secondary">OFF</span>
+                                        @elseif($attendance->status == 'libur')
+                                            <span class="badge bg-dark">LIBUR</span>
                                         @elseif($attendance->status == 'alpha')
                                             <span class="badge bg-danger">ALPHA</span>
                                         @else
@@ -671,9 +682,14 @@
                                 <select class="form-select" id="edit_status" name="status" required>
                                     <option value="hadir">Hadir</option>
                                     <option value="terlambat">Terlambat</option>
+                                    <option value="lembur">Lembur</option>
                                     <option value="izin">Izin</option>
                                     <option value="sakit">Sakit</option>
                                     <option value="cuti">Cuti</option>
+                                    <option value="cuti_khusus">Cuti Khusus</option>
+                                    <option value="cuti_bersama">Cuti Bersama</option>
+                                    <option value="off">Off</option>
+                                    <option value="libur">Libur</option>
                                     <option value="alpha">Alpha</option>
                                 </select>
                             </div>
@@ -945,9 +961,14 @@
                                             <td>
                                                 ${data.status === 'hadir' ? '<span class="badge bg-success">HADIR</span>' : ''}
                                                 ${data.status === 'terlambat' ? '<span class="badge bg-warning">TERLAMBAT</span>' : ''}
+                                                ${data.status === 'lembur' ? '<span class="badge bg-info">LEMBUR</span>' : ''}
                                                 ${data.status === 'cuti' ? '<span class="badge bg-primary">CUTI</span>' : ''}
+                                                ${data.status === 'cuti_khusus' ? '<span class="badge bg-primary">CUTI KHUSUS</span>' : ''}
+                                                ${data.status === 'cuti_bersama' ? '<span class="badge bg-info">CUTI BERSAMA</span>' : ''}
                                                 ${data.status === 'izin' ? '<span class="badge bg-info">IZIN</span>' : ''}
                                                 ${data.status === 'sakit' ? '<span class="badge bg-secondary">SAKIT</span>' : ''}
+                                                ${data.status === 'off' ? '<span class="badge bg-secondary">OFF</span>' : ''}
+                                                ${data.status === 'libur' ? '<span class="badge bg-dark">LIBUR</span>' : ''}
                                                 ${data.status === 'alpha' ? '<span class="badge bg-danger">ALPHA</span>' : ''}
                                             </td>
                                         </tr>

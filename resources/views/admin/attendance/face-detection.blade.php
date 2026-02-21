@@ -69,9 +69,14 @@
                                         <select class="form-select" id="attendanceStatus">
                                             <option value="hadir">Hadir</option>
                                             <option value="terlambat">Terlambat</option>
+                                            <option value="lembur">Lembur</option>
                                             <option value="izin">Izin</option>
                                             <option value="sakit">Sakit</option>
                                             <option value="cuti">Cuti</option>
+                                            <option value="cuti_khusus">Cuti Khusus</option>
+                                            <option value="cuti_bersama">Cuti Bersama</option>
+                                            <option value="off">Off</option>
+                                            <option value="libur">Libur</option>
                                             <option value="alpha">Alpha (Tanpa Keterangan)</option>
                                         </select>
                                         <div class="form-text" id="statusHelpText">Pilih status absensi karyawan</div>
@@ -193,20 +198,40 @@
                                             <small>Check-in melewati jam masuk</small>
                                         </li>
                                         <li class="mb-2">
+                                            <span class="badge bg-info me-2">LEMBUR</span>
+                                            <small>Bekerja melebihi jam kerja</small>
+                                        </li>
+                                        <li class="mb-2">
                                             <span class="badge bg-info me-2">IZIN</span>
                                             <small>Izin dengan keterangan</small>
                                         </li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-6">
-                                    <ul class="list-unstyled mb-0">
                                         <li class="mb-2">
                                             <span class="badge bg-primary me-2">SAKIT</span>
                                             <small>Sakit dengan surat dokter</small>
                                         </li>
                                         <li class="mb-2">
                                             <span class="badge bg-secondary me-2">CUTI</span>
-                                            <small>Cuti yang disetujui</small>
+                                            <small>Cuti tahunan yang disetujui</small>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <ul class="list-unstyled mb-0">
+                                        <li class="mb-2">
+                                            <span class="badge bg-primary me-2">CUTI KHUSUS</span>
+                                            <small>Cuti khusus (nikah, dll)</small>
+                                        </li>
+                                        <li class="mb-2">
+                                            <span class="badge bg-info me-2">CUTI BERSAMA</span>
+                                            <small>Cuti bersama resmi</small>
+                                        </li>
+                                        <li class="mb-2">
+                                            <span class="badge bg-secondary me-2">OFF</span>
+                                            <small>Hari libur/tidak bekerja</small>
+                                        </li>
+                                        <li class="mb-2">
+                                            <span class="badge bg-dark me-2">LIBUR</span>
+                                            <small>Hari libur nasional</small>
                                         </li>
                                         <li class="mb-2">
                                             <span class="badge bg-danger me-2">ALPHA</span>
@@ -273,8 +298,10 @@
                 const timeSection = document.getElementById('checkInTimeSection');
                 const timeInput = document.getElementById('checkInTimeInput');
 
-                // Only show time input for 'hadir' and 'terlambat'
-                if (status === 'hadir' || status === 'terlambat') {
+                // Show time input for statuses that require check-in time
+                const statusesWithCheckIn = ['hadir', 'terlambat', 'lembur'];
+                
+                if (statusesWithCheckIn.includes(status)) {
                     timeSection.style.display = 'flex';
                     timeInput.required = true;
                 } else {
@@ -374,7 +401,13 @@
 
                         // Set status badge with appropriate color
                         const statusBadge = document.getElementById('statusBadge');
-                        const statusText = att.status.toUpperCase();
+                        let statusText = att.status.toUpperCase();
+                        // Format status text for display
+                        if (att.status === 'cuti_bersama') {
+                            statusText = 'CUTI BERSAMA';
+                        } else if (att.status === 'cuti_khusus') {
+                            statusText = 'CUTI KHUSUS';
+                        }
                         statusBadge.textContent = statusText;
 
                         // Remove all badge color classes
@@ -388,6 +421,9 @@
                             case 'terlambat':
                                 statusBadge.classList.add('bg-warning');
                                 break;
+                            case 'lembur':
+                                statusBadge.classList.add('bg-info');
+                                break;
                             case 'izin':
                                 statusBadge.classList.add('bg-info');
                                 break;
@@ -396,6 +432,18 @@
                                 break;
                             case 'cuti':
                                 statusBadge.classList.add('bg-secondary');
+                                break;
+                            case 'cuti_khusus':
+                                statusBadge.classList.add('bg-primary');
+                                break;
+                            case 'cuti_bersama':
+                                statusBadge.classList.add('bg-info');
+                                break;
+                            case 'off':
+                                statusBadge.classList.add('bg-secondary');
+                                break;
+                            case 'libur':
+                                statusBadge.classList.add('bg-dark');
                                 break;
                             case 'alpha':
                                 statusBadge.classList.add('bg-danger');
@@ -419,15 +467,15 @@
                             document.getElementById('checkOutForm').style.display = 'none';
                         } else if (att.check_in || att.status) {
                             // Sudah ada data absensi (check-in atau status sudah tercatat)
-                            // Jika status bukan hadir/terlambat, tidak perlu form check-out
-                            const statusesWithoutCheckOut = ['alpha', 'cuti', 'sakit', 'izin'];
+                            // Jika status bukan hadir/terlambat/lembur, tidak perlu form check-out
+                            const statusesWithoutCheckOut = ['alpha', 'cuti', 'sakit', 'izin', 'cuti_khusus', 'cuti_bersama', 'off', 'libur'];
 
                             if (statusesWithoutCheckOut.includes(att.status.toLowerCase())) {
                                 // Status tanpa check-out, sembunyikan semua form
                                 document.getElementById('checkInForm').style.display = 'none';
                                 document.getElementById('checkOutForm').style.display = 'none';
                             } else {
-                                // Status hadir/terlambat, tampilkan form check-out
+                                // Status hadir/terlambat/lembur, tampilkan form check-out
                                 document.getElementById('checkInForm').style.display = 'none';
                                 document.getElementById('checkOutForm').style.display = 'block';
                             }
@@ -474,8 +522,9 @@
                 const status = document.getElementById('attendanceStatus').value;
                 const checkInTime = document.getElementById('checkInTimeInput').value;
 
-                // Validate time input only for 'hadir' and 'terlambat'
-                if ((status === 'hadir' || status === 'terlambat') && !checkInTime) {
+                // Validate time input for statuses that require check-in time
+                const statusesRequiringTime = ['hadir', 'terlambat', 'lembur'];
+                if (statusesRequiringTime.includes(status) && !checkInTime) {
                     Swal.fire('Error', 'Masukkan jam check in terlebih dahulu', 'error');
                     return;
                 }
