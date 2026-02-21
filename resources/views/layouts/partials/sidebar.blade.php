@@ -123,6 +123,19 @@
                 </a>
             </li>
 
+            <!-- Menu Header - Laporan -->
+            <li class="menu-header small text-uppercase">
+                <span class="menu-header-text">Laporan</span>
+            </li>
+
+            <!-- Rekapitulasi Absensi -->
+            <li class="menu-item {{ request()->routeIs('admin.rekapitulasi.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.rekapitulasi.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-pie-chart-alt-2"></i>
+                    <div data-i18n="Rekapitulasi">Rekapitulasi Absensi</div>
+                </a>
+            </li>
+
             <!-- Menu Header - Keuangan -->
             <li class="menu-header small text-uppercase">
                 <span class="menu-header-text">Keuangan</span>

@@ -242,3 +242,10 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('admin/broadcast')->group(fu
     Route::get('/{id}', [BroadcastController::class, 'detail']);
     Route::delete('/{id}', [BroadcastController::class, 'destroy']);
 });
+
+// Rekapitulasi Absensi API (Admin)
+Route::middleware(['web', 'auth', 'admin'])->prefix('admin/rekapitulasi')->group(function () {
+    Route::get('/data', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'getData']);
+    Route::get('/filter-options', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'getFilterOptions']);
+});
+

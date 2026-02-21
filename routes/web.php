@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\CronJobController;
 use App\Http\Controllers\Admin\PayrollController;
 use App\Http\Controllers\Admin\InterviewController;
 use App\Http\Controllers\Admin\BroadcastController;
+use App\Http\Controllers\Admin\RekapitulasiController;
 use App\Http\Controllers\InterviewScanController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
@@ -88,6 +89,11 @@ Route::middleware(['auth'])->group(function () {
 
         // Broadcast Messages (View only - API handles POST/DELETE)
         Route::get('/admin/broadcast', [BroadcastController::class, 'index'])->name('admin.broadcast.index');
+
+        // Rekapitulasi Absensi (View + Export)
+        Route::get('/admin/rekapitulasi', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'index'])->name('admin.rekapitulasi.index');
+        Route::get('/admin/rekapitulasi/export-excel', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'exportExcel'])->name('admin.rekapitulasi.export-excel');
+        Route::get('/admin/rekapitulasi/export-pdf', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'exportPdf'])->name('admin.rekapitulasi.export-pdf');
     });
 
     // Payroll Management (Manager only)
