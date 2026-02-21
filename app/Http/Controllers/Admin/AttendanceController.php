@@ -992,6 +992,121 @@ class AttendanceController extends Controller
     }
 
     /**
+     * Bulk check-out: Process skipped fingerspot logs for early checkout
+     */
+    public function bulkCheckOut(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'date'  => 'required|date',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            // Get all attendances on specified date (including those with check_out)
+            // Will overwrite existing check_out data if fingerspot log found
+            $attendances = Attendance::with('employee.workSchedule')
+                ->whereDate('attendance_date', $request->date)
+                ->whereIn('status', ['hadir', 'terlambat'])
+                ->get();
+
+            if ($attendances->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak ada karyawan dengan status hadir/terlambat pada tanggal tersebut.',
+                ], 422);
+            }
+
+            $updated = 0;
+            $skipped = 0;
+            $noLogs  = 0;
+
+            foreach ($attendances as $attendance) {
+                $employee = $attendance->employee;
+                
+                // Find last skipped fingerspot log for this employee on this date
+                // Only take scans after 11:30 AM to ensure it's a valid checkout time
+                $log = \App\Models\FingerspotLog::where('employee_id', $employee->id)
+                    ->whereDate('scan_time', $request->date)
+                    ->whereTime('scan_time', '>=', '11:30:00')
+                    ->where('process_status', 'skipped')
+                    ->where(function($q) {
+                        $q->where('process_message', 'like', '%work hours%')
+                          ->orWhere('process_message', 'like', '%not valid for check-out%');
+                    })
+                    ->orderBy('scan_time', 'desc')
+                    ->first();
+
+                if (!$log) {
+                    $noLogs++;
+                    continue;
+                }
+
+                $checkOutTime = \Carbon\Carbon::parse($log->scan_time)->format('H:i:s');
+                $schedule     = $employee->workSchedule ?? null;
+
+                // Calculate overtime
+                $overtimeMinutes = 0;
+                if ($schedule) {
+                    try {
+                        $endTime       = \Carbon\Carbon::parse($schedule->end_time);
+                        $threshold     = $schedule->overtime_threshold ?? 50;
+                        $scheduledEnd  = \Carbon\Carbon::parse($request->date)->setTime($endTime->hour, $endTime->minute, 0);
+                        $thresholdTime = (clone $scheduledEnd)->addMinutes($threshold);
+                        $actualOut     = \Carbon\Carbon::parse($request->date . ' ' . $checkOutTime);
+
+                        if ($actualOut->greaterThan($thresholdTime)) {
+                            $overtimeMinutes = $scheduledEnd->diffInMinutes($actualOut);
+                        }
+                    } catch (\Exception $e) {
+                        // Skip overtime calc on error
+                    }
+                }
+
+                $attendance->check_out        = $checkOutTime;
+                $attendance->photo_out        = $log->photo_url; // Copy photo from fingerspot log
+                $attendance->overtime_minutes = $overtimeMinutes;
+                if ($request->notes) {
+                    $attendance->notes = ($attendance->notes ? $attendance->notes . ' | ' : '') . $request->notes;
+                }
+                $attendance->save();
+
+                // Mark fingerspot log as processed
+                $log->update(['process_status' => 'success', 'process_message' => 'Processed via bulk checkout']);
+                
+                $updated++;
+            }
+
+            if ($updated === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Tidak ada data fingerspot yang bisa diproses. Karyawan tanpa log fingerspot (setelah jam 11:30): {$noLogs}",
+                ], 422);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Berhasil memproses {$updated} karyawan dari fingerspot logs (data pulang yang sudah ada akan ditimpa)." . 
+                             ($noLogs > 0 ? " ({$noLogs} karyawan tidak ada log fingerspot yang di-skip setelah jam 11:30)" : ""),
+                'data'    => ['updated' => $updated, 'no_logs' => $noLogs],
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal bulk check-out: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Bulk delete attendances
      */
     public function bulkDelete(Request $request)

@@ -147,6 +147,9 @@
                             <button type="button" class="btn btn-warning text-white" id="recalculateOvertimeBtn">
                                 <i class='bx bx-refresh me-1'></i> Hitung Ulang Lembur
                             </button>
+                            <button type="button" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#bulkCheckoutModal">
+                                <i class='bx bx-log-out-circle me-1'></i> Bulk Pulang
+                            </button>
                         </div>
                     </div>
                 </form>
@@ -573,6 +576,49 @@
                     <div>
                         {{ $attendances->onEachSide(1)->links('pagination::bootstrap-5') }}
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Check-Out Modal -->
+    <div class="modal fade" id="bulkCheckoutModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class='bx bx-log-out-circle me-1 text-info'></i> Proses Pulang dari Fingerspot
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info shadow-none border mb-3">
+                        <strong><i class='bx bx-info-circle'></i> Cara Kerja:</strong> 
+                        <ul class="mb-0 mt-2">
+                            <li>Mencari karyawan dengan status <strong>hadir/terlambat</strong> pada tanggal tertentu</li>
+                            <li>Mengambil jam pulang dari <strong>fingerspot logs</strong> yang di-skip (scan >= 11:30)</li>
+                            <li>Memproses ulang log tersebut sebagai check-out</li>
+                            <li><strong class="text-warning">⚠️ Data pulang yang sudah ada akan ditimpa</strong></li>
+                        </ul>
+                        <small class="text-muted">Berguna untuk hari setengah hari / pulang lebih awal atau reprocess ulang.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tanggal <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="bulk_checkout_date"
+                            value="{{ date('Y-m-d') }}" required>
+                        <small class="text-muted">Sistem akan cari fingerspot logs yang di-skip (scan >= 11:30) pada tanggal ini.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Catatan <small class="text-muted">(opsional)</small></label>
+                        <input type="text" class="form-control" id="bulk_checkout_notes"
+                            placeholder="mis. Setengah hari - event kantor">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-info text-white" id="saveBulkCheckout">
+                        <i class='bx bx-refresh me-1'></i> Proses dari Fingerspot
+                    </button>
                 </div>
             </div>
         </div>
@@ -1407,6 +1453,56 @@
                             }
                         });
                     }
+                });
+            });
+
+            // Bulk Check-Out Handler
+            $('#saveBulkCheckout').on('click', function() {
+                const date  = $('#bulk_checkout_date').val();
+                const notes = $('#bulk_checkout_notes').val();
+
+                if (!date) {
+                    Swal.fire('Peringatan', 'Pilih tanggal terlebih dahulu.', 'warning');
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'Proses dari Fingerspot?',
+                    html: `Memproses jam pulang dari <strong>fingerspot logs yang di-skip</strong> pada tanggal <strong>${date}</strong>.`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Proses',
+                    cancelButtonText: 'Batal',
+                    confirmButtonColor: '#0dcaf0'
+                }).then((result) => {
+                    if (!result.isConfirmed) return;
+
+                    $('#saveBulkCheckout').prop('disabled', true)
+                        .html('<span class="spinner-border spinner-border-sm me-1"></span> Memproses...');
+
+                    $.ajax({
+                        url: '/api/admin/attendance/bulk-checkout',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                        data: JSON.stringify({ date, notes: notes || null }),
+                        success: function(res) {
+                            bootstrap.Modal.getInstance(document.getElementById('bulkCheckoutModal')).hide();
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                html: res.message,
+                                confirmButtonText: 'OK'
+                            }).then(() => window.location.reload());
+                        },
+                        error: function(xhr) {
+                            Swal.fire('Gagal', xhr.responseJSON?.message || 'Terjadi kesalahan', 'error');
+                        },
+                        complete: function() {
+                            $('#saveBulkCheckout').prop('disabled', false)
+                                .html('<i class="bx bx-refresh me-1"></i> Proses dari Fingerspot');
+                        }
+                    });
                 });
             });
         </script>
