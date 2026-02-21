@@ -872,7 +872,7 @@ class AttendanceController extends Controller
             // Validation
             $validator = Validator::make($request->all(), [
                 'attendance_date' => 'required|date',
-                'check_in' => 'required',
+                'check_in' => 'nullable',
                 'check_out' => 'nullable',
                 'status' => 'required|in:hadir,terlambat,izin,sakit,cuti,alpha,libur,cuti_bersama,lembur,off,cuti_khusus',
                 'late_minutes' => 'nullable|integer|min:0',
@@ -887,11 +887,20 @@ class AttendanceController extends Controller
                 ], 422);
             }
 
+            // Validate check_in for specific statuses
+            $statusesRequiringCheckIn = ['hadir', 'terlambat', 'lembur'];
+            if (in_array($request->status, $statusesRequiringCheckIn) && !$request->check_in) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Jam Check In wajib diisi untuk status ' . strtoupper($request->status)
+                ], 422);
+            }
+
             // Calculate late minutes automatically if status is 'terlambat' or 'hadir'
             $lateMinutes = 0;
             $schedule = $attendance->employee->workSchedule;
 
-            if (in_array($request->status, ['hadir', 'terlambat']) && $schedule && $request->check_in) {
+            if (in_array($request->status, ['hadir', 'terlambat', 'lembur']) && $schedule && $request->check_in) {
                 try {
                     // Parse check-in time
                     $checkInTime = Carbon::createFromFormat('Y-m-d H:i', $request->attendance_date . ' ' . $request->check_in);

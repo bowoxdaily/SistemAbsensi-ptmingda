@@ -695,10 +695,10 @@
                             </div>
                         </div>
 
-                        <div class="row">
+                        <div class="row" id="edit_time_section">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Check In <span class="text-danger">*</span></label>
-                                <input type="time" class="form-control" id="edit_check_in" name="check_in" required>
+                                <label class="form-label">Check In <span class="text-danger" id="edit_check_in_required">*</span></label>
+                                <input type="time" class="form-control" id="edit_check_in" name="check_in">
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Check Out</label>
@@ -1111,6 +1111,9 @@
                         $('#edit_late_minutes').val(data.late_minutes || '');
                         $('#edit_notes').val(data.notes || '');
 
+                        // Trigger status change to show/hide time fields
+                        updateEditTimeFields(data.status);
+
                         modal.show();
                     },
                     error: function(xhr) {
@@ -1124,16 +1127,58 @@
                 });
             });
 
+            // Update time fields visibility based on status
+            function updateEditTimeFields(status) {
+                const timeSection = $('#edit_time_section');
+                const checkInInput = $('#edit_check_in');
+                const checkInRequired = $('#edit_check_in_required');
+                
+                // Statuses that require check-in time
+                const statusesWithCheckIn = ['hadir', 'terlambat', 'lembur'];
+                
+                if (statusesWithCheckIn.includes(status)) {
+                    timeSection.show();
+                    checkInInput.prop('required', true);
+                    checkInRequired.show();
+                } else {
+                    timeSection.hide();
+                    checkInInput.prop('required', false);
+                    checkInRequired.hide();
+                    checkInInput.val('');
+                    $('#edit_check_out').val('');
+                }
+            }
+
+            // Status change handler for edit modal
+            $('#edit_status').on('change', function() {
+                updateEditTimeFields($(this).val());
+            });
+
             // Save edit form
             $('#editForm').on('submit', function(e) {
                 e.preventDefault();
 
                 const id = $('#edit_id').val();
+                const status = $('#edit_status').val();
+                const checkIn = $('#edit_check_in').val();
+                
+                // Validate check-in for specific statuses
+                const statusesRequiringCheckIn = ['hadir', 'terlambat', 'lembur'];
+                if (statusesRequiringCheckIn.includes(status) && !checkIn) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Peringatan',
+                        text: 'Jam Check In wajib diisi untuk status ' + status.toUpperCase(),
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+                
                 const formData = {
                     attendance_date: $('#edit_attendance_date').val(),
-                    check_in: $('#edit_check_in').val(),
+                    check_in: checkIn || null,
                     check_out: $('#edit_check_out').val() || null,
-                    status: $('#edit_status').val(),
+                    status: status,
                     late_minutes: $('#edit_late_minutes').val() || null,
                     notes: $('#edit_notes').val() || null
                 };
