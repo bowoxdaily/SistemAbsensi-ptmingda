@@ -1016,9 +1016,13 @@ class AttendanceController extends Controller
 
     /**
      * Bulk check-out: Process skipped fingerspot logs for early checkout
+     * OPTIMIZED: Batch query to prevent timeout
      */
     public function bulkCheckOut(Request $request)
     {
+        // Increase execution time for bulk operation
+        set_time_limit(300); // 5 minutes max
+        
         $validator = Validator::make($request->all(), [
             'date'  => 'required|date',
             'notes' => 'nullable|string|max:500',
@@ -1033,8 +1037,7 @@ class AttendanceController extends Controller
         }
 
         try {
-            // Get all attendances on specified date (including those with check_out)
-            // Will overwrite existing check_out data if fingerspot log found
+            // Get all attendances on specified date
             $attendances = Attendance::with('employee.workSchedule')
                 ->whereDate('attendance_date', $request->date)
                 ->whereIn('status', ['hadir', 'terlambat'])
@@ -1047,25 +1050,35 @@ class AttendanceController extends Controller
                 ], 422);
             }
 
+            // OPTIMIZATION: Get all employee IDs
+            $employeeIds = $attendances->pluck('employee.id')->filter()->unique()->toArray();
+            
+            // OPTIMIZATION: Batch query - get all fingerspot logs at once
+            $fingerspotLogs = \App\Models\FingerspotLog::whereIn('employee_id', $employeeIds)
+                ->whereDate('scan_time', $request->date)
+                ->whereTime('scan_time', '>=', '11:30:00')
+                ->where('process_status', 'skipped')
+                ->where(function($q) {
+                    $q->where('process_message', 'like', '%work hours%')
+                      ->orWhere('process_message', 'like', '%not valid for check-out%');
+                })
+                ->orderBy('employee_id')
+                ->orderBy('scan_time', 'desc')
+                ->get()
+                ->groupBy('employee_id')
+                ->map(function($logs) {
+                    return $logs->first(); // Get latest log per employee
+                });
+
             $updated = 0;
-            $skipped = 0;
             $noLogs  = 0;
+            $logIdsToUpdate = [];
 
             foreach ($attendances as $attendance) {
                 $employee = $attendance->employee;
                 
-                // Find last skipped fingerspot log for this employee on this date
-                // Only take scans after 11:30 AM to ensure it's a valid checkout time
-                $log = \App\Models\FingerspotLog::where('employee_id', $employee->id)
-                    ->whereDate('scan_time', $request->date)
-                    ->whereTime('scan_time', '>=', '11:30:00')
-                    ->where('process_status', 'skipped')
-                    ->where(function($q) {
-                        $q->where('process_message', 'like', '%work hours%')
-                          ->orWhere('process_message', 'like', '%not valid for check-out%');
-                    })
-                    ->orderBy('scan_time', 'desc')
-                    ->first();
+                // Get log from batch query result
+                $log = $fingerspotLogs->get($employee->id);
 
                 if (!$log) {
                     $noLogs++;
@@ -1079,15 +1092,12 @@ class AttendanceController extends Controller
                 $overtimeMinutes = 0;
                 if ($schedule) {
                     try {
-                        // WorkSchedule end_time is already a Carbon object (datetime:H:i:s cast)
                         $endTime = $schedule->end_time;
                         
-                        // Handle if it's a Carbon object or string
                         if ($endTime instanceof \Carbon\Carbon) {
                             $endHour = $endTime->hour;
                             $endMinute = $endTime->minute;
                         } else {
-                            // Fallback for string format
                             preg_match('/(\d{1,2}):(\d{2})/', (string) $endTime, $match);
                             $endHour = $match ? (int) $match[1] : 17;
                             $endMinute = $match ? (int) $match[2] : 0;
@@ -1102,7 +1112,6 @@ class AttendanceController extends Controller
                             $overtimeMinutes = $scheduledEnd->diffInMinutes($actualOut);
                         }
                     } catch (\Exception $e) {
-                        // Skip overtime calc on error
                         \Log::warning('Bulk checkout overtime calc error', [
                             'employee_id' => $employee->id,
                             'error' => $e->getMessage()
@@ -1111,17 +1120,26 @@ class AttendanceController extends Controller
                 }
 
                 $attendance->check_out        = $checkOutTime;
-                $attendance->photo_out        = $log->photo_url; // Copy photo from fingerspot log
+                $attendance->photo_out        = $log->photo_url;
                 $attendance->overtime_minutes = $overtimeMinutes;
                 if ($request->notes) {
                     $attendance->notes = ($attendance->notes ? $attendance->notes . ' | ' : '') . $request->notes;
                 }
                 $attendance->save();
 
-                // Mark fingerspot log as processed
-                $log->update(['process_status' => 'success', 'process_message' => 'Processed via bulk checkout']);
+                // Collect log IDs for batch update
+                $logIdsToUpdate[] = $log->id;
                 
                 $updated++;
+            }
+
+            // OPTIMIZATION: Batch update fingerspot logs
+            if (!empty($logIdsToUpdate)) {
+                \App\Models\FingerspotLog::whereIn('id', $logIdsToUpdate)
+                    ->update([
+                        'process_status' => 'success',
+                        'process_message' => 'Processed via bulk checkout'
+                    ]);
             }
 
             if ($updated === 0) {

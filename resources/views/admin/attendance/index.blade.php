@@ -1468,7 +1468,7 @@
 
                 Swal.fire({
                     title: 'Proses dari Fingerspot?',
-                    html: `Memproses jam pulang dari <strong>fingerspot logs yang di-skip</strong> pada tanggal <strong>${date}</strong>.`,
+                    html: `Memproses jam pulang dari <strong>fingerspot logs yang di-skip</strong> pada tanggal <strong>${date}</strong>.<br><small class="text-muted">Proses ini mungkin memakan waktu beberapa saat...</small>`,
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonText: 'Ya, Proses',
@@ -1477,8 +1477,16 @@
                 }).then((result) => {
                     if (!result.isConfirmed) return;
 
-                    $('#saveBulkCheckout').prop('disabled', true)
-                        .html('<span class="spinner-border spinner-border-sm me-1"></span> Memproses...');
+                    // Show processing indicator
+                    Swal.fire({
+                        title: 'Memproses...',
+                        html: 'Sedang memproses data dari fingerspot. Mohon tunggu...',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
 
                     $.ajax({
                         url: '/api/admin/attendance/bulk-checkout',
@@ -1486,6 +1494,7 @@
                         contentType: 'application/json',
                         headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                         data: JSON.stringify({ date, notes: notes || null }),
+                        timeout: 300000, // 5 minutes timeout (increased from default 30s)
                         success: function(res) {
                             bootstrap.Modal.getInstance(document.getElementById('bulkCheckoutModal')).hide();
                             Swal.fire({
@@ -1496,11 +1505,22 @@
                             }).then(() => window.location.reload());
                         },
                         error: function(xhr) {
-                            Swal.fire('Gagal', xhr.responseJSON?.message || 'Terjadi kesalahan', 'error');
-                        },
-                        complete: function() {
-                            $('#saveBulkCheckout').prop('disabled', false)
-                                .html('<i class="bx bx-refresh me-1"></i> Proses dari Fingerspot');
+                            let errorMsg = 'Terjadi kesalahan';
+                            
+                            if (xhr.status === 408 || xhr.statusText === 'timeout') {
+                                errorMsg = 'Request timeout. Proses memakan waktu terlalu lama. Silakan coba lagi atau hubungi administrator.';
+                            } else if (xhr.status === 504) {
+                                errorMsg = 'Gateway timeout. Server membutuhkan waktu lebih lama dari biasanya. Silakan refresh halaman untuk melihat hasil.';
+                            } else if (xhr.responseJSON?.message) {
+                                errorMsg = xhr.responseJSON.message;
+                            }
+                            
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal!',
+                                html: errorMsg,
+                                confirmButtonText: 'OK'
+                            });
                         }
                     });
                 });
