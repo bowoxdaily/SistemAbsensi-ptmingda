@@ -317,7 +317,8 @@ class KaryawanController extends Controller
                 'departments' => Department::orderBy('name')->get(),
                 'positions' => Position::orderBy('name')->get(),
                 'work_schedules' => WorkSchedule::where('is_active', true)->orderBy('name')->get(),
-                'sub_departments' => \App\Models\SubDepartment::where('is_active', true)->with('department')->orderBy('name')->get(),
+                // Return all sub departments (filtering will be done on frontend)
+                'sub_departments' => \App\Models\SubDepartment::with('department')->orderBy('name')->get(),
                 'supervisors' => Karyawans::where('status', 'active')
                     ->orderBy('name')
                     ->get(['id', 'name', 'employee_code'])

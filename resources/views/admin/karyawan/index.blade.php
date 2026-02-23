@@ -907,14 +907,18 @@
 
             // Initialize Select2 on modal shown
             $('#karyawanModal').on('shown.bs.modal', function() {
-                // Initialize department Select2 if not already done
-                if (!$('#department_id').hasClass('select2-hidden-accessible')) {
-                    populateDepartments();
-                }
-                // Initialize sub_department Select2 if not already done
-                if (!$('#sub_department_id').hasClass('select2-hidden-accessible')) {
-                    populateSubDepartments();
-                }
+                // Wait a bit to ensure masterData is loaded
+                setTimeout(function() {
+                    // Initialize department Select2 if not already done
+                    if (!$('#department_id').hasClass('select2-hidden-accessible')) {
+                        populateDepartments();
+                    }
+                    // Initialize sub_department Select2 if not already done
+                    if (!$('#sub_department_id').hasClass('select2-hidden-accessible')) {
+                        const deptId = $('#department_id').val();
+                        populateSubDepartments(deptId || null);
+                    }
+                }, 100);
             });
 
             // Destroy Select2 when modal is hidden to prevent memory leaks
@@ -964,11 +968,22 @@
                 method: 'GET',
                 success: function(response) {
                     masterData = response.data;
+                    console.log('Master Data Loaded:', {
+                        departments: masterData.departments?.length || 0,
+                        sub_departments: masterData.sub_departments?.length || 0,
+                        positions: masterData.positions?.length || 0,
+                        work_schedules: masterData.work_schedules?.length || 0
+                    });
+                    console.log('Sub Departments Detail:', masterData.sub_departments);
                     populateDepartments();
                     populatePositions();
                     populateWorkSchedules();
                     populateFilterDepartments();
                     populateFilterPositions();
+                },
+                error: function(xhr) {
+                    console.error('Failed to load master data:', xhr);
+                    showAlert('Gagal memuat data master', 'danger');
                 }
             });
         }
@@ -1044,24 +1059,43 @@
             // Clear existing options except first
             select.find('option:not(:first)').remove();
 
-            // Filter and add options from masterData
-            if (departmentId && masterData.sub_departments) {
-                const filtered = masterData.sub_departments.filter(sd =>
-                    sd.department_id == departmentId && sd.is_active
-                );
-
-                filtered.forEach(subDept => {
-                    const option = `<option value="${subDept.id}">${subDept.name}</option>`;
-                    select.append(option);
+            // Check if masterData is ready
+            if (!masterData || !masterData.sub_departments) {
+                console.warn('Master data not ready yet');
+                // Initialize empty Select2 and return
+                select.select2({
+                    dropdownParent: $('#karyawanModal'),
+                    placeholder: 'Pilih Sub Departemen...',
+                    allowClear: true,
+                    width: '100%'
                 });
-            } else if (!departmentId && masterData.sub_departments) {
-                // If no department selected, show all active sub departments
-                const allActive = masterData.sub_departments.filter(sd => sd.is_active);
-                allActive.forEach(subDept => {
-                    const option = `<option value="${subDept.id}">${subDept.name}</option>`;
-                    select.append(option);
-                });
+                return;
             }
+
+            // Filter and add options from masterData
+            let subDepartmentsToShow = [];
+            
+            if (departmentId) {
+                // Filter by department if specified (SHOW ALL, including inactive)
+                subDepartmentsToShow = masterData.sub_departments.filter(sd =>
+                    sd.department_id == departmentId
+                );
+                console.log(`Sub Departments for Dept ${departmentId}:`, subDepartmentsToShow.length);
+            } else {
+                // Show ALL sub departments (no filter, including inactive)
+                subDepartmentsToShow = masterData.sub_departments;
+                console.log('ALL Sub Departments (including inactive):', subDepartmentsToShow.length);
+            }
+
+            // Add options to select
+            subDepartmentsToShow.forEach(subDept => {
+                // Show inactive items with indicator
+                const label = subDept.is_active ? subDept.name : `${subDept.name} (Tidak Aktif)`;
+                const option = `<option value="${subDept.id}">${label}</option>`;
+                select.append(option);
+            });
+
+            console.log('Final Sub Departments count in dropdown:', subDepartmentsToShow.length);
 
             // Initialize Select2 for better UX
             select.select2({
@@ -1408,9 +1442,11 @@
             }
             subDeptSelect.find('option:not(:first)').remove();
             
-            // Initialize Select2 for create mode
-            populateDepartments();
-            populateSubDepartments();
+            // Wait for masterData to be ready before initializing
+            setTimeout(function() {
+                populateDepartments();
+                populateSubDepartments(null); // null = show all sub departments
+            }, 50);
         }
 
         function toggleResignDate() {
@@ -1452,10 +1488,9 @@
                     // Populate and set department with Select2
                     populateDepartments(k.department_id);
 
-                    // Populate sub departments based on selected department
-                    if (k.department_id) {
-                        populateSubDepartments(k.department_id, k.sub_department_id);
-                    }
+                    // ALWAYS populate sub departments (show all if no department selected)
+                    // This ensures all sub departments are loaded in edit mode
+                    populateSubDepartments(k.department_id || null, k.sub_department_id);
 
                     $('#position_id').val(k.position_id);
                     // Set dropdown value for Pendidikan Terakhir
