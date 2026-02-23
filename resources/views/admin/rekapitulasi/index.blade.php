@@ -91,8 +91,16 @@
             </div>
             <div class="card-body">
                 <!-- Filters -->
-                <div class="row mb-4">
+                <div class="row mb-3">
                     <div class="col-md-2">
+                        <label class="form-label">Periode</label>
+                        <select class="form-select" id="filter-period-type">
+                            <option value="monthly" selected>Bulanan</option>
+                            <option value="quarterly">Per 3 Bulan (Kuartal)</option>
+                            <option value="range">Range Bulan</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2" id="filter-month-container">
                         <label class="form-label">Bulan</label>
                         <select class="form-select" id="filter-month">
                             @for ($m = 1; $m <= 12; $m++)
@@ -102,7 +110,59 @@
                             @endfor
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-2" id="filter-quarter-container" style="display: none;">
+                        <label class="form-label">Kuartal</label>
+                        <select class="form-select" id="filter-quarter">
+                            @php
+                                $currentQuarter = ceil(now()->month / 3);
+                            @endphp
+                            <option value="1" {{ $currentQuarter == 1 ? 'selected' : '' }}>Q1 (Jan - Mar)</option>
+                            <option value="2" {{ $currentQuarter == 2 ? 'selected' : '' }}>Q2 (Apr - Jun)</option>
+                            <option value="3" {{ $currentQuarter == 3 ? 'selected' : '' }}>Q3 (Jul - Sep)</option>
+                            <option value="4" {{ $currentQuarter == 4 ? 'selected' : '' }}>Q4 (Okt - Des)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2" id="filter-range-from-month-container" style="display: none;">
+                        <label class="form-label">Dari Bulan</label>
+                        <select class="form-select" id="filter-range-from-month">
+                            @for ($m = 1; $m <= 12; $m++)
+                                <option value="{{ $m }}" {{ $m == 12 ? 'selected' : '' }}>
+                                    {{ \Carbon\Carbon::create()->month($m)->translatedFormat('F') }}
+                                </option>
+                            @endfor
+                        </select>
+                    </div>
+                    <div class="col-md-2" id="filter-range-from-year-container" style="display: none;">
+                        <label class="form-label">Dari Tahun</label>
+                        <select class="form-select" id="filter-range-from-year">
+                            @for ($y = now()->year; $y >= now()->year - 3; $y--)
+                                <option value="{{ $y }}" {{ $y == now()->year - 1 ? 'selected' : '' }}>
+                                    {{ $y }}
+                                </option>
+                            @endfor
+                        </select>
+                    </div>
+                    <div class="col-md-2" id="filter-range-to-month-container" style="display: none;">
+                        <label class="form-label">Sampai Bulan</label>
+                        <select class="form-select" id="filter-range-to-month">
+                            @for ($m = 1; $m <= 12; $m++)
+                                <option value="{{ $m }}" {{ $m == 3 ? 'selected' : '' }}>
+                                    {{ \Carbon\Carbon::create()->month($m)->translatedFormat('F') }}
+                                </option>
+                            @endfor
+                        </select>
+                    </div>
+                    <div class="col-md-2" id="filter-range-to-year-container" style="display: none;">
+                        <label class="form-label">Sampai Tahun</label>
+                        <select class="form-select" id="filter-range-to-year">
+                            @for ($y = now()->year; $y >= now()->year - 3; $y--)
+                                <option value="{{ $y }}" {{ $y == now()->year ? 'selected' : '' }}>
+                                    {{ $y }}
+                                </option>
+                            @endfor
+                        </select>
+                    </div>
+                    <div class="col-md-2" id="filter-year-container">
                         <label class="form-label">Tahun</label>
                         <select class="form-select" id="filter-year">
                             @for ($y = now()->year; $y >= now()->year - 3; $y--)
@@ -118,17 +178,27 @@
                             <option value="">Semua Department</option>
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <label class="form-label">Jabatan</label>
                         <select class="form-select" id="filter-position">
                             <option value="">Semua Jabatan</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                </div>
+                <div class="row mb-4">
+                    <div class="col-md-4">
                         <label class="form-label">Karyawan</label>
                         <select class="form-select" id="filter-employee">
                             <option value="">Semua Karyawan</option>
                         </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Tanggal Bergabung (Dari)</label>
+                        <input type="date" class="form-control" id="filter-join-from" placeholder="Dari tanggal...">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Tanggal Bergabung (Sampai)</label>
+                        <input type="date" class="form-control" id="filter-join-to" placeholder="Sampai tanggal...">
                     </div>
                 </div>
 
@@ -180,9 +250,46 @@
             // Load initial data
             loadData();
 
+            // Period type change handler (toggle between month, quarter, and range)
+            $('#filter-period-type').on('change', function() {
+                const periodType = $(this).val();
+                // Hide all period-specific filters first
+                $('#filter-month-container, #filter-quarter-container, #filter-year-container').hide();
+                $('#filter-range-from-month-container, #filter-range-from-year-container').hide();
+                $('#filter-range-to-month-container, #filter-range-to-year-container').hide();
+                
+                // Show appropriate filters based on selection
+                if (periodType === 'quarterly') {
+                    $('#filter-quarter-container').show();
+                    $('#filter-year-container').show();
+                } else if (periodType === 'range') {
+                    $('#filter-range-from-month-container').show();
+                    $('#filter-range-from-year-container').show();
+                    $('#filter-range-to-month-container').show();
+                    $('#filter-range-to-year-container').show();
+                } else {
+                    // monthly
+                    $('#filter-month-container').show();
+                    $('#filter-year-container').show();
+                }
+                loadData();
+            });
+
             // Filter change handlers
-            $('#filter-month, #filter-year, #filter-department, #filter-position').on('change', function() {
+            $('#filter-month, #filter-quarter, #filter-year, #filter-department, #filter-position').on('change', function() {
                 console.log('Filter changed:', $(this).attr('id'), '=', $(this).val());
+                loadData();
+            });
+
+            // Range filters change handlers
+            $('#filter-range-from-month, #filter-range-from-year, #filter-range-to-month, #filter-range-to-year').on('change', function() {
+                console.log('Range filter changed:', $(this).attr('id'), '=', $(this).val());
+                loadData();
+            });
+
+            // Join date filter change handlers
+            $('#filter-join-from, #filter-join-to').on('change', function() {
+                console.log('Join date filter changed:', $(this).attr('id'), '=', $(this).val());
                 loadData();
             });
 
@@ -249,11 +356,19 @@
             // Load rekapitulasi data
             function loadData() {
                 const filters = {
+                    period_type: $('#filter-period-type').val(),
                     month: $('#filter-month').val(),
+                    quarter: $('#filter-quarter').val(),
                     year: $('#filter-year').val(),
+                    range_from_month: $('#filter-range-from-month').val(),
+                    range_from_year: $('#filter-range-from-year').val(),
+                    range_to_month: $('#filter-range-to-month').val(),
+                    range_to_year: $('#filter-range-to-year').val(),
                     department_id: $('#filter-department').val(),
                     position_id: $('#filter-position').val(),
                     employee_id: $('#filter-employee').val(),
+                    join_date_from: $('#filter-join-from').val(),
+                    join_date_to: $('#filter-join-to').val(),
                 };
 
                 console.log('Loading data with filters:', filters);
@@ -357,11 +472,19 @@
             // Export data
             function exportData(format) {
                 const filters = {
+                    period_type: $('#filter-period-type').val(),
                     month: $('#filter-month').val(),
+                    quarter: $('#filter-quarter').val(),
                     year: $('#filter-year').val(),
+                    range_from_month: $('#filter-range-from-month').val(),
+                    range_from_year: $('#filter-range-from-year').val(),
+                    range_to_month: $('#filter-range-to-month').val(),
+                    range_to_year: $('#filter-range-to-year').val(),
                     department_id: $('#filter-department').val(),
                     position_id: $('#filter-position').val(),
                     employee_id: $('#filter-employee').val(),
+                    join_date_from: $('#filter-join-from').val(),
+                    join_date_to: $('#filter-join-to').val(),
                 };
 
                 const queryString = $.param(filters);

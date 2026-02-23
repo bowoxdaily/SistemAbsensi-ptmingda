@@ -17,47 +17,76 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 
 class RekapitulasiExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithTitle
 {
-    protected $month;
-    protected $year;
-    protected $departmentId;
-    protected $positionId;
-    protected $employeeId;
+    protected $filters;
     protected $rowNumber = 0;
+    protected $startDate;
+    protected $endDate;
+    protected $periodName;
 
-    public function __construct($month, $year, $departmentId = null, $positionId = null, $employeeId = null)
+    public function __construct($filters = [])
     {
-        $this->month = $month;
-        $this->year = $year;
-        $this->departmentId = $departmentId;
-        $this->positionId = $positionId;
-        $this->employeeId = $employeeId;
+        $this->filters = array_merge([
+            'period_type' => 'monthly',
+            'month' => now()->month,
+            'quarter' => now()->quarter,
+            'year' => now()->year,
+            'range_from_month' => null,
+            'range_from_year' => null,
+            'range_to_month' => null,
+            'range_to_year' => null,
+            'department_id' => null,
+            'position_id' => null,
+            'employee_id' => null,
+            'join_date_from' => null,
+            'join_date_to' => null,
+        ], $filters);
+
+        // Calculate date range based on period type
+        if ($this->filters['period_type'] === 'quarterly') {
+            $quarterStartMonth = ($this->filters['quarter'] - 1) * 3 + 1;
+            $this->startDate = Carbon::createFromDate($this->filters['year'], $quarterStartMonth, 1)->startOfMonth();
+            $this->endDate = $this->startDate->copy()->addMonths(2)->endOfMonth();
+            $this->periodName = 'Kuartal ' . $this->filters['quarter'] . ' ' . $this->filters['year'] . ' (' . 
+                $this->startDate->translatedFormat('F') . ' - ' . 
+                $this->endDate->translatedFormat('F Y') . ')';
+        } elseif ($this->filters['period_type'] === 'range') {
+            $this->startDate = Carbon::createFromDate($this->filters['range_from_year'], $this->filters['range_from_month'], 1)->startOfMonth();
+            $this->endDate = Carbon::createFromDate($this->filters['range_to_year'], $this->filters['range_to_month'], 1)->endOfMonth();
+            $this->periodName = $this->startDate->translatedFormat('F Y') . ' - ' . $this->endDate->translatedFormat('F Y');
+        } else {
+            $this->startDate = Carbon::createFromDate($this->filters['year'], $this->filters['month'], 1);
+            $this->endDate = $this->startDate->copy()->endOfMonth();
+            $this->periodName = $this->startDate->translatedFormat('F Y');
+        }
     }
 
     public function collection()
     {
         $employees = Karyawans::where('status', 'active')
             ->with(['department', 'position', 'workSchedule'])
-            ->when($this->employeeId, function($q) {
-                return $q->where('id', $this->employeeId);
+            ->when($this->filters['employee_id'], function($q) {
+                return $q->where('id', $this->filters['employee_id']);
             })
-            ->when($this->departmentId, function($q) {
-                return $q->where('department_id', $this->departmentId);
+            ->when($this->filters['department_id'], function($q) {
+                return $q->where('department_id', $this->filters['department_id']);
             })
-            ->when($this->positionId, function($q) {
-                return $q->where('position_id', $this->positionId);
+            ->when($this->filters['position_id'], function($q) {
+                return $q->where('position_id', $this->filters['position_id']);
+            })
+            ->when($this->filters['join_date_from'], function($q) {
+                return $q->whereDate('join_date', '>=', $this->filters['join_date_from']);
+            })
+            ->when($this->filters['join_date_to'], function($q) {
+                return $q->whereDate('join_date', '<=', $this->filters['join_date_to']);
             })
             ->orderBy('employee_code')
             ->get();
-
-        $startDate = Carbon::createFromDate($this->year, $this->month, 1);
-        $endDate = $startDate->copy()->endOfMonth();
         
         $rekapitulasi = collect();
         
         foreach ($employees as $employee) {
             $attendances = Attendance::where('employee_id', $employee->id)
-                ->whereYear('attendance_date', $this->year)
-                ->whereMonth('attendance_date', $this->month)
+                ->whereBetween('attendance_date', [$this->startDate->format('Y-m-d'), $this->endDate->format('Y-m-d')])
                 ->get();
 
             $stats = [
@@ -69,7 +98,7 @@ class RekapitulasiExport implements FromCollection, WithHeadings, WithMapping, W
                 'alpha' => $attendances->where('status', 'alpha')->count(),
             ];
 
-            $workingDays = $this->calculateWorkingDays($employee, $startDate, $endDate);
+            $workingDays = $this->calculateWorkingDays($employee, $this->startDate, $this->endDate);
             $totalPresent = $stats['hadir'] + $stats['terlambat'];
             $percentage = $workingDays > 0 ? round(($totalPresent / $workingDays) * 100, 1) : 0;
 
@@ -97,7 +126,7 @@ class RekapitulasiExport implements FromCollection, WithHeadings, WithMapping, W
     {
         return [
             ['REKAPITULASI ABSENSI KARYAWAN'],
-            ['Periode: ' . Carbon::createFromDate($this->year, $this->month, 1)->translatedFormat('F Y')],
+            ['Periode: ' . $this->periodName],
             [],
             [
                 'No',
@@ -179,7 +208,12 @@ class RekapitulasiExport implements FromCollection, WithHeadings, WithMapping, W
 
     public function title(): string
     {
-        return 'Rekapitulasi ' . Carbon::createFromDate($this->year, $this->month, 1)->format('M Y');
+        if ($this->filters['period_type'] === 'quarterly') {
+            return 'Rekap Q' . $this->filters['quarter'] . ' ' . $this->filters['year'];
+        } elseif ($this->filters['period_type'] === 'range') {
+            return 'Rekap ' . $this->startDate->format('M Y') . ' - ' . $this->endDate->format('M Y');
+        }
+        return 'Rekapitulasi ' . $this->startDate->format('M Y');
     }
 
     private function calculateWorkingDays($employee, $startDate, $endDate)

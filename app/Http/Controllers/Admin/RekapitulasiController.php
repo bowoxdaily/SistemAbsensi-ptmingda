@@ -9,6 +9,8 @@ use App\Models\Department;
 use App\Models\Position;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
 
 class RekapitulasiController extends Controller
@@ -26,18 +28,34 @@ class RekapitulasiController extends Controller
      */
     public function getData(Request $request)
     {
+        $periodType = $request->get('period_type', 'monthly'); // 'monthly', 'quarterly', or 'range'
         $month = $request->get('month', now()->month);
+        $quarter = $request->get('quarter', now()->quarter);
         $year = $request->get('year', now()->year);
+        $rangeFromMonth = $request->get('range_from_month');
+        $rangeFromYear = $request->get('range_from_year');
+        $rangeToMonth = $request->get('range_to_month');
+        $rangeToYear = $request->get('range_to_year');
         $departmentId = $request->get('department_id');
         $positionId = $request->get('position_id');
         $employeeId = $request->get('employee_id');
+        $joinDateFrom = $request->get('join_date_from');
+        $joinDateTo = $request->get('join_date_to');
 
-        \Log::info('RekapitulasiController::getData called', [
+        Log::info('RekapitulasiController::getData called', [
+            'period_type' => $periodType,
             'month' => $month,
+            'quarter' => $quarter,
             'year' => $year,
+            'range_from_month' => $rangeFromMonth,
+            'range_from_year' => $rangeFromYear,
+            'range_to_month' => $rangeToMonth,
+            'range_to_year' => $rangeToYear,
             'department_id' => $departmentId,
             'position_id' => $positionId,
-            'employee_id' => $employeeId
+            'employee_id' => $employeeId,
+            'join_date_from' => $joinDateFrom,
+            'join_date_to' => $joinDateTo,
         ]);
 
         // Get all active employees with filters
@@ -52,12 +70,30 @@ class RekapitulasiController extends Controller
             ->when($positionId, function($q) use ($positionId) {
                 return $q->where('position_id', $positionId);
             })
+            ->when($joinDateFrom, function($q) use ($joinDateFrom) {
+                return $q->whereDate('join_date', '>=', $joinDateFrom);
+            })
+            ->when($joinDateTo, function($q) use ($joinDateTo) {
+                return $q->whereDate('join_date', '<=', $joinDateTo);
+            })
             ->orderBy('employee_code')
             ->get();
 
-        // Calculate total working days in the month
-        $startDate = Carbon::createFromDate($year, $month, 1);
-        $endDate = $startDate->copy()->endOfMonth();
+        // Calculate date range based on period type
+        if ($periodType === 'quarterly') {
+            // Calculate quarter start and end dates
+            $quarterStartMonth = ($quarter - 1) * 3 + 1;
+            $startDate = Carbon::createFromDate($year, $quarterStartMonth, 1)->startOfMonth();
+            $endDate = $startDate->copy()->addMonths(2)->endOfMonth();
+        } elseif ($periodType === 'range') {
+            // Custom month range (can span across years)
+            $startDate = Carbon::createFromDate($rangeFromYear, $rangeFromMonth, 1)->startOfMonth();
+            $endDate = Carbon::createFromDate($rangeToYear, $rangeToMonth, 1)->endOfMonth();
+        } else {
+            // Monthly view
+            $startDate = Carbon::createFromDate($year, $month, 1);
+            $endDate = $startDate->copy()->endOfMonth();
+        }
         
         $rekapitulasi = [];
         $totalStats = [
@@ -70,10 +106,9 @@ class RekapitulasiController extends Controller
         ];
 
         foreach ($employees as $employee) {
-            // Count attendance by status
+            // Count attendance by status within the date range
             $attendances = Attendance::where('employee_id', $employee->id)
-                ->whereYear('attendance_date', $year)
-                ->whereMonth('attendance_date', $month)
+                ->whereBetween('attendance_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
                 ->get();
 
             $stats = [
@@ -130,14 +165,29 @@ class RekapitulasiController extends Controller
                 : 0,
         ];
 
+        // Format period name
+        if ($periodType === 'quarterly') {
+            $periodName = 'Kuartal ' . $quarter . ' ' . $year . ' (' . 
+                $startDate->translatedFormat('F') . ' - ' . 
+                $endDate->translatedFormat('F Y') . ')';
+        } elseif ($periodType === 'range') {
+            $periodName = $startDate->translatedFormat('F Y') . ' - ' . $endDate->translatedFormat('F Y');
+        } else {
+            $periodName = $startDate->translatedFormat('F Y');
+        }
+
         return response()->json([
             'success' => true,
             'data' => $rekapitulasi,
             'summary' => $summary,
             'period' => [
+                'type' => $periodType,
                 'month' => $month,
+                'quarter' => $quarter,
                 'year' => $year,
-                'month_name' => Carbon::createFromDate($year, $month, 1)->translatedFormat('F Y'),
+                'period_name' => $periodName,
+                'start_date' => $startDate->format('Y-m-d'),
+                'end_date' => $endDate->format('Y-m-d'),
             ]
         ]);
     }
@@ -150,7 +200,7 @@ class RekapitulasiController extends Controller
         if (!$employee->workSchedule) {
             // Default to weekdays if no schedule
             $weekdays = $this->countWeekdays($startDate, $endDate);
-            \Log::info("Employee {$employee->employee_code} has no work schedule, using weekdays: {$weekdays}");
+            Log::info("Employee {$employee->employee_code} has no work schedule, using weekdays: {$weekdays}");
             return $weekdays;
         }
 
@@ -169,7 +219,7 @@ class RekapitulasiController extends Controller
             $current->addDay();
         }
 
-        \Log::info("Employee {$employee->employee_code} calculated working days: {$workingDays}", [
+        Log::info("Employee {$employee->employee_code} calculated working days: {$workingDays}", [
             'schedule_days' => [
                 'monday' => $schedule->work_monday ?? null,
                 'tuesday' => $schedule->work_tuesday ?? null,
@@ -183,7 +233,7 @@ class RekapitulasiController extends Controller
 
         // Fallback if workSchedule exists but has no working days configured
         if ($workingDays === 0) {
-            \Log::warning("Work schedule exists for {$employee->employee_code} but no working days configured, falling back to weekdays");
+            Log::warning("Work schedule exists for {$employee->employee_code} but no working days configured, falling back to weekdays");
             return $this->countWeekdays($startDate, $endDate);
         }
 
@@ -232,17 +282,48 @@ class RekapitulasiController extends Controller
      */
     public function exportExcel(Request $request)
     {
+        $periodType = $request->get('period_type', 'monthly');
         $month = $request->get('month', now()->month);
+        $quarter = $request->get('quarter', now()->quarter);
         $year = $request->get('year', now()->year);
+        $rangeFromMonth = $request->get('range_from_month');
+        $rangeFromYear = $request->get('range_from_year');
+        $rangeToMonth = $request->get('range_to_month');
+        $rangeToYear = $request->get('range_to_year');
         $departmentId = $request->get('department_id');
         $positionId = $request->get('position_id');
         $employeeId = $request->get('employee_id');
+        $joinDateFrom = $request->get('join_date_from');
+        $joinDateTo = $request->get('join_date_to');
 
-        $monthName = Carbon::createFromDate($year, $month, 1)->translatedFormat('F Y');
-        $filename = 'Rekapitulasi_Absensi_' . str_replace(' ', '_', $monthName) . '.xlsx';
+        if ($periodType === 'quarterly') {
+            $periodName = 'Q' . $quarter . '_' . $year;
+        } elseif ($periodType === 'range') {
+            $startDate = Carbon::createFromDate($rangeFromYear, $rangeFromMonth, 1);
+            $endDate = Carbon::createFromDate($rangeToYear, $rangeToMonth, 1);
+            $periodName = $startDate->format('M_Y') . '_to_' . $endDate->format('M_Y');
+        } else {
+            $periodName = Carbon::createFromDate($year, $month, 1)->translatedFormat('F_Y');
+        }
+        
+        $filename = 'Rekapitulasi_Absensi_' . $periodName . '.xlsx';
 
-        return \Excel::download(
-            new \App\Exports\RekapitulasiExport($month, $year, $departmentId, $positionId, $employeeId),
+        return Excel::download(
+            new \App\Exports\RekapitulasiExport([
+                'period_type' => $periodType,
+                'month' => $month,
+                'quarter' => $quarter,
+                'year' => $year,
+                'range_from_month' => $rangeFromMonth,
+                'range_from_year' => $rangeFromYear,
+                'range_to_month' => $rangeToMonth,
+                'range_to_year' => $rangeToYear,
+                'department_id' => $departmentId,
+                'position_id' => $positionId,
+                'employee_id' => $employeeId,
+                'join_date_from' => $joinDateFrom,
+                'join_date_to' => $joinDateTo,
+            ]),
             $filename
         );
     }
@@ -253,11 +334,19 @@ class RekapitulasiController extends Controller
      */
     public function exportPdf(Request $request)
     {
+        $periodType = $request->get('period_type', 'monthly');
         $month = $request->get('month', now()->month);
+        $quarter = $request->get('quarter', now()->quarter);
         $year = $request->get('year', now()->year);
+        $rangeFromMonth = $request->get('range_from_month');
+        $rangeFromYear = $request->get('range_from_year');
+        $rangeToMonth = $request->get('range_to_month');
+        $rangeToYear = $request->get('range_to_year');
         $departmentId = $request->get('department_id');
         $positionId = $request->get('position_id');
         $employeeId = $request->get('employee_id');
+        $joinDateFrom = $request->get('join_date_from');
+        $joinDateTo = $request->get('join_date_to');
 
         // Get data
         $employees = Karyawans::where('status', 'active')
@@ -271,17 +360,32 @@ class RekapitulasiController extends Controller
             ->when($positionId, function($q) use ($positionId) {
                 return $q->where('position_id', $positionId);
             })
+            ->when($joinDateFrom, function($q) use ($joinDateFrom) {
+                return $q->whereDate('join_date', '>=', $joinDateFrom);
+            })
+            ->when($joinDateTo, function($q) use ($joinDateTo) {
+                return $q->whereDate('join_date', '<=', $joinDateTo);
+            })
             ->orderBy('employee_code')
             ->get();
 
-        $startDate = Carbon::createFromDate($year, $month, 1);
-        $endDate = $startDate->copy()->endOfMonth();
+        // Calculate date range based on period type
+        if ($periodType === 'quarterly') {
+            $quarterStartMonth = ($quarter - 1) * 3 + 1;
+            $startDate = Carbon::createFromDate($year, $quarterStartMonth, 1)->startOfMonth();
+            $endDate = $startDate->copy()->addMonths(2)->endOfMonth();
+        } elseif ($periodType === 'range') {
+            $startDate = Carbon::createFromDate($rangeFromYear, $rangeFromMonth, 1)->startOfMonth();
+            $endDate = Carbon::createFromDate($rangeToYear, $rangeToMonth, 1)->endOfMonth();
+        } else {
+            $startDate = Carbon::createFromDate($year, $month, 1);
+            $endDate = $startDate->copy()->endOfMonth();
+        }
         
         $rekapitulasi = [];
         foreach ($employees as $employee) {
             $attendances = Attendance::where('employee_id', $employee->id)
-                ->whereYear('attendance_date', $year)
-                ->whereMonth('attendance_date', $month)
+                ->whereBetween('attendance_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
                 ->get();
 
             $stats = [
@@ -314,9 +418,20 @@ class RekapitulasiController extends Controller
             ];
         }
 
+        // Format period name
+        if ($periodType === 'quarterly') {
+            $periodName = 'Kuartal ' . $quarter . ' ' . $year . ' (' . 
+                $startDate->translatedFormat('F') . ' - ' . 
+                $endDate->translatedFormat('F Y') . ')';
+        } elseif ($periodType === 'range') {
+            $periodName = $startDate->translatedFormat('F Y') . ' - ' . $endDate->translatedFormat('F Y');
+        } else {
+            $periodName = $startDate->translatedFormat('F Y');
+        }
+
         $data = [
             'rekapitulasi' => $rekapitulasi,
-            'period' => Carbon::createFromDate($year, $month, 1)->translatedFormat('F Y'),
+            'period' => $periodName,
             'generated_at' => now()->translatedFormat('d F Y H:i'),
         ];
 
