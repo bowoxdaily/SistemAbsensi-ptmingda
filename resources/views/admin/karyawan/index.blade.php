@@ -34,6 +34,31 @@
                 max-height: 75vh !important;
             }
         }
+
+        /* Select2 dalam Modal */
+        .select2-container {
+            z-index: 9999;
+        }
+
+        .select2-dropdown {
+            z-index: 10000;
+        }
+
+        /* Select2 di dalam modal Bootstrap */
+        .modal .select2-container--default .select2-selection--single {
+            height: calc(1.5em + 0.5rem + 2px);
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .modal .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: calc(1.5em + 0.5rem);
+            padding-left: 0;
+        }
+
+        .modal .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: calc(1.5em + 0.5rem);
+        }
     </style>
 @endsection
 
@@ -880,6 +905,31 @@
             loadMasterData();
             loadKaryawans();
 
+            // Initialize Select2 on modal shown
+            $('#karyawanModal').on('shown.bs.modal', function() {
+                // Initialize department Select2 if not already done
+                if (!$('#department_id').hasClass('select2-hidden-accessible')) {
+                    populateDepartments();
+                }
+                // Initialize sub_department Select2 if not already done
+                if (!$('#sub_department_id').hasClass('select2-hidden-accessible')) {
+                    populateSubDepartments();
+                }
+            });
+
+            // Destroy Select2 when modal is hidden to prevent memory leaks
+            $('#karyawanModal').on('hidden.bs.modal', function() {
+                const deptSelect = $('#department_id');
+                const subDeptSelect = $('#sub_department_id');
+                
+                if (deptSelect.hasClass('select2-hidden-accessible')) {
+                    deptSelect.select2('destroy');
+                }
+                if (subDeptSelect.hasClass('select2-hidden-accessible')) {
+                    subDeptSelect.select2('destroy');
+                }
+            });
+
             // Auto-scroll to top when switching tabs (mobile friendly)
             $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function(e) {
                 const modalBody = $('#karyawanModal .modal-body');
@@ -923,12 +973,32 @@
             });
         }
 
-        function populateDepartments() {
+        function populateDepartments(selectedDeptId = null) {
             const select = $('#department_id');
+            
+            // Destroy Select2 if already initialized
+            if (select.hasClass('select2-hidden-accessible')) {
+                select.select2('destroy');
+            }
+            
+            // Clear and populate options
             select.find('option:not(:first)').remove();
             masterData.departments.forEach(dept => {
                 select.append(`<option value="${dept.id}">${dept.name}</option>`);
             });
+            
+            // Initialize Select2
+            select.select2({
+                dropdownParent: $('#karyawanModal'),
+                placeholder: 'Pilih Departemen...',
+                allowClear: true,
+                width: '100%'
+            });
+            
+            // Set selected value if provided
+            if (selectedDeptId) {
+                select.val(selectedDeptId).trigger('change');
+            }
         }
 
         function populatePositions() {
@@ -965,8 +1035,16 @@
 
         function populateSubDepartments(departmentId = null, selectedSubDeptId = null) {
             const select = $('#sub_department_id');
+            
+            // Destroy Select2 if already initialized
+            if (select.hasClass('select2-hidden-accessible')) {
+                select.select2('destroy');
+            }
+
+            // Clear existing options except first
             select.find('option:not(:first)').remove();
 
+            // Filter and add options from masterData
             if (departmentId && masterData.sub_departments) {
                 const filtered = masterData.sub_departments.filter(sd =>
                     sd.department_id == departmentId && sd.is_active
@@ -976,20 +1054,45 @@
                     const option = `<option value="${subDept.id}">${subDept.name}</option>`;
                     select.append(option);
                 });
+            } else if (!departmentId && masterData.sub_departments) {
+                // If no department selected, show all active sub departments
+                const allActive = masterData.sub_departments.filter(sd => sd.is_active);
+                allActive.forEach(subDept => {
+                    const option = `<option value="${subDept.id}">${subDept.name}</option>`;
+                    select.append(option);
+                });
+            }
 
-                if (selectedSubDeptId) {
-                    select.val(selectedSubDeptId);
-                }
+            // Initialize Select2 for better UX
+            select.select2({
+                dropdownParent: $('#karyawanModal'),
+                placeholder: 'Pilih Sub Departemen...',
+                allowClear: true,
+                width: '100%'
+            });
+
+            // Set selected value if provided
+            if (selectedSubDeptId) {
+                select.val(selectedSubDeptId).trigger('change');
             }
         }
 
-        // Cascade: When department changes, load filtered sub departments
+        // Cascade: When department changes, reload sub departments with filter
         $(document).on('change', '#department_id', function() {
             const departmentId = $(this).val();
-            $('#sub_department_id').val('').find('option:not(:first)').remove();
+            
+            // Destroy and reinitialize Select2 with new department filter
+            const select = $('#sub_department_id');
+            if (select.hasClass('select2-hidden-accessible')) {
+                select.select2('destroy');
+            }
+            select.val('').find('option:not(:first)').remove();
 
             if (departmentId) {
                 populateSubDepartments(departmentId);
+            } else {
+                // Initialize without department filter
+                populateSubDepartments();
             }
         });
 
@@ -1290,6 +1393,24 @@
             $('.form-control, .form-select').removeClass('is-invalid');
             $('.nav-tabs button:first').tab('show');
             $('#resignDateContainer').hide();
+            
+            // Reset Select2 for department
+            const deptSelect = $('#department_id');
+            if (deptSelect.hasClass('select2-hidden-accessible')) {
+                deptSelect.select2('destroy');
+            }
+            deptSelect.find('option:not(:first)').remove();
+            
+            // Reset Select2 for sub_department
+            const subDeptSelect = $('#sub_department_id');
+            if (subDeptSelect.hasClass('select2-hidden-accessible')) {
+                subDeptSelect.select2('destroy');
+            }
+            subDeptSelect.find('option:not(:first)').remove();
+            
+            // Initialize Select2 for create mode
+            populateDepartments();
+            populateSubDepartments();
         }
 
         function toggleResignDate() {
@@ -1328,7 +1449,8 @@
                     $('#nama_ibu_kandung').val(k.nama_ibu_kandung);
                     $('#kartu_keluarga').val(k.kartu_keluarga);
 
-                    $('#department_id').val(k.department_id);
+                    // Populate and set department with Select2
+                    populateDepartments(k.department_id);
 
                     // Populate sub departments based on selected department
                     if (k.department_id) {
