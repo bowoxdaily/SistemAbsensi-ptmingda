@@ -33,7 +33,7 @@
             </li>
 
             <!-- Karyawan -->
-            <li class="menu-item {{ request()->routeIs('admin.karyawan.*') ? 'active' : '' }}">
+            <li class="menu-item {{ request()->routeIs('admin.karyawan.index') ? 'active' : '' }}">
                 <a href="{{ route('admin.karyawan.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-user"></i>
                     <div data-i18n="Karyawan">Karyawan</div>
@@ -133,6 +133,14 @@
                 <a href="{{ route('admin.rekapitulasi.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-pie-chart-alt-2"></i>
                     <div data-i18n="Rekapitulasi">Rekapitulasi Absensi</div>
+                </a>
+            </li>
+
+            <!-- Status Karyawan -->
+            <li class="menu-item {{ request()->routeIs('admin.karyawan.status-report') ? 'active' : '' }}">
+                <a href="{{ route('admin.karyawan.status-report') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-id-card"></i>
+                    <div data-i18n="Status Karyawan">Status Karyawan</div>
                 </a>
             </li>
 

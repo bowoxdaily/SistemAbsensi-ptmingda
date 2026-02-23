@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Employee;
-use App\Models\Department;
 use App\Models\Attendance;
 use App\Models\Leave;
 use Carbon\Carbon;
@@ -39,7 +38,7 @@ class DashboardController extends Controller
     {
         $data = [
             'totalKaryawan' => Employee::where('status', 'active')->count(),
-            'totalDepartemen' => Department::count(),
+            'totalResign' => Employee::where('status', 'resign')->count(),
             'hadirHariIni' => Attendance::whereDate('attendance_date', today())
                 ->whereIn('status', ['hadir', 'terlambat'])->count(),
             'tidakHadirHariIni' => Attendance::whereDate('attendance_date', today())

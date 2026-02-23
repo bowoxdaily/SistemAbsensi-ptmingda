@@ -416,4 +416,98 @@ class KaryawanController extends Controller
     {
         return Excel::download(new KaryawanTemplateExport, 'Template_Import_Karyawan.xlsx');
     }
+
+    /**
+     * Display status karyawan report page (web)
+     */
+    public function statusReportPage()
+    {
+        return view('admin.karyawan.status-report');
+    }
+
+    /**
+     * API: Get employee status data with filters
+     */
+    public function statusReport(Request $request)
+    {
+        $perPage    = $request->get('per_page', 25);
+        $search     = $request->get('search', '');
+        $status     = $request->get('status');
+        $departmentId = $request->get('department_id');
+        $joinFrom   = $request->get('join_from');
+        $joinTo     = $request->get('join_to');
+
+        $query = Karyawans::with(['department', 'subDepartment', 'position'])
+            ->when($search, fn($q) => $q->where(function ($q2) use ($search) {
+                $q2->where('name', 'like', "%{$search}%")
+                   ->orWhere('employee_code', 'like', "%{$search}%")
+                   ->orWhere('nik', 'like', "%{$search}%");
+            }))
+            ->when($status, fn($q) => $q->where('status', $status))
+            ->when($departmentId, fn($q) => $q->where('department_id', $departmentId))
+            ->when($joinFrom, fn($q) => $q->whereDate('join_date', '>=', $joinFrom))
+            ->when($joinTo, fn($q) => $q->whereDate('join_date', '<=', $joinTo));
+
+        // Summary counts (apply same filters except status)
+        $summaryQuery = Karyawans::when($search, fn($q) => $q->where(function ($q2) use ($search) {
+                $q2->where('name', 'like', "%{$search}%")
+                   ->orWhere('employee_code', 'like', "%{$search}%")
+                   ->orWhere('nik', 'like', "%{$search}%");
+            }))
+            ->when($departmentId, fn($q) => $q->where('department_id', $departmentId))
+            ->when($joinFrom, fn($q) => $q->whereDate('join_date', '>=', $joinFrom))
+            ->when($joinTo, fn($q) => $q->whereDate('join_date', '<=', $joinTo));
+
+        $summary = [
+            'total'            => (clone $summaryQuery)->count(),
+            'active'           => (clone $summaryQuery)->where('status', 'active')->count(),
+            'inactive'         => (clone $summaryQuery)->where('status', 'inactive')->count(),
+            'resign'           => (clone $summaryQuery)->where('status', 'resign')->count(),
+            'mangkir'          => (clone $summaryQuery)->where('status', 'mangkir')->count(),
+            'gagal_probation'  => (clone $summaryQuery)->where('status', 'gagal_probation')->count(),
+        ];
+
+        if ($perPage === 'all') {
+            $data = $query->orderBy('employee_code')->get();
+            return response()->json([
+                'success' => true,
+                'summary' => $summary,
+                'data'    => $data,
+                'meta'    => ['total' => $data->count(), 'per_page' => 'all', 'current_page' => 1, 'last_page' => 1],
+            ]);
+        }
+
+        $paginated = $query->orderBy('employee_code')->paginate((int) $perPage);
+
+        return response()->json([
+            'success' => true,
+            'summary' => $summary,
+            'data'    => $paginated->items(),
+            'meta'    => [
+                'total'        => $paginated->total(),
+                'per_page'     => $paginated->perPage(),
+                'current_page' => $paginated->currentPage(),
+                'last_page'    => $paginated->lastPage(),
+                'from'         => $paginated->firstItem(),
+                'to'           => $paginated->lastItem(),
+            ],
+        ]);
+    }
+
+    /**
+     * Export status report to Excel
+     */
+    public function statusReportExport(Request $request)
+    {
+        $filters = [
+            'search'      => $request->get('search'),
+            'status'      => $request->get('status'),
+            'department_id' => $request->get('department_id'),
+            'join_from'   => $request->get('join_from'),
+            'join_to'     => $request->get('join_to'),
+        ];
+
+        $filename = 'Status_Karyawan_' . date('Y-m-d_His') . '.xlsx';
+        return Excel::download(new \App\Exports\StatusKaryawanExport($filters), $filename);
+    }
 }

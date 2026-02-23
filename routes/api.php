@@ -34,6 +34,7 @@ Route::prefix('sub-departments')->group(function () {
 
 Route::prefix('karyawan')->group(function () {
     Route::get('/master-data', [KaryawanController::class, 'getMasterData']);
+    Route::get('/status-report', [KaryawanController::class, 'statusReport']);
     Route::get('/', [KaryawanController::class, 'index']);
     Route::post('/', [KaryawanController::class, 'store']);
     Route::get('/{id}', [KaryawanController::class, 'show']);

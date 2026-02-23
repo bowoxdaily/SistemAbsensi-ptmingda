@@ -55,6 +55,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/karyawan/export', [KaryawanController::class, 'export'])->name('admin.karyawan.export');
         Route::post('/admin/karyawan/import', [KaryawanController::class, 'import'])->name('admin.karyawan.import');
         Route::get('/admin/karyawan/template', [KaryawanController::class, 'downloadTemplate'])->name('admin.karyawan.template');
+        Route::get('/admin/karyawan/status-report', [KaryawanController::class, 'statusReportPage'])->name('admin.karyawan.status-report');
+        Route::get('/admin/karyawan/status-report/export', [KaryawanController::class, 'statusReportExport'])->name('admin.karyawan.status-report.export');
         Route::get('/admin/positions', [PositionController::class, 'dashboard'])->name('admin.positions.index');
 
         // Attendance Routes

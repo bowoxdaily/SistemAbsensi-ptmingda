@@ -94,12 +94,12 @@
                         <div class="card-body">
                             <div class="card-title d-flex align-items-start justify-content-between">
                                 <div class="avatar flex-shrink-0">
-                                    <i class="bx bx-building bx-md text-info"></i>
+                                    <i class="bx bx-user-minus bx-md text-danger"></i>
                                 </div>
                             </div>
-                            <span>Departemen</span>
-                            <h3 class="card-title text-nowrap mb-1">{{ $totalDepartemen }}</h3>
-                            <small class="text-muted fw-semibold">Total</small>
+                            <span>Karyawan Resign</span>
+                            <h3 class="card-title text-nowrap mb-1">{{ $totalResign }}</h3>
+                            <small class="text-danger fw-semibold">Resign</small>
                         </div>
                     </div>
                 </div>
