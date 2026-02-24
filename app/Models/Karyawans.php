@@ -120,4 +120,20 @@ class Karyawans extends Model
     {
         return $value ? $this->asDate($value)->format('Y-m-d') : null;
     }
+
+    /**
+     * Accessor untuk tanggal_mangkir - pastikan selalu dalam format Y-m-d
+     */
+    public function getTanggalMangkirAttribute($value)
+    {
+        return $value ? $this->asDate($value)->format('Y-m-d') : null;
+    }
+
+    /**
+     * Accessor untuk tanggal_gagal_probation - pastikan selalu dalam format Y-m-d
+     */
+    public function getTanggalGagalProbationAttribute($value)
+    {
+        return $value ? $this->asDate($value)->format('Y-m-d') : null;
+    }
 }

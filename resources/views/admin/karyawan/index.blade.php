@@ -59,6 +59,9 @@
         .modal .select2-container--default .select2-selection--single .select2-selection__arrow {
             height: calc(1.5em + 0.5rem);
         }
+
+        /* Mobile card fix */
+        .min-w-0 { min-width: 0; }
     </style>
 @endsection
 
@@ -170,24 +173,25 @@
             <div class="card-body p-0">
                 <!-- Desktop View: Table -->
                 <div class="d-none d-md-block">
-                    <div class="table-responsive text-nowrap" style="overflow: visible;">
-                        <table class="table table-hover mb-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" style="min-width: 900px;">
                             <thead>
                                 <tr>
-                                    <th style="width: 50px;">#</th>
-                                    <th style="width: 12%;">Kode</th>
-                                    <th style="width: 18%;">Nama</th>
-                                    <th style="width: 13%;">Departemen</th>
-                                    <th style="width: 13%;">Sub Departemen</th>
-                                    <th style="width: 13%;">Posisi</th>
-                                    <th style="width: 13%;">Shift</th>
-                                    <th style="width: 10%;" class="text-center">Status</th>
-                                    <th style="width: 60px;" class="text-center">Aksi</th>
+                                    <th style="width: 45px;">#</th>
+                                    <th style="min-width: 110px;">Kode</th>
+                                    <th style="min-width: 160px;">Nama</th>
+                                    <th style="min-width: 130px;">Departemen</th>
+                                    <th style="min-width: 130px;">Sub Departemen</th>
+                                    <th style="min-width: 120px;">Posisi</th>
+                                    <th style="min-width: 95px;" class="text-nowrap">Tgl. Join</th>
+                                    <th style="min-width: 95px;" class="text-nowrap">Tgl. Keluar</th>
+                                    <th style="min-width: 90px;" class="text-center">Status</th>
+                                    <th style="width: 55px;" class="text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="table-border-bottom-0" id="karyawanTableBody">
                                 <tr id="loadingRow">
-                                    <td colspan="9" class="text-center py-4">
+                                    <td colspan="10" class="text-center py-4">
                                         <div class="spinner-border text-primary" role="status">
                                             <span class="visually-hidden">Loading...</span>
                                         </div>
@@ -1290,7 +1294,7 @@
 
             if (data.data.length === 0) {
                 tbody.append(`
-                    <tr><td colspan="9" class="text-center py-4">
+                    <tr><td colspan="10" class="text-center py-4">
                         <div class="mb-3"><i class='bx bx-user' style="font-size: 48px; color: #ddd;"></i></div>
                         <p class="text-muted mb-2">Belum ada data karyawan</p>
                         <button class="btn btn-sm btn-primary" onclick="openCreateModal()" data-bs-toggle="modal" data-bs-target="#karyawanModal">
@@ -1317,16 +1321,17 @@
                         <tr>
                             <td style="white-space: nowrap;">${rowNumber}</td>
                             <td style="white-space: nowrap;"><strong>${k.employee_code}</strong></td>
-                            <td><strong>${k.name}</strong></td>
+                            <td>${k.name}</td>
                             <td>${k.department ? k.department.name : '-'}</td>
                             <td>${k.sub_department ? k.sub_department.name : '-'}</td>
                             <td>${k.position ? k.position.name : '-'}</td>
-                            <td>${k.work_schedule ? '<span class="badge bg-label-info">' + k.work_schedule.name + '</span>' : '-'}</td>
+                            <td class="text-nowrap"><small>${k.join_date ? formatDate(k.join_date) : '-'}</small></td>
+                            <td class="text-nowrap"><small>${getExitDate(k)}</small></td>
                             <td class="text-center" style="white-space: nowrap;">${statusBadge}</td>
-                            <td class="text-center" style="white-space: nowrap; position: relative;">
+                            <td class="text-center" style="white-space: nowrap;">
                                 <div class="dropdown">
                                     <button type="button" class="btn btn-sm btn-icon btn-text-secondary rounded-pill dropdown-toggle hide-arrow"
-                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                            data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
                                         <i class='bx bx-dots-vertical-rounded'></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end">
@@ -1346,15 +1351,21 @@
                     cardList.append(`
                         <div class="card mb-2 mx-3 border">
                             <div class="card-body p-3">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <div class="flex-grow-1">
-                                        <h6 class="mb-1 fw-bold">${k.name}</h6>
-                                        <p class="text-muted small mb-1">${k.employee_code}</p>
-                                        <p class="text-muted small mb-1">${k.department ? k.department.name : '-'} ${k.sub_department ? '/ ' + k.sub_department.name : ''} - ${k.position ? k.position.name : '-'}</p>
-                                        <p class="text-muted small mb-2">${k.work_schedule ? '<span class="badge bg-label-info">' + k.work_schedule.name + '</span>' : '-'}</p>
-                                        ${statusBadge}
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1 min-w-0 me-2">
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            ${statusBadge}
+                                            <span class="text-muted small">${k.employee_code}</span>
+                                        </div>
+                                        <h6 class="mb-1 fw-bold text-truncate">${k.name}</h6>
+                                        <p class="text-muted small mb-1 text-truncate">${k.department ? k.department.name : '-'}${k.sub_department ? ' / ' + k.sub_department.name : ''}</p>
+                                        <p class="text-muted small mb-2 text-truncate">${k.position ? k.position.name : '-'}</p>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <span class="badge bg-label-primary"><i class='bx bx-calendar-plus me-1'></i>${k.join_date ? formatDate(k.join_date) : '-'}</span>
+                                            ${getExitDate(k) !== '-' ? `<span class="badge bg-label-danger"><i class='bx bx-calendar-x me-1'></i>${getExitDate(k)}</span>` : ''}
+                                        </div>
                                     </div>
-                                    <div class="dropdown">
+                                    <div class="dropdown flex-shrink-0">
                                         <button type="button" class="btn btn-sm btn-icon btn-text-secondary rounded-pill dropdown-toggle hide-arrow"
                                                 data-bs-toggle="dropdown" aria-expanded="false">
                                             <i class='bx bx-dots-vertical-rounded'></i>
@@ -1396,6 +1407,28 @@
                 'gagal_probation': '<span class="badge bg-label-danger">Gagal Probation</span>'
             };
             return badges[status] || status;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const d = dateStr.toString().split(/[T\s]/)[0];
+            if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return dateStr;
+            const [y, m, day] = d.split('-');
+            return `${day}/${m}/${y}`;
+        }
+
+        function getExitDate(k) {
+            if (k.status === 'resign' && k.tanggal_resign)         return formatDate(k.tanggal_resign);
+            if (k.status === 'mangkir' && k.tanggal_mangkir)       return formatDate(k.tanggal_mangkir);
+            if (k.status === 'gagal_probation' && k.tanggal_gagal_probation) return formatDate(k.tanggal_gagal_probation);
+            return '-';
+        }
+
+        function getExitDateBadge(k) {
+            const labelMap = { resign: 'Resign', mangkir: 'Mangkir', gagal_probation: 'Gagal Prob' };
+            const date = getExitDate(k);
+            if (date === '-') return '';
+            return ` &nbsp;<i class='bx bx-calendar-x me-1'></i>${labelMap[k.status]}: <strong>${date}</strong>`;
         }
 
         function renderPagination(data) {
