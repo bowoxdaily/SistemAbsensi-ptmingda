@@ -37,6 +37,8 @@ class Karyawans extends Model
         'supervisor_id',
         'salary_base',
         'tanggal_resign',
+        'tanggal_mangkir',
+        'tanggal_gagal_probation',
         'bank',
         'nomor_rekening',
         'tax_npwp',
@@ -58,7 +60,9 @@ class Karyawans extends Model
     protected $casts = [
         'birth_date' => 'date',
         'join_date' => 'date',
-        'tanggal_resign' => 'date',
+        'tanggal_resign'           => 'date',
+        'tanggal_mangkir'         => 'date',
+        'tanggal_gagal_probation' => 'date',
         'salary_base' => 'decimal:2',
         'tanggungan_anak' => 'integer',
     ];

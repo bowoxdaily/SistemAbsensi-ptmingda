@@ -132,7 +132,7 @@
                                 <th>Jabatan</th>
                                 <th>Tipe</th>
                                 <th>Tgl. Bergabung</th>
-                                <th>Tgl. Resign</th>
+                                <th>Tgl. Nonaktif</th>
                                 <th class="text-center">Status</th>
                             </tr>
                         </thead>
@@ -244,8 +244,23 @@ function renderTable(rows, meta) {
         const dept   = k.department ? k.department.name : '-';
         const pos    = k.position   ? k.position.name   : '-';
         const join   = k.join_date  ? formatDate(k.join_date)   : '-';
-        const resign = k.tanggal_resign ? formatDate(k.tanggal_resign) : '-';
         const no     = offset + idx + 1;
+
+        // Determine inactive date based on status
+        let inactiveDate = '-';
+        let inactiveDateRaw = null;
+        let inactiveDateLabel = '';
+        if (k.status === 'resign' && k.tanggal_resign) {
+            inactiveDateRaw = k.tanggal_resign;
+            inactiveDateLabel = 'Resign';
+        } else if (k.status === 'mangkir' && k.tanggal_mangkir) {
+            inactiveDateRaw = k.tanggal_mangkir;
+            inactiveDateLabel = 'Mangkir';
+        } else if (k.status === 'gagal_probation' && k.tanggal_gagal_probation) {
+            inactiveDateRaw = k.tanggal_gagal_probation;
+            inactiveDateLabel = 'Gagal Prob';
+        }
+        if (inactiveDateRaw) inactiveDate = formatDate(inactiveDateRaw);
 
         html += `<tr>
             <td>${no}</td>
@@ -255,7 +270,7 @@ function renderTable(rows, meta) {
             <td>${pos}</td>
             <td><span class="badge bg-label-secondary">${k.employment_status || '-'}</span></td>
             <td>${join}</td>
-            <td>${k.tanggal_resign ? `<span class="text-danger">${resign}</span>` : '-'}</td>
+            <td>${inactiveDateRaw ? `<span class="text-danger">${inactiveDate}</span>` : '-'}</td>
             <td class="text-center"><span class="badge ${si.class} table-status-badge">${si.label}</span></td>
         </tr>`;
 
@@ -270,7 +285,7 @@ function renderTable(rows, meta) {
             </div>
             <div class="mt-1 small text-muted">
                 Join: ${join}
-                ${k.tanggal_resign ? ` &bull; Resign: <span class="text-danger">${resign}</span>` : ''}
+                ${inactiveDateRaw ? ` &bull; ${inactiveDateLabel}: <span class="text-danger">${inactiveDate}</span>` : ''}
             </div>
         </div>`;
     });

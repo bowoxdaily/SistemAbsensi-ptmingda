@@ -505,6 +505,18 @@
                                             name="tanggal_resign">
                                         <div class="invalid-feedback" id="tanggal_resignError"></div>
                                     </div>
+                                    <div class="col-sm-6 mb-2" id="mangkirDateContainer" style="display: none;">
+                                        <label for="tanggal_mangkir" class="form-label small">Tanggal Mangkir</label>
+                                        <input type="date" class="form-control form-control-sm" id="tanggal_mangkir"
+                                            name="tanggal_mangkir">
+                                        <div class="invalid-feedback" id="tanggal_mangkirError"></div>
+                                    </div>
+                                    <div class="col-sm-6 mb-2" id="gagalProbDateContainer" style="display: none;">
+                                        <label for="tanggal_gagal_probation" class="form-label small">Tanggal Gagal Probation</label>
+                                        <input type="date" class="form-control form-control-sm" id="tanggal_gagal_probation"
+                                            name="tanggal_gagal_probation">
+                                        <div class="invalid-feedback" id="tanggal_gagal_probationError"></div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -745,6 +757,14 @@
                                 <tr id="detailResignDateRow" style="display: none;">
                                     <th>Tanggal Resign</th>
                                     <td id="detailTanggalResign">-</td>
+                                </tr>
+                                <tr id="detailMangkirDateRow" style="display: none;">
+                                    <th>Tanggal Mangkir</th>
+                                    <td id="detailTanggalMangkir">-</td>
+                                </tr>
+                                <tr id="detailGagalProbDateRow" style="display: none;">
+                                    <th>Tanggal Gagal Probation</th>
+                                    <td id="detailTanggalGagalProb">-</td>
                                 </tr>
                             </table>
                         </div>
@@ -1451,12 +1471,32 @@
 
         function toggleResignDate() {
             const status = $('#status').val();
+
+            // Resign
             if (status === 'resign') {
                 $('#resignDateContainer').show();
                 $('#tanggal_resign').prop('required', true);
             } else {
                 $('#resignDateContainer').hide();
                 $('#tanggal_resign').prop('required', false).val('');
+            }
+
+            // Mangkir
+            if (status === 'mangkir') {
+                $('#mangkirDateContainer').show();
+                $('#tanggal_mangkir').prop('required', true);
+            } else {
+                $('#mangkirDateContainer').hide();
+                $('#tanggal_mangkir').prop('required', false).val('');
+            }
+
+            // Gagal Probation
+            if (status === 'gagal_probation') {
+                $('#gagalProbDateContainer').show();
+                $('#tanggal_gagal_probation').prop('required', true);
+            } else {
+                $('#gagalProbDateContainer').hide();
+                $('#tanggal_gagal_probation').prop('required', false).val('');
             }
         }
 
@@ -1504,12 +1544,31 @@
                     $('#work_schedule_id').val(k.work_schedule_id);
                     $('#status').val(k.status);
 
-                    // Toggle tanggal resign - set langsung tanpa konversi timezone
+                    // Toggle tanggal resign
                     if (k.status === 'resign' && k.tanggal_resign) {
                         $('#tanggal_resign').val(k.tanggal_resign);
                         $('#resignDateContainer').show();
                     } else {
                         $('#resignDateContainer').hide();
+                        $('#tanggal_resign').val('');
+                    }
+
+                    // Toggle tanggal mangkir
+                    if (k.status === 'mangkir' && k.tanggal_mangkir) {
+                        $('#tanggal_mangkir').val(k.tanggal_mangkir);
+                        $('#mangkirDateContainer').show();
+                    } else {
+                        $('#mangkirDateContainer').hide();
+                        $('#tanggal_mangkir').val('');
+                    }
+
+                    // Toggle tanggal gagal probation
+                    if (k.status === 'gagal_probation' && k.tanggal_gagal_probation) {
+                        $('#tanggal_gagal_probation').val(k.tanggal_gagal_probation);
+                        $('#gagalProbDateContainer').show();
+                    } else {
+                        $('#gagalProbDateContainer').hide();
+                        $('#tanggal_gagal_probation').val('');
                     }
 
                     $('#address').val(k.address);
@@ -1565,6 +1624,8 @@
                 work_schedule_id: $('#work_schedule_id').val(),
                 status: $('#status').val(),
                 tanggal_resign: formatDateForSubmission($('#tanggal_resign').val()),
+                tanggal_mangkir: formatDateForSubmission($('#tanggal_mangkir').val()),
+                tanggal_gagal_probation: formatDateForSubmission($('#tanggal_gagal_probation').val()),
                 bank: $('#bank').val(),
                 nomor_rekening: $('#nomor_rekening').val(),
                 tax_npwp: $('#tax_npwp').val(),
@@ -1714,12 +1775,30 @@
                     $('#detailShiftType').text(k.work_schedule ? k.work_schedule.name : '-');
                     $('#detailStatus').html(getStatusBadge(k.status));
 
-                    // Tampilkan tanggal resign jika status resign
+                    // Tanggal resign
                     if (k.status === 'resign' && k.tanggal_resign) {
                         $('#detailTanggalResign').text(resignDateFormatted);
                         $('#detailResignDateRow').show();
                     } else {
                         $('#detailResignDateRow').hide();
+                    }
+
+                    // Tanggal mangkir
+                    const mangkirDateFormatted = formatDateToDisplay(k.tanggal_mangkir);
+                    if (k.status === 'mangkir' && k.tanggal_mangkir) {
+                        $('#detailTanggalMangkir').text(mangkirDateFormatted);
+                        $('#detailMangkirDateRow').show();
+                    } else {
+                        $('#detailMangkirDateRow').hide();
+                    }
+
+                    // Tanggal gagal probation
+                    const gagalProbDateFormatted = formatDateToDisplay(k.tanggal_gagal_probation);
+                    if (k.status === 'gagal_probation' && k.tanggal_gagal_probation) {
+                        $('#detailTanggalGagalProb').text(gagalProbDateFormatted);
+                        $('#detailGagalProbDateRow').show();
+                    } else {
+                        $('#detailGagalProbDateRow').hide();
                     }
 
                     // Kontak & Alamat

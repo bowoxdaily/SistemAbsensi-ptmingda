@@ -57,6 +57,8 @@ class StatusKaryawanExport implements FromCollection, WithHeadings, WithMapping,
             'Tipe Karyawan',
             'Tanggal Bergabung',
             'Tanggal Resign',
+            'Tanggal Mangkir',
+            'Tanggal Gagal Probation',
         ];
     }
 
@@ -85,6 +87,8 @@ class StatusKaryawanExport implements FromCollection, WithHeadings, WithMapping,
             $row->employment_status,
             $row->join_date ? \Carbon\Carbon::parse($row->join_date)->format('d/m/Y') : '-',
             $row->tanggal_resign ? \Carbon\Carbon::parse($row->tanggal_resign)->format('d/m/Y') : '-',
+            $row->tanggal_mangkir ? \Carbon\Carbon::parse($row->tanggal_mangkir)->format('d/m/Y') : '-',
+            $row->tanggal_gagal_probation ? \Carbon\Carbon::parse($row->tanggal_gagal_probation)->format('d/m/Y') : '-',
         ];
     }
 
