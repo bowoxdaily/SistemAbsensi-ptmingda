@@ -223,12 +223,36 @@ function renderPagination(meta) {
     $('#paginationBox').show();
     if (!meta) return;
     $('#pageInfo').text(`${meta.from ?? 0}–${meta.to ?? 0} dari ${meta.total}`);
-    let links = '<ul class="pagination pagination-sm mb-0">';
-    links += `<li class="page-item ${meta.current_page == 1 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="loadData(${meta.current_page - 1});return false">&#8249;</a></li>`;
-    for (let p = 1; p <= meta.last_page; p++) {
-        links += `<li class="page-item ${p == meta.current_page ? 'active' : ''}"><a class="page-link" href="#" onclick="loadData(${p});return false">${p}</a></li>`;
+
+    const cur  = meta.current_page;
+    const last = meta.last_page;
+    const delta = 2; // pages shown on each side of current
+
+    // Build page number list with ellipsis markers
+    const pages = [];
+    for (let p = 1; p <= last; p++) {
+        if (p === 1 || p === last || (p >= cur - delta && p <= cur + delta)) {
+            pages.push(p);
+        } else if (pages[pages.length - 1] !== '...') {
+            pages.push('...');
+        }
     }
-    links += `<li class="page-item ${meta.current_page == meta.last_page ? 'disabled' : ''}"><a class="page-link" href="#" onclick="loadData(${meta.current_page + 1});return false">&#8250;</a></li></ul>`;
+
+    let links = '<ul class="pagination pagination-sm mb-0 flex-wrap">';
+    links += `<li class="page-item ${cur == 1 ? 'disabled' : ''}">
+        <a class="page-link" href="#" onclick="loadData(${cur - 1});return false">&#8249;</a></li>`;
+
+    pages.forEach(function(p) {
+        if (p === '...') {
+            links += `<li class="page-item disabled"><span class="page-link px-2">&hellip;</span></li>`;
+        } else {
+            links += `<li class="page-item ${p == cur ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="loadData(${p});return false">${p}</a></li>`;
+        }
+    });
+
+    links += `<li class="page-item ${cur == last ? 'disabled' : ''}">
+        <a class="page-link" href="#" onclick="loadData(${cur + 1});return false">&#8250;</a></li></ul>`;
     $('#pageLinks').html(links);
 }
 </script>
