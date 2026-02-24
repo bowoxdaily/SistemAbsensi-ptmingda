@@ -730,29 +730,39 @@ class FingerspotWebhookController extends Controller
      */
     public function logs(Request $request)
     {
-        $perPage = $request->get('per_page', 50);
-        $status = $request->get('status');
-        $pin = $request->get('pin');
+        try {
+        $perPage  = min((int) $request->get('per_page', 20), 200); // cap at 200
+        $status   = $request->get('status');
+        $pin      = $request->get('pin');
         $dateFrom = $request->get('date_from');
-        $dateTo = $request->get('date_to');
+        $dateTo   = $request->get('date_to');
 
-        $query = FingerspotLog::with('employee')
-            ->orderBy('created_at', 'desc');
+        // Use scan_time for ordering — it has an index; also sort DESC so latest first
+        // Only load necessary employee columns to reduce JSON size
+        $query = FingerspotLog::with(['employee:id,name,employee_code'])
+            ->select(['id', 'pin', 'employee_id', 'scan_time', 'process_status', 'process_message', 'created_at'])
+            ->orderBy('scan_time', 'desc');
 
         if ($status) {
             $query->where('process_status', $status);
         }
 
         if ($pin) {
-            $query->where('pin', 'like', "%{$pin}%");
+            // Search by PIN or employee name via subquery
+            $query->where(function ($q) use ($pin) {
+                $q->where('pin', 'like', "%{$pin}%")
+                  ->orWhereHas('employee', fn($eq) => $eq->where('name', 'like', "%{$pin}%"));
+            });
         }
 
         if ($dateFrom) {
-            $query->whereDate('scan_time', '>=', $dateFrom);
+            // Use >= 'YYYY-MM-DD 00:00:00' so MySQL can use the scan_time index
+            $query->where('scan_time', '>=', $dateFrom . ' 00:00:00');
         }
 
         if ($dateTo) {
-            $query->whereDate('scan_time', '<=', $dateTo);
+            // Use <= 'YYYY-MM-DD 23:59:59' so MySQL can use the scan_time index
+            $query->where('scan_time', '<=', $dateTo . ' 23:59:59');
         }
 
         $logs = $query->paginate($perPage);
@@ -761,6 +771,13 @@ class FingerspotWebhookController extends Controller
             'success' => true,
             'data' => $logs,
         ]);
+        } catch (\Throwable $e) {
+            \Log::error('FingerspotLogs error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

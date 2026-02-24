@@ -58,6 +58,11 @@
                             <span class="badge bg-primary d-none" id="selected-count-badge">0 dipilih</span>
                         </div>
                         <div class="d-flex gap-2 flex-wrap align-items-center">
+                            <select class="form-select form-select-sm" id="log-per-page" style="width:75px" title="Per halaman">
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
                             <select class="form-select form-select-sm d-inline-block w-auto" id="log-status-filter">
                                 <option value="">Semua Status</option>
                                 <option value="success">Success</option>
@@ -65,6 +70,22 @@
                                 <option value="skipped">Skipped</option>
                                 <option value="pending">Pending</option>
                             </select>
+                            <div class="input-group input-group-sm" style="width:auto">
+                                <span class="input-group-text"><i class="bx bx-search"></i></span>
+                                <input type="text" class="form-control form-control-sm" id="log-pin-search" placeholder="PIN / Nama..." style="width:120px">
+                            </div>
+                            <div class="input-group input-group-sm" style="width:auto">
+                                <span class="input-group-text"><i class="bx bx-calendar"></i></span>
+                                <input type="date" class="form-control form-control-sm" id="log-date-from" title="Scan time dari" style="width:130px">
+                                <span class="input-group-text">s/d</span>
+                                <input type="date" class="form-control form-control-sm" id="log-date-to" title="Scan time sampai" style="width:130px">
+                                <button class="btn btn-primary btn-sm" type="button" id="log-search-btn" title="Cari">
+                                    <i class="bx bx-search"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" type="button" id="log-date-clear" title="Reset filter">
+                                    <i class="bx bx-x"></i>
+                                </button>
+                            </div>
                             <button type="button" class="btn btn-outline-secondary btn-sm" id="clear-selection" style="display:none">
                                 <i class="bx bx-x"></i> Batal Pilih
                             </button>
@@ -386,6 +407,10 @@
         $(document).ready(function() {
             const csrfToken = $('meta[name="csrf-token"]').attr('content');
 
+            // Declare shared state variables before any function calls
+            let logsXhr = null;
+            let selectedLogIds = new Set();
+
             // Load settings on page load
             loadSettings();
             loadLogs();
@@ -463,33 +488,55 @@
 
             // Load logs
             function loadLogs(page = 1) {
-                const status = $('#log-status-filter').val();
-                $.ajax({
+                // Abort previous request if still running
+                if (logsXhr) { logsXhr.abort(); }
+
+                const status   = $('#log-status-filter').val();
+                const dateFrom = $('#log-date-from').val();
+                const dateTo   = $('#log-date-to').val();
+                const pin      = $('#log-pin-search').val().trim();
+                const perPage  = $('#log-per-page').val();
+
+                // Show loading row without destroying table header
+                $('#logs-tbody').html(`<tr><td colspan="7" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>Memuat data...</td></tr>`);
+
+                logsXhr = $.ajax({
                     url: '/api/settings/fingerspot/logs',
                     method: 'GET',
-                    headers: {
-                        'X-CSRF-TOKEN': csrfToken
-                    },
+                    timeout: 60000,
+                    headers: { 'X-CSRF-TOKEN': csrfToken },
                     data: {
                         page: page,
                         status: status,
-                        per_page: 20
+                        date_from: dateFrom,
+                        date_to: dateTo,
+                        pin: pin,
+                        per_page: perPage
                     },
                     success: function(response) {
+                        logsXhr = null;
+                        console.log('[Logs] Response:', response);
                         if (response.success) {
                             renderLogs(response.data);
+                        } else {
+                            $('#logs-tbody').html('<tr><td colspan="7" class="text-center text-danger">Gagal memuat data: ' + (response.message || '') + '</td></tr>');
                         }
                     },
                     error: function(xhr) {
-                        $('#logs-tbody').html(
-                            '<tr><td colspan="6" class="text-center text-danger">Error loading logs</td></tr>'
-                        );
+                        logsXhr = null;
+                        console.error('[Logs] AJAX Error:', xhr.status, xhr.statusText, xhr.responseText?.substring(0, 500));
+                        if (xhr.statusText === 'abort') {
+                            // Request was replaced by a newer one — don't show error
+                            return;
+                        }
+                        const msg = xhr.status === 0
+                            ? 'Request timeout / koneksi terputus. <a href="#" onclick="loadLogs(1);return false">Coba lagi</a>'
+                            : 'Error ' + xhr.status + ': ' + (xhr.responseJSON?.message || xhr.statusText || 'Gagal memuat log');
+                        $('#logs-tbody').html(`<tr><td colspan="7" class="text-center text-danger py-3">${msg}</td></tr>`);
+                        $('#logs-pagination').html('');
                     }
                 });
             }
-
-            // Track selected log IDs
-            let selectedLogIds = new Set();
 
             function updateSelectionUI() {
                 const count = selectedLogIds.size;
@@ -663,9 +710,34 @@
                 `);
             }
 
-            // Refresh logs
-            $('#refresh-logs, #log-status-filter').on('click change', function() {
-                loadLogs();
+            // Refresh logs — status filter: debounce 300ms; others: explicit button
+            let statusDebounce;
+            $('#log-status-filter').on('change', function() {
+                clearTimeout(statusDebounce);
+                statusDebounce = setTimeout(() => loadLogs(1), 300);
+            });
+
+            $('#log-per-page').on('change', function() { loadLogs(1); });
+
+            $('#refresh-logs').on('click', function() { loadLogs(1); });
+
+            // PIN search: debounce 450ms
+            let pinDebounce;
+            $('#log-pin-search').on('input', function() {
+                clearTimeout(pinDebounce);
+                pinDebounce = setTimeout(() => loadLogs(1), 450);
+            });
+
+            // Date range: only search on explicit button click or Enter
+            $('#log-search-btn').on('click', function() { loadLogs(1); });
+            $('#log-date-from, #log-date-to').on('keydown', function(e) {
+                if (e.key === 'Enter') loadLogs(1);
+            });
+
+            $('#log-date-clear').on('click', function() {
+                $('#log-date-from, #log-date-to').val('');
+                $('#log-pin-search').val('');
+                loadLogs(1);
             });
 
             // Log pagination
