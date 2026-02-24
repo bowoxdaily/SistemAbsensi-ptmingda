@@ -206,6 +206,15 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('settings/holidays')->group(
     Route::post('/{id}/toggle', [\App\Http\Controllers\Admin\HolidayController::class, 'toggleActive']);
 });
 
+// Guest Monitoring API Routes (public - no login required)
+Route::prefix('guest')->group(function () {
+    Route::get('/stats', [\App\Http\Controllers\Guest\GuestMonitoringController::class, 'stats']);
+    Route::get('/karyawan', [\App\Http\Controllers\Guest\GuestMonitoringController::class, 'karyawanList']);
+    Route::get('/absensi', [\App\Http\Controllers\Guest\GuestMonitoringController::class, 'absensiList']);
+    Route::get('/interview', [\App\Http\Controllers\Guest\GuestMonitoringController::class, 'interviewList']);
+    Route::get('/master-data', [\App\Http\Controllers\Guest\GuestMonitoringController::class, 'masterData']);
+});
+
 // Import/Export API
 Route::prefix('karyawan')->group(function () {
     Route::post('/import', [\App\Http\Controllers\Admin\KaryawanController::class, 'import']);

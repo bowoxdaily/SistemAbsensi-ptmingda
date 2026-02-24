@@ -240,6 +240,40 @@
                 </a>
             </li>
 
+        @elseif (Auth::user()->role == 'guest')
+            <!-- Menu untuk Guest Monitoring -->
+            <li class="menu-header small text-uppercase">
+                <span class="menu-header-text">Monitoring</span>
+            </li>
+
+            <li class="menu-item {{ request()->routeIs('guest.dashboard') ? 'active' : '' }}">
+                <a href="{{ route('guest.dashboard') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-tachometer"></i>
+                    <div data-i18n="Dashboard">Dashboard</div>
+                </a>
+            </li>
+
+            <li class="menu-item {{ request()->routeIs('guest.karyawan') ? 'active' : '' }}">
+                <a href="{{ route('guest.karyawan') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-group"></i>
+                    <div data-i18n="Karyawan">Data Karyawan</div>
+                </a>
+            </li>
+
+            <li class="menu-item {{ request()->routeIs('guest.absensi') ? 'active' : '' }}">
+                <a href="{{ route('guest.absensi') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-calendar-check"></i>
+                    <div data-i18n="Absensi">Absensi</div>
+                </a>
+            </li>
+
+            <li class="menu-item {{ request()->routeIs('guest.interview') ? 'active' : '' }}">
+                <a href="{{ route('guest.interview') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-chat"></i>
+                    <div data-i18n="Interview">Interview</div>
+                </a>
+            </li>
+
         @else
             <!-- Menu untuk Karyawan -->
             <!-- Menu Header - Absensi Saya -->

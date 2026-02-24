@@ -154,3 +154,11 @@ Route::middleware(['auth'])->group(function () {
     // Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     // Route::put('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
 });
+
+// Guest Monitoring Routes (public - no login required)
+Route::prefix('guest')->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\Guest\GuestMonitoringController::class, 'dashboard'])->name('guest.dashboard');
+    Route::get('/karyawan', [\App\Http\Controllers\Guest\GuestMonitoringController::class, 'karyawanPage'])->name('guest.karyawan');
+    Route::get('/absensi', [\App\Http\Controllers\Guest\GuestMonitoringController::class, 'absensiPage'])->name('guest.absensi');
+    Route::get('/interview', [\App\Http\Controllers\Guest\GuestMonitoringController::class, 'interviewPage'])->name('guest.interview');
+});
