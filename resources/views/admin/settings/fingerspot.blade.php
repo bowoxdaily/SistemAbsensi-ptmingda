@@ -52,19 +52,25 @@
 
                 <!-- Webhook Logs -->
                 <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Log Webhook</h5>
-                        <div>
-                            <select class="form-select form-select-sm d-inline-block w-auto me-2" id="log-status-filter">
+                    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <h5 class="mb-0">Log Webhook</h5>
+                            <span class="badge bg-primary d-none" id="selected-count-badge">0 dipilih</span>
+                        </div>
+                        <div class="d-flex gap-2 flex-wrap align-items-center">
+                            <select class="form-select form-select-sm d-inline-block w-auto" id="log-status-filter">
                                 <option value="">Semua Status</option>
                                 <option value="success">Success</option>
                                 <option value="failed">Failed</option>
                                 <option value="skipped">Skipped</option>
                                 <option value="pending">Pending</option>
                             </select>
-                            <button type="button" class="btn btn-outline-warning btn-sm me-1" id="reprocess-pending"
-                                title="Reprocess Pending & Failed">
-                                <i class="bx bx-revision"></i> Reprocess
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="clear-selection" style="display:none">
+                                <i class="bx bx-x"></i> Batal Pilih
+                            </button>
+                            <button type="button" class="btn btn-outline-warning btn-sm" id="reprocess-pending"
+                                title="Reprocess log terpilih atau semua pending/failed">
+                                <i class="bx bx-revision"></i> <span id="reprocess-btn-text">Reprocess Semua</span>
                             </button>
                             <button type="button" class="btn btn-outline-primary btn-sm" id="refresh-logs">
                                 <i class="bx bx-refresh"></i>
@@ -76,6 +82,9 @@
                             <table class="table table-sm" id="logs-table">
                                 <thead>
                                     <tr>
+                                        <th style="width:36px">
+                                            <input type="checkbox" class="form-check-input" id="select-all-logs" title="Pilih semua">
+                                        </th>
                                         <th>Waktu</th>
                                         <th>PIN</th>
                                         <th>Karyawan</th>
@@ -86,7 +95,7 @@
                                 </thead>
                                 <tbody id="logs-tbody">
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted">Loading...</td>
+                                        <td colspan="7" class="text-center text-muted">Loading...</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -479,26 +488,85 @@
                 });
             }
 
+            // Track selected log IDs
+            let selectedLogIds = new Set();
+
+            function updateSelectionUI() {
+                const count = selectedLogIds.size;
+                if (count > 0) {
+                    $('#selected-count-badge').text(count + ' dipilih').removeClass('d-none');
+                    $('#clear-selection').show();
+                    $('#reprocess-btn-text').text('Reprocess (' + count + ')');
+                } else {
+                    $('#selected-count-badge').addClass('d-none');
+                    $('#clear-selection').hide();
+                    $('#reprocess-btn-text').text('Reprocess Semua');
+                }
+            }
+
+            // Select all toggle
+            $('#select-all-logs').on('change', function() {
+                const checked = $(this).is(':checked');
+                $('#logs-tbody .log-checkbox').each(function() {
+                    const id = parseInt($(this).val());
+                    $(this).prop('checked', checked);
+                    if (checked) {
+                        selectedLogIds.add(id);
+                        $(this).closest('tr').addClass('table-active');
+                    } else {
+                        selectedLogIds.delete(id);
+                        $(this).closest('tr').removeClass('table-active');
+                    }
+                });
+                updateSelectionUI();
+            });
+
+            // Individual checkbox
+            $(document).on('change', '.log-checkbox', function() {
+                const id = parseInt($(this).val());
+                if ($(this).is(':checked')) {
+                    selectedLogIds.add(id);
+                    $(this).closest('tr').addClass('table-active');
+                } else {
+                    selectedLogIds.delete(id);
+                    $(this).closest('tr').removeClass('table-active');
+                    $('#select-all-logs').prop('checked', false);
+                }
+                updateSelectionUI();
+            });
+
+            // Clear selection
+            $('#clear-selection').on('click', function() {
+                selectedLogIds.clear();
+                $('#logs-tbody .log-checkbox').prop('checked', false);
+                $('#logs-tbody tr').removeClass('table-active');
+                $('#select-all-logs').prop('checked', false);
+                updateSelectionUI();
+            });
+
             // Render logs table
             function renderLogs(paginatedData) {
                 const logs = paginatedData.data;
                 if (logs.length === 0) {
                     $('#logs-tbody').html(
-                        '<tr><td colspan="6" class="text-center text-muted">Tidak ada log</td></tr>');
+                        '<tr><td colspan="7" class="text-center text-muted">Tidak ada log</td></tr>');
                     $('#logs-pagination').html('');
                     return;
                 }
 
+                const statusClass = {
+                    'success': 'bg-success',
+                    'failed': 'bg-danger',
+                    'skipped': 'bg-warning text-dark',
+                    'pending': 'bg-secondary'
+                };
+
                 let html = '';
                 logs.forEach(log => {
-                    const statusClass = {
-                        'success': 'bg-success',
-                        'failed': 'bg-danger',
-                        'skipped': 'bg-warning',
-                        'pending': 'bg-secondary'
-                    };
+                    const isSelected = selectedLogIds.has(log.id);
                     html += `
-                <tr>
+                <tr class="${isSelected ? 'table-active' : ''}">
+                    <td><input type="checkbox" class="form-check-input log-checkbox" value="${log.id}" ${isSelected ? 'checked' : ''}></td>
                     <td><small>${new Date(log.created_at).toLocaleString('id-ID')}</small></td>
                     <td><code>${log.pin}</code></td>
                     <td>${log.employee ? log.employee.name : '<span class="text-muted">-</span>'}</td>
@@ -852,27 +920,36 @@
 
             // Reprocess pending and failed logs
             $('#reprocess-pending').on('click', function() {
+                const hasSelection = selectedLogIds.size > 0;
+                const selectedIds  = hasSelection ? Array.from(selectedLogIds) : [];
+
+                const titleText = hasSelection
+                    ? `Reprocess ${selectedIds.length} log terpilih?`
+                    : 'Reprocess Semua Log?';
+                const bodyHtml = hasSelection
+                    ? `Sistem akan memproses ulang <strong>${selectedIds.length} log</strong> yang Anda pilih.`
+                    : 'Sistem akan memproses ulang:<br><ul class="text-start small mt-2"><li>Log dengan status <strong>pending</strong> dan <strong>failed</strong></li><li>Log <strong>success</strong> yang attendance-nya hilang/kosong</li></ul>';
+
                 Swal.fire({
-                    title: 'Reprocess Log?',
-                    html: 'Sistem akan memproses ulang:<br><ul class="text-start small mt-2"><li>Log dengan status <strong>pending</strong> dan <strong>failed</strong></li><li>Log <strong>success</strong> yang attendance-nya hilang/kosong</li></ul>',
+                    title: titleText,
+                    html: bodyHtml,
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonText: 'Ya, Proses Ulang',
                     cancelButtonText: 'Batal',
                     showLoaderOnConfirm: true,
                     preConfirm: () => {
+                        const payload = { _token: csrfToken };
+                        if (hasSelection) payload.ids = selectedIds;
                         return $.ajax({
                             url: '/api/settings/fingerspot/logs/reprocess-all',
                             method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': csrfToken
-                            }
-                        }).then(response => {
-                            return response;
-                        }).catch(error => {
+                            headers: { 'X-CSRF-TOKEN': csrfToken },
+                            data: payload
+                        }).then(response => response)
+                        .catch(error => {
                             Swal.showValidationMessage(
-                                error.responseJSON?.message ||
-                                'Gagal memproses ulang'
+                                error.responseJSON?.message || 'Gagal memproses ulang'
                             );
                         });
                     },
@@ -892,6 +969,9 @@
                                 </div>
                             `
                         });
+                        // Clear selection after reprocess
+                        selectedLogIds.clear();
+                        updateSelectionUI();
                         loadLogs();
                     }
                 });

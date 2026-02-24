@@ -844,36 +844,44 @@ class FingerspotWebhookController extends Controller
             ], 400);
         }
 
-        // Get all pending and failed logs that have employee_id
-        $pendingFailedLogs = FingerspotLog::whereIn('process_status', ['failed', 'pending'])
-            ->whereNotNull('employee_id')
-            ->orderBy('scan_time', 'asc')
-            ->limit(500)
-            ->get();
+        // If specific IDs provided, only reprocess those logs
+        if ($request->filled('ids')) {
+            $ids = is_array($request->ids) ? $request->ids : explode(',', $request->ids);
+            $logs = FingerspotLog::whereIn('id', $ids)
+                ->orderBy('scan_time', 'asc')
+                ->get();
+        } else {
+            // Get all pending and failed logs that have employee_id
+            $pendingFailedLogs = FingerspotLog::whereIn('process_status', ['failed', 'pending'])
+                ->whereNotNull('employee_id')
+                ->orderBy('scan_time', 'asc')
+                ->limit(500)
+                ->get();
 
-        // Get success logs that have missing attendance records (attendance_id null or attendance deleted)
-        $successLogsWithMissingAttendance = FingerspotLog::where('process_status', 'success')
-            ->whereNotNull('employee_id')
-            ->where(function ($query) {
-                // attendance_id is null
-                $query->whereNull('attendance_id')
-                    // or attendance record doesn't exist
-                    ->orWhereNotExists(function ($subQuery) {
-                        $subQuery->select(DB::raw(1))
-                            ->from('attendances')
-                            ->whereColumn('attendances.id', 'fingerspot_logs.attendance_id');
-                    });
-            })
-            ->orderBy('scan_time', 'asc')
-            ->limit(500)
-            ->get();
+            // Get success logs that have missing attendance records (attendance_id null or attendance deleted)
+            $successLogsWithMissingAttendance = FingerspotLog::where('process_status', 'success')
+                ->whereNotNull('employee_id')
+                ->where(function ($query) {
+                    // attendance_id is null
+                    $query->whereNull('attendance_id')
+                        // or attendance record doesn't exist
+                        ->orWhereNotExists(function ($subQuery) {
+                            $subQuery->select(DB::raw(1))
+                                ->from('attendances')
+                                ->whereColumn('attendances.id', 'fingerspot_logs.attendance_id');
+                        });
+                })
+                ->orderBy('scan_time', 'asc')
+                ->limit(500)
+                ->get();
 
-        // Merge and sort by scan_time ascending - PENTING: urutan ini memastikan
-        // log check-in (pagi) diproses sebelum log check-out (sore)
-        // sehingga rules work schedule diterapkan dengan benar
-        $logs = $pendingFailedLogs->merge($successLogsWithMissingAttendance)
-            ->sortBy('scan_time')
-            ->take(1000);
+            // Merge and sort by scan_time ascending - PENTING: urutan ini memastikan
+            // log check-in (pagi) diproses sebelum log check-out (sore)
+            // sehingga rules work schedule diterapkan dengan benar
+            $logs = $pendingFailedLogs->merge($successLogsWithMissingAttendance)
+                ->sortBy('scan_time')
+                ->take(1000);
+        }
 
         $total = $logs->count();
         $processed = 0;
