@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'manager' => \App\Http\Middleware\EnsureUserIsManager::class,
             'security' => \App\Http\Middleware\EnsureUserIsSecurity::class,
             'guest_monitor' => \App\Http\Middleware\EnsureUserIsGuest::class,
+            'viewer' => \App\Http\Middleware\EnsureUserIsViewer::class,
         ]);
         
         // Trust proxies for ngrok

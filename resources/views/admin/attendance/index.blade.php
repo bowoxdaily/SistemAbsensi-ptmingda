@@ -3,6 +3,7 @@
 @section('title', 'Daftar Absensi Karyawan')
 
 @section('content')
+    @php $isViewer = Auth::user()->role === 'viewer'; @endphp
     <div class="container-xxl flex-grow-1 container-p-y">
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -147,12 +148,14 @@
                             <button type="button" class="btn btn-success" id="exportBtn">
                                 <i class='bx bx-download me-1'></i> Export Excel
                             </button>
+                            @if(!$isViewer)
                             <button type="button" class="btn btn-warning text-white" id="recalculateOvertimeBtn">
                                 <i class='bx bx-refresh me-1'></i> Hitung Ulang Lembur
                             </button>
                             <button type="button" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#bulkCheckoutModal">
                                 <i class='bx bx-log-out-circle me-1'></i> Bulk Pulang
                             </button>
+                            @endif
                         </div>
                     </div>
                 </form>
@@ -164,9 +167,11 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center gap-2">
                     <h5 class="card-title mb-0">Daftar Absensi</h5>
+                    @if(!$isViewer)
                     <button type="button" class="btn btn-sm btn-danger" id="bulkDeleteBtn" style="display: none;">
                         <i class='bx bx-trash me-1'></i> Hapus <span id="selectedCount">0</span> Data
                     </button>
+                    @endif
                 </div>
                 <div class="d-flex align-items-center">
                     <label class="me-2 mb-0 text-muted small">Tampilkan:</label>
@@ -350,6 +355,7 @@
                                                     data-id="{{ $attendance->id }}">
                                                     <i class="bx bx-detail me-1"></i> Detail
                                                 </a>
+                                                @if(!$isViewer)
                                                 <a class="dropdown-item edit-btn" href="javascript:void(0);"
                                                     data-id="{{ $attendance->id }}">
                                                     <i class="bx bx-edit me-1"></i> Edit
@@ -360,6 +366,7 @@
                                                     data-date="{{ \Carbon\Carbon::parse($attendance->attendance_date)->locale('id')->translatedFormat('d F Y') }}">
                                                     <i class="bx bx-trash me-1"></i> Hapus
                                                 </a>
+                                                @endif
                                             </div>
                                         </div>
                                     </td>
@@ -417,10 +424,12 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start mb-3">
                                     <div class="d-flex align-items-start gap-2 flex-grow-1">
+                                        @if(!$isViewer)
                                         <input type="checkbox" class="form-check-input attendance-checkbox mt-1" 
                                                value="{{ $attendance->id }}"
                                                data-name="{{ $attendance->employee->name }}"
                                                data-date="{{ \Carbon\Carbon::parse($attendance->attendance_date)->locale('id')->translatedFormat('d F Y') }}">
+                                        @endif
                                         <div>
                                             <h6 class="mb-1">{{ $attendance->employee->name }}</h6>
                                             <small class="text-muted">
@@ -438,6 +447,7 @@
                                                 data-id="{{ $attendance->id }}">
                                                 <i class="bx bx-detail me-1"></i> Detail
                                             </a>
+                                            @if(!$isViewer)
                                             <a class="dropdown-item edit-btn" href="javascript:void(0);"
                                                 data-id="{{ $attendance->id }}">
                                                 <i class="bx bx-edit me-1"></i> Edit
@@ -448,6 +458,7 @@
                                                 data-date="{{ \Carbon\Carbon::parse($attendance->attendance_date)->locale('id')->translatedFormat('d F Y') }}">
                                                 <i class="bx bx-trash me-1"></i> Hapus
                                             </a>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>

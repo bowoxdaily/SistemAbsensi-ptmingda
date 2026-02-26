@@ -21,6 +21,8 @@ class DashboardController extends Controller
                 return $this->adminDashboard();
             case 'manager':
                 return $this->managerDashboard();
+            case 'viewer':
+                return $this->viewerDashboard();
             case 'security':
                 return redirect()->route('security.scanner');
             case 'guest':
@@ -70,6 +72,36 @@ class DashboardController extends Controller
     {
         // Manager menggunakan dashboard admin dengan data yang sama
         return $this->adminDashboard();
+    }
+
+    /**
+     * Dashboard untuk Viewer
+     * Viewer hanya bisa melihat data absensi dan karyawan (read-only)
+     */
+    private function viewerDashboard()
+    {
+        $data = [
+            'totalKaryawan'    => Employee::where('status', 'active')->count(),
+            'totalResign'      => Employee::where('status', 'resign')->count(),
+            'hadirHariIni'     => Attendance::whereDate('attendance_date', today())
+                ->whereIn('status', ['hadir', 'terlambat'])->count(),
+            'terlambatHariIni' => Attendance::whereDate('attendance_date', today())
+                ->where('status', 'terlambat')->count(),
+            'tidakHadirHariIni'=> Attendance::whereDate('attendance_date', today())
+                ->where('status', 'alpha')->count(),
+            'alphaHariIni'     => Attendance::whereDate('attendance_date', today())
+                ->where('status', 'alpha')->count(),
+            'izinHariIni'      => Attendance::whereDate('attendance_date', today())
+                ->whereIn('status', ['izin', 'sakit', 'cuti'])->count(),
+            'absensiTerbaru'   => Attendance::with(['employee.department', 'employee.position'])
+                ->whereDate('attendance_date', today())
+                ->latest()
+                ->take(8)
+                ->get(),
+            'statistikMingguIni' => $this->getWeeklyStats(),
+        ];
+
+        return view('dashboard.viewer', $data);
     }
 
     /**

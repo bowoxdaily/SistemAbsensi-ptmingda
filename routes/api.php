@@ -32,12 +32,17 @@ Route::prefix('sub-departments')->group(function () {
     Route::delete('/{id}', [SubDepartmentController::class, 'destroy']);
 });
 
-Route::prefix('karyawan')->group(function () {
+// Karyawan - Read endpoints (accessible by all authenticated roles)
+Route::middleware(['web', 'auth'])->prefix('karyawan')->group(function () {
     Route::get('/master-data', [KaryawanController::class, 'getMasterData']);
     Route::get('/status-report', [KaryawanController::class, 'statusReport']);
     Route::get('/', [KaryawanController::class, 'index']);
-    Route::post('/', [KaryawanController::class, 'store']);
     Route::get('/{id}', [KaryawanController::class, 'show']);
+});
+
+// Karyawan - Write endpoints (admin/manager only, viewer blocked)
+Route::middleware(['web', 'auth', 'admin'])->prefix('karyawan')->group(function () {
+    Route::post('/', [KaryawanController::class, 'store']);
     Route::put('/{id}', [KaryawanController::class, 'update']);
     Route::delete('/{id}', [KaryawanController::class, 'destroy']);
 });
@@ -62,10 +67,14 @@ Route::prefix('attendance')->group(function () {
     Route::post('/manual', [AttendanceController::class, 'manualEntry']);
 });
 
-// Admin Attendance API
+// Admin Attendance API - Read (viewer accessible)
+Route::middleware(['web', 'auth', 'viewer'])->prefix('admin/attendance')->group(function () {
+    Route::get('/{id}/detail', [AttendanceController::class, 'detail']);
+});
+
+// Admin Attendance API - Write (admin/manager only)
 Route::middleware(['web', 'auth', 'admin'])->prefix('admin/attendance')->group(function () {
     Route::post('/bulk-checkout', [AttendanceController::class, 'bulkCheckOut']);
-    Route::get('/{id}/detail', [AttendanceController::class, 'detail']);
     Route::put('/{id}', [AttendanceController::class, 'update']);
     Route::delete('/{id}', [AttendanceController::class, 'destroy']);
     Route::post('/bulk-delete', [AttendanceController::class, 'bulkDelete']);
@@ -253,8 +262,8 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('admin/broadcast')->group(fu
     Route::delete('/{id}', [BroadcastController::class, 'destroy']);
 });
 
-// Rekapitulasi Absensi API (Admin)
-Route::middleware(['web', 'auth', 'admin'])->prefix('admin/rekapitulasi')->group(function () {
+// Rekapitulasi Absensi API (Viewer accessible - read only)
+Route::middleware(['web', 'auth', 'viewer'])->prefix('admin/rekapitulasi')->group(function () {
     Route::get('/data', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'getData']);
     Route::get('/filter-options', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'getFilterOptions']);
 });

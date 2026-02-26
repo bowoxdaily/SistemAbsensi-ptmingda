@@ -51,20 +51,13 @@ Route::middleware(['auth'])->group(function () {
         // Master Data
         Route::get('/admin/department', [DepartmentController::class, 'dashboard'])->name('admin.department.index');
         Route::get('/admin/sub-departments', [SubDepartmentController::class, 'index'])->name('admin.sub-departments.index');
-        Route::get('/admin/karyawan', [KaryawanController::class, 'dashboard'])->name('admin.karyawan.index');
-        Route::get('/admin/karyawan/export', [KaryawanController::class, 'export'])->name('admin.karyawan.export');
         Route::post('/admin/karyawan/import', [KaryawanController::class, 'import'])->name('admin.karyawan.import');
         Route::get('/admin/karyawan/template', [KaryawanController::class, 'downloadTemplate'])->name('admin.karyawan.template');
-        Route::get('/admin/karyawan/status-report', [KaryawanController::class, 'statusReportPage'])->name('admin.karyawan.status-report');
-        Route::get('/admin/karyawan/status-report/export', [KaryawanController::class, 'statusReportExport'])->name('admin.karyawan.status-report.export');
         Route::get('/admin/positions', [PositionController::class, 'dashboard'])->name('admin.positions.index');
 
-        // Attendance Routes
-        Route::get('/admin/attendance', [AttendanceController::class, 'index'])->name('admin.attendance.index');
+        // Attendance Write Routes (admin/manager only)
         Route::get('/admin/attendance/face-detection', [AttendanceController::class, 'faceDetection'])->name('admin.attendance.face-detection');
         Route::get('/admin/attendance/manual', [AttendanceController::class, 'faceDetection'])->name('admin.attendance.manual');
-        Route::get('/admin/attendance/report', [AttendanceController::class, 'report'])->name('admin.attendance.report');
-        Route::get('/admin/attendance/export', [AttendanceController::class, 'export'])->name('admin.attendance.export');
         Route::post('/admin/attendance/recalculate-overtime', [AttendanceController::class, 'recalculateOvertime'])->name('admin.attendance.recalculate-overtime');
         Route::delete('/admin/attendance/{id}', [AttendanceController::class, 'destroy'])->name('admin.attendance.destroy');
 
@@ -92,10 +85,29 @@ Route::middleware(['auth'])->group(function () {
         // Broadcast Messages (View only - API handles POST/DELETE)
         Route::get('/admin/broadcast', [BroadcastController::class, 'index'])->name('admin.broadcast.index');
 
-        // Rekapitulasi Absensi (View + Export)
+        // Status Karyawan Report
+        Route::get('/admin/karyawan/status-report', [KaryawanController::class, 'statusReportPage'])->name('admin.karyawan.status-report');
+        Route::get('/admin/karyawan/status-report/export', [KaryawanController::class, 'statusReportExport'])->name('admin.karyawan.status-report.export');
+    });
+
+    // Viewer Routes (accessible by admin, manager, viewer)
+    Route::middleware(['viewer'])->group(function () {
+        // Karyawan - Read Only
+        Route::get('/admin/karyawan', [KaryawanController::class, 'dashboard'])->name('admin.karyawan.index');
+        Route::get('/admin/karyawan/export', [KaryawanController::class, 'export'])->name('admin.karyawan.export');
+
+        // Attendance - Read Only
+        Route::get('/admin/attendance', [AttendanceController::class, 'index'])->name('admin.attendance.index');
+        Route::get('/admin/attendance/report', [AttendanceController::class, 'report'])->name('admin.attendance.report');
+        Route::get('/admin/attendance/export', [AttendanceController::class, 'export'])->name('admin.attendance.export');
+
+        // Rekapitulasi (View + Export)
         Route::get('/admin/rekapitulasi', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'index'])->name('admin.rekapitulasi.index');
         Route::get('/admin/rekapitulasi/export-excel', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'exportExcel'])->name('admin.rekapitulasi.export-excel');
         Route::get('/admin/rekapitulasi/export-pdf', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'exportPdf'])->name('admin.rekapitulasi.export-pdf');
+
+        // Admin Profile
+        Route::get('/admin/profile', [\App\Http\Controllers\Admin\AdminProfileController::class, 'index'])->name('admin.profile.index');
     });
 
     // Payroll Management (Manager only)
@@ -116,11 +128,6 @@ Route::middleware(['auth'])->group(function () {
 
     // Employee Profile (View only - API handles PUT)
     Route::get('/employee/profile', [\App\Http\Controllers\Employee\ProfileController::class, 'index'])->name('employee.profile.index');
-
-    // Admin Profile (View only - API handles PUT)
-    Route::middleware(['admin'])->group(function () {
-        Route::get('/admin/profile', [\App\Http\Controllers\Admin\AdminProfileController::class, 'index'])->name('admin.profile.index');
-    });
 
     // Security Routes (protected by security middleware)
     Route::middleware(['security'])->prefix('security')->group(function () {

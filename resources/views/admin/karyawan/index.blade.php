@@ -66,24 +66,29 @@
 @endsection
 
 @section('content')
+    @php $isViewer = Auth::user()->role === 'viewer'; @endphp
     <div class="container-xxl flex-grow-1 container-p-y">
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h4 class="fw-bold mb-1">Daftar Karyawan</h4>
-                <p class="text-muted mb-0 d-none d-md-block">Kelola data karyawan perusahaan</p>
+                <p class="text-muted mb-0 d-none d-md-block">{{ $isViewer ? 'Data karyawan (hanya lihat)' : 'Kelola data karyawan perusahaan' }}</p>
             </div>
             <div class="d-flex gap-2">
+                @if(!$isViewer)
                 <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#importModal">
                     <i class='bx bx-download me-1'></i> <span class="d-none d-sm-inline">Import</span>
                 </button>
+                @endif
                 <a href="#" class="btn btn-success btn-sm" id="exportBtn" onclick="exportKaryawan(); return false;">
                     <i class='bx bx-upload me-1'></i> <span class="d-none d-sm-inline">Export Excel</span>
                 </a>
+                @if(!$isViewer)
                 <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#karyawanModal"
                     onclick="openCreateModal()">
                     <i class='bx bx-plus me-1'></i> <span class="d-none d-sm-inline">Tambah</span>
                 </button>
+                @endif
             </div>
         </div>
 
@@ -910,6 +915,7 @@
 
 @push('scripts')
     <script>
+        const isViewer = {{ $isViewer ? 'true' : 'false' }};
         let currentPage = 1;
         let karyawanModal, detailModal, importModal;
         let masterData = {};
@@ -1297,18 +1303,18 @@
                     <tr><td colspan="10" class="text-center py-4">
                         <div class="mb-3"><i class='bx bx-user' style="font-size: 48px; color: #ddd;"></i></div>
                         <p class="text-muted mb-2">Belum ada data karyawan</p>
-                        <button class="btn btn-sm btn-primary" onclick="openCreateModal()" data-bs-toggle="modal" data-bs-target="#karyawanModal">
+                        ${!isViewer ? `<button class="btn btn-sm btn-primary" onclick="openCreateModal()" data-bs-toggle="modal" data-bs-target="#karyawanModal">
                             <i class='bx bx-plus me-1'></i> Tambah Karyawan
-                        </button>
+                        </button>` : ''}
                     </td></tr>
                 `);
                 cardList.append(`
                     <div class="text-center py-4">
                         <div class="mb-3"><i class='bx bx-user' style="font-size: 48px; color: #ddd;"></i></div>
                         <p class="text-muted mb-2">Belum ada data karyawan</p>
-                        <button class="btn btn-sm btn-primary" onclick="openCreateModal()" data-bs-toggle="modal" data-bs-target="#karyawanModal">
+                        ${!isViewer ? `<button class="btn btn-sm btn-primary" onclick="openCreateModal()" data-bs-toggle="modal" data-bs-target="#karyawanModal">
                             <i class='bx bx-plus me-1'></i> Tambah Karyawan
-                        </button>
+                        </button>` : ''}
                     </div>
                 `);
                 $('#paginationContainer').hide();
@@ -1337,11 +1343,11 @@
                                     <ul class="dropdown-menu dropdown-menu-end">
                                         <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetail(${k.id})">
                                             <i class='bx bx-show me-2'></i> Detail</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);" onclick="editKaryawan(${k.id})">
+                                        ${!isViewer ? `<li><a class="dropdown-item" href="javascript:void(0);" onclick="editKaryawan(${k.id})">
                                             <i class='bx bx-edit me-2'></i> Edit</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                         <li><a class="dropdown-item text-danger" href="javascript:void(0);" onclick="deleteKaryawan(${k.id})">
-                                            <i class='bx bx-trash me-2'></i> Hapus</a></li>
+                                            <i class='bx bx-trash me-2'></i> Hapus</a></li>` : ''}
                                     </ul>
                                 </div>
                             </td>
@@ -1373,11 +1379,11 @@
                                         <ul class="dropdown-menu dropdown-menu-end">
                                             <li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetail(${k.id})">
                                                 <i class='bx bx-show me-2'></i> Detail</a></li>
-                                            <li><a class="dropdown-item" href="javascript:void(0);" onclick="editKaryawan(${k.id})">
+                                            ${!isViewer ? `<li><a class="dropdown-item" href="javascript:void(0);" onclick="editKaryawan(${k.id})">
                                                 <i class='bx bx-edit me-2'></i> Edit</a></li>
                                             <li><hr class="dropdown-divider"></li>
                                             <li><a class="dropdown-item text-danger" href="javascript:void(0);" onclick="deleteKaryawan(${k.id})">
-                                                <i class='bx bx-trash me-2'></i> Hapus</a></li>
+                                                <i class='bx bx-trash me-2'></i> Hapus</a></li>` : ''}
                                         </ul>
                                     </div>
                                 </div>

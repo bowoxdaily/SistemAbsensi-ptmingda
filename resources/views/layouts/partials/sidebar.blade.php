@@ -212,6 +212,60 @@
                 </a>
             </li>
 
+        @elseif (Auth::user()->role == 'viewer')
+            <!-- Menu untuk Viewer (Read-Only) -->
+            <li class="menu-header small text-uppercase">
+                <span class="menu-header-text">Absensi</span>
+            </li>
+
+            <!-- Daftar Absensi -->
+            <li class="menu-item {{ request()->routeIs('admin.attendance.index') ? 'active' : '' }}">
+                <a href="{{ route('admin.attendance.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-calendar-check"></i>
+                    <div data-i18n="Daftar Absensi">Daftar Absensi</div>
+                </a>
+            </li>
+
+            <!-- Rekap & Laporan -->
+            <li class="menu-item {{ request()->routeIs('admin.attendance.report') ? 'active' : '' }}">
+                <a href="{{ route('admin.attendance.report') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-bar-chart-alt-2"></i>
+                    <div data-i18n="Rekap">Rekap & Laporan</div>
+                </a>
+            </li>
+
+            <!-- Rekapitulasi Absensi -->
+            <li class="menu-item {{ request()->routeIs('admin.rekapitulasi.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.rekapitulasi.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-pie-chart-alt-2"></i>
+                    <div data-i18n="Rekapitulasi">Rekapitulasi Absensi</div>
+                </a>
+            </li>
+
+            <li class="menu-header small text-uppercase">
+                <span class="menu-header-text">Master Data</span>
+            </li>
+
+            <!-- Data Karyawan (Read Only) -->
+            <li class="menu-item {{ request()->routeIs('admin.karyawan.index') ? 'active' : '' }}">
+                <a href="{{ route('admin.karyawan.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-user"></i>
+                    <div data-i18n="Karyawan">Data Karyawan</div>
+                </a>
+            </li>
+
+            <li class="menu-header small text-uppercase">
+                <span class="menu-header-text">Akun</span>
+            </li>
+
+            <!-- Profil -->
+            <li class="menu-item {{ request()->routeIs('admin.profile.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.profile.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-user"></i>
+                    <div data-i18n="Profile">Profil Saya</div>
+                </a>
+            </li>
+
         @elseif (Auth::user()->role == 'security')
             <!-- Menu untuk Security -->
             <!-- Menu Header - Security -->
