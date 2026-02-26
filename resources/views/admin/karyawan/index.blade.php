@@ -1689,6 +1689,9 @@
                 url: url,
                 method: method,
                 data: data,
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
                 success: function(response) {
                     karyawanModal.hide();
                     showAlert(response.message, 'success');
@@ -1887,6 +1890,9 @@
                     $.ajax({
                         url: `/api/karyawan/${id}`,
                         method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                        },
                         success: function(response) {
                             Swal.fire({
                                 title: 'Berhasil!',
