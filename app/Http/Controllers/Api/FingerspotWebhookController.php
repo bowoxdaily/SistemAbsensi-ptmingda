@@ -1080,7 +1080,7 @@ class FingerspotWebhookController extends Controller
 
                     // Check if this scan already exists in our logs (avoid duplicates)
                     $pin = $attlogData['pin'] ?? null;
-                    $scanTime = $attlogData['scan'] ?? $attlogData['datetime'] ?? null;
+                    $scanTime = $attlogData['scan'] ?? $attlogData['datetime'] ?? $attlogData['scan_date'] ?? $attlogData['date_time'] ?? null;
 
                     if ($pin && $scanTime) {
                         $existingLog = FingerspotLog::where('pin', $pin)
