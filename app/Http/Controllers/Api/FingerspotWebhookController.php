@@ -987,6 +987,19 @@ class FingerspotWebhookController extends Controller
             ], 400);
         }
 
+        // Append date filter if provided — reduces fetched records significantly
+        $syncDate = $request->input('sync_date');
+        if ($syncDate) {
+            try {
+                $syncDate = Carbon::parse($syncDate)->format('Y-m-d');
+                $separator = str_contains($apiUrl, '?') ? '&' : '?';
+                $apiUrl .= $separator . 'date=' . $syncDate;
+                Log::info('Fingerspot: Syncing with date filter', ['date' => $syncDate, 'url' => $apiUrl]);
+            } catch (\Exception $e) {
+                $syncDate = null; // Invalid date — ignore filter
+            }
+        }
+
         try {
             // Fetch data from external API
             $client = new \GuzzleHttp\Client([
@@ -1115,14 +1128,16 @@ class FingerspotWebhookController extends Controller
             // Update last sync time
             $setting->updateLastSync();
 
+            $dateInfo = $syncDate ? " (tanggal: {$syncDate})" : '';
             return response()->json([
                 'success' => true,
-                'message' => "Sync completed. Processed: {$processed}, Failed: {$failed}, Skipped (duplicates): {$skipped}",
+                'message' => "Sync completed{$dateInfo}. Processed: {$processed}, Failed: {$failed}, Skipped (duplicates): {$skipped}",
                 'data' => [
                     'total' => count($attlogs),
                     'processed' => $processed,
                     'failed' => $failed,
                     'skipped' => $skipped,
+                    'sync_date' => $syncDate,
                 ]
             ]);
         } catch (\GuzzleHttp\Exception\RequestException $e) {

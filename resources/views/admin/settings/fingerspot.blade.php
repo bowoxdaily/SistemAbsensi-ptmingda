@@ -342,11 +342,13 @@
                             <div class="input-group">
                                 <input type="url" class="form-control" id="edit_api_url" name="api_url"
                                     placeholder="https://api.mingda.my.id/get_webhook.php">
+                                <input type="date" class="form-control" id="edit_sync_date"
+                                    style="max-width:150px" title="Filter per tanggal (kosongkan untuk semua data)">
                                 <button class="btn btn-success" type="button" id="sync-from-api">
                                     <i class="bx bx-sync"></i> Sync Now
                                 </button>
                             </div>
-                            <small class="text-muted">URL untuk fetch data attlog (mode pull)</small>
+                            <small class="text-muted">Pilih tanggal untuk sync per hari, kosongkan untuk semua data.</small>
                         </div>
 
                         <div class="mb-3">
@@ -857,33 +859,38 @@
 
             // Sync from API (Pull mode)
             $('#sync-from-api').on('click', function() {
-                const apiUrl = $('#edit_api_url').val();
+                const apiUrl   = $('#edit_api_url').val();
+                const syncDate = $('#edit_sync_date').val();
                 if (!apiUrl) {
                     Swal.fire('Error', 'API URL belum diisi', 'error');
                     return;
                 }
 
+                const titleText = syncDate
+                    ? `Sync tanggal ${syncDate}?`
+                    : 'Sync Semua Data?';
+                const bodyHtml = syncDate
+                    ? `Mengambil data attlog tanggal <strong>${syncDate}</strong> dari API.`
+                    : 'Mengambil <strong>semua data</strong> dari API. Bisa memakan waktu lebih lama jika data banyak.';
+
                 Swal.fire({
-                    title: 'Sync dari API?',
-                    text: 'Sistem akan mengambil data attlog dari API dan memprosesnya.',
+                    title: titleText,
+                    html: bodyHtml,
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonText: 'Ya, Sync Sekarang',
                     cancelButtonText: 'Batal',
                     showLoaderOnConfirm: true,
                     preConfirm: () => {
+                        const payload = { api_url: apiUrl };
+                        if (syncDate) payload.sync_date = syncDate;
                         return $.ajax({
                             url: '/api/settings/fingerspot/fetch',
                             method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': csrfToken
-                            },
-                            data: {
-                                api_url: apiUrl
-                            }
-                        }).then(response => {
-                            return response;
-                        }).catch(error => {
+                            headers: { 'X-CSRF-TOKEN': csrfToken },
+                            data: payload
+                        }).then(response => response)
+                        .catch(error => {
                             Swal.showValidationMessage(
                                 error.responseJSON?.message || 'Gagal sync dari API'
                             );
@@ -898,6 +905,7 @@
                             title: 'Sync Berhasil',
                             html: `
                                 <div class="text-start">
+                                    ${syncDate ? `<p class="text-muted"><i class="bx bx-calendar"></i> Tanggal: <strong>${syncDate}</strong></p>` : ''}
                                     <p><strong>Total Records:</strong> ${data.total}</p>
                                     <p><strong>Berhasil:</strong> ${data.processed}</p>
                                     <p><strong>Gagal:</strong> ${data.failed}</p>
