@@ -1358,7 +1358,7 @@
                         const data = response.data;
                         const emp  = data.employee;
 
-                        // Parse date safely
+                        // Parse date safely dari data absensi yang ada
                         let attendanceDate = '';
                         const dateStr = String(data.attendance_date || '');
                         const match   = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);

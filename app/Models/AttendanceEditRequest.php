@@ -26,8 +26,8 @@ class AttendanceEditRequest extends Model
     ];
 
     protected $casts = [
-        'old_attendance_date' => 'date',
-        'new_attendance_date' => 'date',
+        'old_attendance_date' => 'date:Y-m-d',
+        'new_attendance_date' => 'date:Y-m-d',
         'reviewed_at'         => 'datetime',
     ];
 

@@ -69,6 +69,17 @@ class AttendanceEditRequestController extends Controller
 
         $requests = $query->latest()->paginate($request->get('per_page', 15));
 
+        // Explicitly format date fields to avoid timezone shift in JS
+        $requests->getCollection()->transform(function ($item) {
+            $item->old_attendance_date = $item->old_attendance_date
+                ? Carbon::parse($item->old_attendance_date)->format('Y-m-d')
+                : null;
+            $item->new_attendance_date = $item->new_attendance_date
+                ? Carbon::parse($item->new_attendance_date)->format('Y-m-d')
+                : null;
+            return $item;
+        });
+
         return response()->json([
             'success' => true,
             'data'    => $requests,
