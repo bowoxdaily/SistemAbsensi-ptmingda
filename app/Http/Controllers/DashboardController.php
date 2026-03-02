@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Employee;
 use App\Models\Attendance;
 use App\Models\Leave;
+use App\Models\AttendanceEditRequest;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
@@ -48,12 +49,18 @@ class DashboardController extends Controller
             'tidakHadirHariIni' => Attendance::whereDate('attendance_date', today())
                 ->where('status', 'alpha')->count(),
             'totalCutiPending' => Leave::where('status', 'pending')->count(),
+            'totalEditRequestPending' => AttendanceEditRequest::where('status', 'pending')->count(),
             'absensiTerbaru' => Attendance::with(['employee.department', 'employee.position'])
                 ->whereDate('attendance_date', today())
                 ->latest()
                 ->take(5)
                 ->get(),
             'cutiPending' => Leave::with(['employee'])
+                ->where('status', 'pending')
+                ->latest()
+                ->take(5)
+                ->get(),
+            'editRequestsPending' => AttendanceEditRequest::with(['attendance.employee'])
                 ->where('status', 'pending')
                 ->latest()
                 ->take(5)

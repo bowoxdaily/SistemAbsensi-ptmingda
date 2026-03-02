@@ -99,6 +99,15 @@
                             <div data-i18n="Leave">Cuti & Izin</div>
                         </a>
                     </li>
+                    <li class="menu-item {{ request()->routeIs('admin.attendance.edit-requests') ? 'active' : '' }}">
+                        <a href="{{ route('admin.attendance.edit-requests') }}" class="menu-link">
+                            <div data-i18n="Edit Request">Request Edit Absensi</div>
+                            @php $pendingEditCount = \App\Models\AttendanceEditRequest::where('status','pending')->count(); @endphp
+                            @if($pendingEditCount > 0)
+                                <span class="badge bg-danger badge-notifications ms-auto">{{ $pendingEditCount }}</span>
+                            @endif
+                        </a>
+                    </li>
                 </ul>
             </li>
 

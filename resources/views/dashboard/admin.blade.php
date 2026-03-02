@@ -103,17 +103,36 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-12 mb-4">
-                    <div class="card">
+                <div class="col-6 mb-4">
+                    <div class="card h-100">
                         <div class="card-body">
                             <div class="card-title d-flex align-items-start justify-content-between">
                                 <div class="avatar flex-shrink-0">
                                     <i class="bx bx-calendar-event bx-md text-warning"></i>
                                 </div>
                             </div>
-                            <span>Pengajuan Cuti Pending</span>
+                            <span>Cuti Pending</span>
                             <h3 class="card-title text-nowrap mb-1">{{ $totalCutiPending }}</h3>
                             <small class="text-warning fw-semibold">Menunggu Approval</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="card-title d-flex align-items-start justify-content-between">
+                                <div class="avatar flex-shrink-0">
+                                    <i class="bx bx-edit-alt bx-md text-info"></i>
+                                </div>
+                                @if($totalEditRequestPending > 0)
+                                    <div class="dropdown">
+                                        <span class="badge bg-danger rounded-pill">{{ $totalEditRequestPending }}</span>
+                                    </div>
+                                @endif
+                            </div>
+                            <span>Request Edit</span>
+                            <h3 class="card-title text-nowrap mb-1">{{ $totalEditRequestPending }}</h3>
+                            <small class="text-info fw-semibold">Perlu Direview</small>
                         </div>
                     </div>
                 </div>
@@ -277,16 +296,16 @@
         </div>
     </div>
 
-    <!-- Pengajuan Cuti Pending -->
+    <!-- Pengajuan Cuti Pending + Request Edit Absensi + Grafik -->
     <div class="row">
-        <div class="col-md-6 col-lg-6 mb-4">
-            <div class="card">
+        <div class="col-md-4 col-lg-4 mb-4">
+            <div class="card h-100">
                 <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
                     <h5 class="card-title m-0">
-                        <span class="d-none d-sm-inline">Pengajuan Cuti Pending</span>
-                        <span class="d-sm-none">Cuti Pending</span>
+                        <span class="d-none d-sm-inline">Cuti Pending</span>
+                        <span class="d-sm-none">Cuti</span>
                     </h5>
-                    <a href="#" class="btn btn-sm btn-outline-primary">
+                    <a href="{{ route('admin.leave.index') }}" class="btn btn-sm btn-outline-primary">
                         <span class="d-none d-sm-inline">Lihat Semua</span>
                         <span class="d-sm-none">Semua</span>
                     </a>
@@ -320,9 +339,52 @@
             </div>
         </div>
 
+        <!-- Request Edit Absensi Pending -->
+        <div class="col-md-4 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <h5 class="card-title m-0 d-flex align-items-center gap-2">
+                        <span>Request Edit Absensi</span>
+                        @if($totalEditRequestPending > 0)
+                            <span class="badge bg-danger rounded-pill">{{ $totalEditRequestPending }}</span>
+                        @endif
+                    </h5>
+                    <a href="{{ route('admin.attendance.edit-requests') }}" class="btn btn-sm btn-outline-info">
+                        <span class="d-none d-sm-inline">Lihat Semua</span>
+                        <span class="d-sm-none">Semua</span>
+                    </a>
+                </div>
+                <div class="card-body">
+                    @forelse($editRequestsPending as $req)
+                        @php $emp = $req->attendance->employee ?? null; @endphp
+                        <div class="d-flex justify-content-between align-items-start mb-3 pb-3 border-bottom">
+                            <div class="flex-grow-1 me-2">
+                                <h6 class="mb-1">{{ $emp->name ?? '-' }}</h6>
+                                <small class="text-muted">
+                                    <i class='bx bx-calendar'></i>
+                                    {{ $req->old_attendance_date ? \Carbon\Carbon::parse($req->old_attendance_date)->format('d M Y') : '-' }}
+                                </small><br>
+                                <small class="text-muted text-truncate d-block" style="max-width:180px;" title="{{ $req->reason }}">
+                                    <i class='bx bx-message-detail'></i> {{ $req->reason }}
+                                </small>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center py-3">
+                            <i class='bx bx-edit-alt' style="font-size: 48px; color: #ccc;"></i>
+                            <p class="text-muted mt-2 mb-0">Tidak ada request edit pending</p>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+
         <!-- Grafik Statistik Mingguan -->
-        <div class="col-md-6 col-lg-6 mb-4">
-            <div class="card">
+        <div class="col-md-4 col-lg-4 mb-4">
+            <div class="card h-100">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
                         <span class="d-none d-sm-inline">Statistik Absensi 7 Hari Terakhir</span>

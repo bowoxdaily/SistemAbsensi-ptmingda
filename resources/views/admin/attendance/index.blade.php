@@ -3,7 +3,10 @@
 @section('title', 'Daftar Absensi Karyawan')
 
 @section('content')
-    @php $isViewer = Auth::user()->role === 'viewer'; @endphp
+    @php
+        $isViewer  = Auth::user()->role === 'viewer';
+        $isManager = Auth::user()->role === 'manager';
+    @endphp
     <div class="container-xxl flex-grow-1 container-p-y">
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -356,10 +359,17 @@
                                                     <i class="bx bx-detail me-1"></i> Detail
                                                 </a>
                                                 @if(!$isViewer)
+                                                @if($isManager)
                                                 <a class="dropdown-item edit-btn" href="javascript:void(0);"
                                                     data-id="{{ $attendance->id }}">
-                                                    <i class="bx bx-edit me-1"></i> Edit
+                                                    <i class="bx bx-edit me-1"></i> Edit Langsung
                                                 </a>
+                                                @else
+                                                <a class="dropdown-item request-edit-btn" href="javascript:void(0);"
+                                                    data-id="{{ $attendance->id }}">
+                                                    <i class="bx bx-edit-alt me-1"></i> Request Edit
+                                                </a>
+                                                @endif
                                                 <a class="dropdown-item text-danger delete-btn" href="javascript:void(0);"
                                                     data-id="{{ $attendance->id }}"
                                                     data-name="{{ $attendance->employee->name }}"
@@ -448,10 +458,17 @@
                                                 <i class="bx bx-detail me-1"></i> Detail
                                             </a>
                                             @if(!$isViewer)
+                                            @if($isManager)
                                             <a class="dropdown-item edit-btn" href="javascript:void(0);"
                                                 data-id="{{ $attendance->id }}">
-                                                <i class="bx bx-edit me-1"></i> Edit
+                                                <i class="bx bx-edit me-1"></i> Edit Langsung
                                             </a>
+                                            @else
+                                            <a class="dropdown-item request-edit-btn" href="javascript:void(0);"
+                                                data-id="{{ $attendance->id }}">
+                                                <i class="bx bx-edit-alt me-1"></i> Request Edit
+                                            </a>
+                                            @endif
                                             <a class="dropdown-item text-danger delete-btn" href="javascript:void(0);"
                                                 data-id="{{ $attendance->id }}"
                                                 data-name="{{ $attendance->employee->name }}"
@@ -734,6 +751,85 @@
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
                         <button type="submit" class="btn btn-primary" id="saveEditBtn">
                             <i class="bx bx-save me-1"></i> Simpan Perubahan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- ───── Request Edit Modal (Admin → butuh persetujuan Manager) ───── --}}
+    <div class="modal fade" id="requestEditModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title">
+                        <i class='bx bx-edit-alt me-1'></i> Request Edit Absensi
+                        <small class="d-block fw-normal fs-6">Perlu persetujuan Manager</small>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="requestEditForm">
+                    <div class="modal-body">
+                        <div class="alert alert-info shadow-none border mb-3">
+                            <i class='bx bx-info-circle me-1'></i>
+                            Perubahan <strong>tidak langsung diterapkan</strong>. Manager akan mereview dan menyetujui
+                            request ini sebelum data absensi berubah.
+                        </div>
+
+                        <input type="hidden" id="req_attendance_id" name="attendance_id">
+
+                        <div class="mb-3">
+                            <label class="form-label">Karyawan</label>
+                            <input type="text" class="form-control" id="req_employee_name" readonly>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Tanggal Absensi Baru <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="req_attendance_date"
+                                    name="new_attendance_date" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Status Baru <span class="text-danger">*</span></label>
+                                <select class="form-select" id="req_status" name="new_status" required>
+                                    <option value="hadir">Hadir</option>
+                                    <option value="terlambat">Terlambat</option>
+                                    <option value="lembur">Lembur</option>
+                                    <option value="izin">Izin</option>
+                                    <option value="sakit">Sakit</option>
+                                    <option value="cuti">Cuti</option>
+                                    <option value="cuti_khusus">Cuti Khusus</option>
+                                    <option value="cuti_bersama">Cuti Bersama</option>
+                                    <option value="off">Off</option>
+                                    <option value="libur">Libur</option>
+                                    <option value="alpha">Alpha</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row" id="req_time_section">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Check In Baru</label>
+                                <input type="time" class="form-control" id="req_check_in" name="new_check_in">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Check Out Baru</label>
+                                <input type="time" class="form-control" id="req_check_out" name="new_check_out">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Alasan Perubahan <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="req_reason" name="reason" rows="3"
+                                placeholder="Jelaskan mengapa data absensi perlu diubah..." required></textarea>
+                            <small class="text-muted">Wajib diisi agar manager dapat mengevaluasi request ini.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-warning text-dark fw-semibold" id="saveRequestEditBtn">
+                            <i class="bx bx-send me-1"></i> Kirim Request
                         </button>
                     </div>
                 </form>
@@ -1247,6 +1343,107 @@
                         // Re-enable submit button
                         $('#saveEditBtn').prop('disabled', false).html(
                             '<i class="bx bx-save me-1"></i> Simpan Perubahan');
+                    }
+                });
+            });
+
+            // ── Request Edit (Admin → mengirim ke approval Manager) ──
+            $(document).on('click', '.request-edit-btn', function() {
+                const id = $(this).data('id');
+
+                $.ajax({
+                    url: `/api/admin/attendance/${id}/detail`,
+                    method: 'GET',
+                    success: function(response) {
+                        const data = response.data;
+                        const emp  = data.employee;
+
+                        // Parse date safely
+                        let attendanceDate = '';
+                        const dateStr = String(data.attendance_date || '');
+                        const match   = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+                        if (match) attendanceDate = `${match[1]}-${match[2]}-${match[3]}`;
+
+                        // Fill form
+                        $('#req_attendance_id').val(data.id);
+                        $('#req_employee_name').val(`${emp.employee_code} - ${emp.name}`);
+                        $('#req_attendance_date').val(attendanceDate);
+                        $('#req_check_in').val(data.check_in ? data.check_in.substring(0, 5) : '');
+                        $('#req_check_out').val(data.check_out ? data.check_out.substring(0, 5) : '');
+                        $('#req_status').val(data.status);
+                        $('#req_reason').val('');
+
+                        // Show/hide time section
+                        updateReqTimeFields(data.status);
+
+                        new bootstrap.Modal(document.getElementById('requestEditModal')).show();
+                    },
+                    error: function() {
+                        Swal.fire('Gagal!', 'Gagal memuat data absensi', 'error');
+                    }
+                });
+            });
+
+            function updateReqTimeFields(status) {
+                const hasTime = ['hadir', 'terlambat', 'lembur'];
+                if (hasTime.includes(status)) {
+                    $('#req_time_section').show();
+                } else {
+                    $('#req_time_section').hide();
+                    $('#req_check_in').val('');
+                    $('#req_check_out').val('');
+                }
+            }
+            $('#req_status').on('change', function() { updateReqTimeFields($(this).val()); });
+
+            // Submit request edit
+            $('#requestEditForm').on('submit', function(e) {
+                e.preventDefault();
+
+                const formData = {
+                    attendance_id:      $('#req_attendance_id').val(),
+                    new_attendance_date: $('#req_attendance_date').val(),
+                    new_check_in:       $('#req_check_in').val() || null,
+                    new_check_out:      $('#req_check_out').val() || null,
+                    new_status:         $('#req_status').val(),
+                    reason:             $('#req_reason').val(),
+                };
+
+                $('#saveRequestEditBtn').prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm me-1"></span> Mengirim...');
+
+                $.ajax({
+                    url: '/api/admin/attendance-edit-requests',
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept':       'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    data: JSON.stringify(formData),
+                    success: function(res) {
+                        bootstrap.Modal.getInstance(document.getElementById('requestEditModal'))?.hide();
+                        Swal.fire({
+                            icon:  'success',
+                            title: 'Request Terkirim!',
+                            html:  res.message + '<br><small class="text-muted">Manager akan mereview request Anda.</small>',
+                            confirmButtonText: 'OK',
+                        });
+                    },
+                    error: function(xhr) {
+                        let msg = xhr.responseJSON?.message ?? 'Terjadi kesalahan';
+                        if (xhr.responseJSON?.errors) {
+                            msg += '<ul class="text-start mt-2">';
+                            for (const [, msgs] of Object.entries(xhr.responseJSON.errors)) {
+                                msg += `<li><small>${msgs.join(', ')}</small></li>`;
+                            }
+                            msg += '</ul>';
+                        }
+                        Swal.fire({ icon: 'error', title: 'Gagal!', html: msg });
+                    },
+                    complete: function() {
+                        $('#saveRequestEditBtn').prop('disabled', false).html(
+                            '<i class="bx bx-send me-1"></i> Kirim Request');
                     }
                 });
             });

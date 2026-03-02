@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AttendanceController;
+use App\Http\Controllers\Admin\AttendanceEditRequestController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\SubDepartmentController;
 use App\Http\Controllers\Admin\KaryawanController;
@@ -54,6 +55,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/admin/karyawan/import', [KaryawanController::class, 'import'])->name('admin.karyawan.import');
         Route::get('/admin/karyawan/template', [KaryawanController::class, 'downloadTemplate'])->name('admin.karyawan.template');
         Route::get('/admin/positions', [PositionController::class, 'dashboard'])->name('admin.positions.index');
+
+        // Attendance Edit Requests (admin submit, manager approve)
+        Route::get('/admin/attendance/edit-requests', [AttendanceEditRequestController::class, 'index'])->name('admin.attendance.edit-requests');
 
         // Attendance Write Routes (admin/manager only)
         Route::get('/admin/attendance/face-detection', [AttendanceController::class, 'faceDetection'])->name('admin.attendance.face-detection');

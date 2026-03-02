@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AttendanceController;
+use App\Http\Controllers\Admin\AttendanceEditRequestController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\SubDepartmentController;
 use App\Http\Controllers\Admin\KaryawanController;
@@ -78,6 +79,21 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('admin/attendance')->group(f
     Route::put('/{id}', [AttendanceController::class, 'update']);
     Route::delete('/{id}', [AttendanceController::class, 'destroy']);
     Route::post('/bulk-delete', [AttendanceController::class, 'bulkDelete']);
+});
+
+// Attendance Edit Requests – submit & read (admin & manager)
+Route::middleware(['web', 'auth', 'admin'])->prefix('admin/attendance-edit-requests')->group(function () {
+    Route::get('/', [AttendanceEditRequestController::class, 'list']);
+    Route::get('/pending-count', [AttendanceEditRequestController::class, 'pendingCount']);
+    Route::get('/stats', [AttendanceEditRequestController::class, 'stats']);
+    Route::get('/{id}/detail', [AttendanceEditRequestController::class, 'detail']);
+    Route::post('/', [AttendanceEditRequestController::class, 'store']);
+});
+
+// Attendance Edit Requests – approve/reject (manager only)
+Route::middleware(['web', 'auth', 'manager'])->prefix('admin/attendance-edit-requests')->group(function () {
+    Route::put('/{id}/approve', [AttendanceEditRequestController::class, 'approve']);
+    Route::put('/{id}/reject', [AttendanceEditRequestController::class, 'reject']);
 });
 
 // Employee Routes (for logged-in employees)
