@@ -18,7 +18,7 @@ class WhatsAppService
     /**
      * Send WhatsApp message
      */
-    public function send($phoneNumber, $message, $image = null)
+    public function send($phoneNumber, $message, $image = null, $customSender = null, $apiKey = null)
     {
         if (!$this->setting || !$this->setting->is_enabled) {
             Log::info('WhatsApp notification disabled or not configured');
@@ -27,9 +27,9 @@ class WhatsAppService
 
         try {
             if ($this->setting->isFonnte()) {
-                return $this->sendViaFonnte($phoneNumber, $message, $image);
+                return $this->sendViaFonnte($phoneNumber, $message, $image, $customSender, $apiKey);
             } elseif ($this->setting->isBaileys()) {
-                return $this->sendViaBaileys($phoneNumber, $message, $image);
+                return $this->sendViaBaileys($phoneNumber, $message, $image, $customSender);
             }
 
             return false;
@@ -40,9 +40,41 @@ class WhatsAppService
     }
 
     /**
+     * Get sender number for specific notification type
+     */
+    protected function getSenderFor($notificationType)
+    {
+        $senderField = $notificationType . '_sender';
+
+        // Use custom sender if set, otherwise use default sender
+        if (isset($this->setting->$senderField) && !empty($this->setting->$senderField)) {
+            return $this->setting->$senderField;
+        }
+
+        return $this->setting->sender;
+    }
+
+    /**
+     * Get API key for specific notification type
+     */
+    protected function getApiKeyFor($notificationType)
+    {
+        $apiKeyField = $notificationType . '_api_key';
+
+        // Use custom API key if set, otherwise use default api_key
+        if (isset($this->setting->$apiKeyField) && !empty($this->setting->$apiKeyField)) {
+            Log::info('Using custom API key for ' . $notificationType);
+            return $this->setting->$apiKeyField;
+        }
+
+        Log::info('Using default API key for ' . $notificationType);
+        return $this->setting->api_key;
+    }
+
+    /**
      * Send via Fonnte API
      */
-    protected function sendViaFonnte($phoneNumber, $message, $image = null)
+    protected function sendViaFonnte($phoneNumber, $message, $image = null, $customSender = null, $apiKey = null)
     {
         $url = 'https://api.fonnte.com/send';
 
@@ -56,13 +88,18 @@ class WhatsAppService
             $data['url'] = $image;
         }
 
+        // Use provided API key or fallback to default
+        $useApiKey = $apiKey ?: $this->setting->api_key;
+
         $response = Http::withHeaders([
-            'Authorization' => $this->setting->api_key,
+            'Authorization' => $useApiKey,
         ])->post($url, $data);
 
         if ($response->successful()) {
             Log::info('WhatsApp sent via Fonnte', [
                 'phone' => $phoneNumber,
+                'custom_sender' => $customSender,
+                'using_custom_api_key' => !is_null($apiKey),
                 'response' => $response->json(),
             ]);
             return true;
@@ -77,8 +114,10 @@ class WhatsAppService
 
     /**
      * Send via Baileys (self-hosted)
+     *
+     * Note: $customSender can be used if your Baileys server supports multiple devices
      */
-    protected function sendViaBaileys($phoneNumber, $message, $image = null)
+    protected function sendViaBaileys($phoneNumber, $message, $image = null, $customSender = null)
     {
         $url = rtrim($this->setting->api_url, '/') . '/send-message';
 
@@ -86,6 +125,11 @@ class WhatsAppService
             'phone' => $this->formatPhoneNumber($phoneNumber),
             'message' => $message,
         ];
+
+        // If your Baileys server supports sender selection, uncomment below:
+        // if ($customSender) {
+        //     $data['sender'] = $customSender;
+        // }
 
         if ($image) {
             $data['image'] = $image;
@@ -665,5 +709,159 @@ class WhatsAppService
             "*{net_salary}*\n\n" .
             "📅 Tanggal Pembayaran: {payment_date}\n\n" .
             "Terima kasih atas dedikasi Anda! 🙏";
+    }
+
+    /**
+     * Send warning letter notification to employee
+     */
+    public function sendWarningLetterNotification($warningLetter)
+    {
+        Log::info('sendWarningLetterNotification called', [
+            'sp_id' => $warningLetter->id,
+            'has_setting' => !is_null($this->setting),
+            'is_enabled' => $this->setting ? $this->setting->is_enabled : false,
+            'notify_warning_letter' => $this->setting ? ($this->setting->notify_warning_letter ?? 'not set') : 'no setting',
+        ]);
+
+        if (!$this->setting || !$this->setting->is_enabled) {
+            Log::warning('WhatsApp service is disabled', [
+                'has_setting' => !is_null($this->setting),
+                'is_enabled' => $this->setting ? $this->setting->is_enabled : false,
+            ]);
+            return false;
+        }
+
+        // Check notify_warning_letter setting (optional, defaults to true if not set)
+        if (isset($this->setting->notify_warning_letter) && !$this->setting->notify_warning_letter) {
+            Log::info('Warning letter notification is disabled in settings');
+            return false;
+        }
+
+        // Load relations
+        if (!$warningLetter->relationLoaded('employee')) {
+            $warningLetter->load('employee');
+        }
+        if (!$warningLetter->relationLoaded('issuer')) {
+            $warningLetter->load('issuer');
+        }
+
+        $employee = $warningLetter->employee;
+
+        Log::info('Employee data', [
+            'employee_id' => $warningLetter->employee_id,
+            'has_employee' => !is_null($employee),
+            'employee_name' => $employee->name ?? 'N/A',
+            'employee_phone' => $employee->phone ?? 'N/A',
+        ]);
+
+        if (!$employee || !$employee->phone) {
+            Log::warning('Employee phone number not found for warning letter notification', [
+                'employee_id' => $warningLetter->employee_id,
+                'has_employee' => !is_null($employee),
+                'phone' => $employee->phone ?? 'null',
+            ]);
+            return false;
+        }
+
+        // Get template
+        $template = $this->setting->warning_letter_template ?: $this->getDefaultWarningLetterTemplate();
+
+        // SP type labels
+        $spTypeLabel = [
+            'SP1' => 'SP 1 (Peringatan Pertama)',
+            'SP2' => 'SP 2 (Peringatan Kedua)',
+            'SP3' => 'SP 3 (Peringatan Terakhir)',
+        ];
+
+        // Replace variables
+        $message = str_replace(
+            [
+                '{employee_name}',
+                '{sp_type}',
+                '{sp_number}',
+                '{violation}',
+                '{issue_date}',
+                '{effective_date}',
+                '{issued_by}',
+            ],
+            [
+                $employee->name ?? 'N/A',
+                $spTypeLabel[$warningLetter->sp_type] ?? $warningLetter->sp_type,
+                $warningLetter->sp_number,
+                $warningLetter->violation,
+                $warningLetter->issue_date->format('d/m/Y'),
+                $warningLetter->effective_date->format('d/m/Y'),
+                $warningLetter->issuer->name ?? 'HRD',
+            ],
+            $template
+        );
+
+        // Send notification with document link (if available)
+        $documentUrl = null;
+        if ($warningLetter->document_path) {
+            $documentUrl = asset('storage/' . $warningLetter->document_path);
+        }
+
+        Log::info('Preparing to send WA', [
+            'phone' => $employee->phone,
+            'has_document' => !is_null($documentUrl),
+            'message_length' => strlen($message),
+            'sender' => $this->getSenderFor('warning_letter'),
+            'api_key' => $this->getApiKeyFor('warning_letter') ? 'custom' : 'default',
+        ]);
+
+        // Get custom sender and API key for warning letter notifications
+        $sender = $this->getSenderFor('warning_letter');
+        $apiKey = $this->getApiKeyFor('warning_letter');
+
+        $result = $this->send($employee->phone, $message, $documentUrl, $sender, $apiKey);
+
+        Log::info('WA send result', [
+            'result' => $result ? 'success' : 'failed',
+            'sp_id' => $warningLetter->id,
+            'sender_used' => $sender,
+            'api_key_used' => $apiKey ? 'custom' : 'default',
+        ]);
+
+        if ($result) {
+            // Update wa_sent_at and wa_message
+            $warningLetter->update([
+                'wa_sent_at' => now(),
+                'wa_message' => $message,
+            ]);
+
+            Log::info('Warning letter notification sent to employee', [
+                'sp_id' => $warningLetter->id,
+                'employee_name' => $employee->name,
+                'sp_type' => $warningLetter->sp_type,
+            ]);
+        } else {
+            Log::warning('Failed to send warning letter notification', [
+                'sp_id' => $warningLetter->id,
+                'employee_id' => $warningLetter->employee_id,
+            ]);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get default warning letter template
+     */
+    protected function getDefaultWarningLetterTemplate(): string
+    {
+        return "⚠️ *SURAT PERINGATAN*\n\n" .
+            "Kepada Yth.\n" .
+            "*{employee_name}*\n\n" .
+            "Dengan ini kami sampaikan *{sp_type}* dengan detail sebagai berikut:\n\n" .
+            "📄 Nomor: *{sp_number}*\n" .
+            "📅 Tanggal Terbit: {issue_date}\n" .
+            "📅 Berlaku: {effective_date}\n\n" .
+            "⚠️ *Pelanggaran:*\n" .
+            "{violation}\n\n" .
+            "Dokumen SP akan dikirimkan melalui pesan ini.\n" .
+            "Mohon untuk membaca dan memahami isi surat peringatan dengan seksama.\n\n" .
+            "Diterbitkan oleh: {issued_by}\n" .
+            "HRD PT Mingda Indonesia Furniture";
     }
 }

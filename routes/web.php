@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\PayrollController;
 use App\Http\Controllers\Admin\InterviewController;
 use App\Http\Controllers\Admin\BroadcastController;
 use App\Http\Controllers\Admin\RekapitulasiController;
+use App\Http\Controllers\Admin\WarningLetterController;
 use App\Http\Controllers\InterviewScanController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
@@ -112,6 +113,9 @@ Route::middleware(['auth'])->group(function () {
 
         // Admin Profile
         Route::get('/admin/profile', [\App\Http\Controllers\Admin\AdminProfileController::class, 'index'])->name('admin.profile.index');
+
+        // Warning Letters Management (View only - API handles POST/PUT/DELETE)
+        Route::get('/admin/warning-letters', [WarningLetterController::class, 'index'])->name('admin.warning-letters.index');
     });
 
     // Payroll Management (Manager only)
@@ -126,6 +130,9 @@ Route::middleware(['auth'])->group(function () {
 
     // Employee Leave (View only - API handles POST/DELETE)
     Route::get('/employee/leave', [\App\Http\Controllers\Employee\LeaveController::class, 'index'])->name('employee.leave.index');
+
+    // Employee Warning Letters (View only - Read-only)
+    Route::get('/employee/warning-letters', [\App\Http\Controllers\Employee\WarningLetterController::class, 'index'])->name('employee.warning-letters.index');
 
     // Employee Payroll (View only)
     Route::get('/employee/payroll', [\App\Http\Controllers\Employee\PayrollController::class, 'index'])->name('employee.payroll.index');

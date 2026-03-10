@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\PositionController;
 use App\Http\Controllers\Admin\PayrollController;
 use App\Http\Controllers\Admin\InterviewController;
 use App\Http\Controllers\Admin\BroadcastController;
+use App\Http\Controllers\Admin\WarningLetterController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -166,6 +167,31 @@ Route::middleware(['web', 'auth'])->prefix('employee/leave')->group(function () 
     Route::get('/', [\App\Http\Controllers\Employee\LeaveController::class, 'index']);
     Route::post('/', [\App\Http\Controllers\Employee\LeaveController::class, 'store']);
     Route::delete('/{id}', [\App\Http\Controllers\Employee\LeaveController::class, 'cancel']);
+});
+
+// Warning Letters Management API (admin, manager, viewer - full access)
+Route::middleware(['web', 'auth', 'viewer'])->prefix('admin/warning-letters')->group(function () {
+    Route::get('/', [WarningLetterController::class, 'list']);
+    Route::get('/statistics', [WarningLetterController::class, 'statistics']);
+    Route::post('/generate-number', [WarningLetterController::class, 'generateNumber']);
+    Route::post('/check-employee-sp', [WarningLetterController::class, 'checkEmployeeSP']);
+    Route::post('/', [WarningLetterController::class, 'store']);
+    Route::get('/{id}', [WarningLetterController::class, 'show']);
+    Route::put('/{id}', [WarningLetterController::class, 'update']);
+    Route::delete('/{id}', [WarningLetterController::class, 'destroy']);
+    Route::post('/{id}/cancel', [WarningLetterController::class, 'cancel']);
+    Route::post('/{id}/upload-document', [WarningLetterController::class, 'uploadDocument']);
+    Route::post('/{id}/send-notification', [WarningLetterController::class, 'sendNotification']);
+    Route::post('/bulk-send-notification', [WarningLetterController::class, 'bulkSendNotification']);
+    Route::get('/{id}/download', [WarningLetterController::class, 'downloadDocument']);
+});
+
+// Employee Warning Letters API (Read-only)
+Route::middleware(['web', 'auth'])->prefix('employee/warning-letters')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Employee\WarningLetterController::class, 'list']);
+    Route::get('/statistics', [\App\Http\Controllers\Employee\WarningLetterController::class, 'statistics']);
+    Route::get('/{id}', [\App\Http\Controllers\Employee\WarningLetterController::class, 'show']);
+    Route::get('/{id}/download', [\App\Http\Controllers\Employee\WarningLetterController::class, 'downloadDocument']);
 });
 
 // Interview Management API (Admin)

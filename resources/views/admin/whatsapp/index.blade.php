@@ -42,7 +42,7 @@
 
                             <!-- Fonnte API Key -->
                             <div class="mb-3">
-                                <label class="form-label" for="api_key">Fonnte API Key</label>
+                                <label class="form-label" for="api_key">Fonnte API Key (Default)</label>
                                 <div class="input-group">
                                     <input type="text" class="form-control @error('api_key') is-invalid @enderror"
                                         id="api_key" name="api_key" value="{{ old('api_key', $setting->api_key) }}"
@@ -62,7 +62,7 @@
 
                             <!-- Sender Number -->
                             <div class="mb-3">
-                                <label class="form-label" for="sender">Nomor Pengirim (Optional)</label>
+                                <label class="form-label" for="sender">Nomor Pengirim Default (Optional)</label>
                                 <input type="text" class="form-control @error('sender') is-invalid @enderror"
                                     id="sender" name="sender" value="{{ old('sender', $setting->sender) }}"
                                     placeholder="628123456789">
@@ -70,6 +70,129 @@
                                 @error('sender')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
+                            </div>
+
+                            <hr class="my-4">
+
+                            <!-- Custom API Keys & Senders -->
+                            <div class="mb-3">
+                                <h6 class="mb-3">
+                                    <i class='bx bx-key'></i> Custom API Keys & Nomor Pengirim (Optional)
+                                    <button type="button" class="btn btn-sm btn-link" onclick="toggleCustomKeys()">
+                                        <span id="toggleCustomKeysText">Tampilkan</span>
+                                    </button>
+                                </h6>
+                                <div class="form-text mb-3">
+                                    Anda dapat menggunakan API key dan nomor pengirim yang berbeda untuk setiap jenis notifikasi.
+                                    Jika tidak diisi, akan menggunakan API key dan nomor pengirim default di atas.
+                                </div>
+
+                                <div id="customKeysSection" style="display: none;">
+                                    <!-- Check-in -->
+                                    <div class="card mb-3">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Notifikasi Check-in</h6>
+                                            <div class="row">
+                                                <div class="col-md-6 mb-2">
+                                                    <label class="form-label" for="checkin_api_key">API Key</label>
+                                                    <input type="text" class="form-control" id="checkin_api_key" name="checkin_api_key"
+                                                        value="{{ old('checkin_api_key', $setting->checkin_api_key) }}"
+                                                        placeholder="Kosongkan untuk gunakan default">
+                                                </div>
+                                                <div class="col-md-6 mb-2">
+                                                    <label class="form-label" for="checkin_sender">Nomor Pengirim</label>
+                                                    <input type="text" class="form-control" id="checkin_sender" name="checkin_sender"
+                                                        value="{{ old('checkin_sender', $setting->checkin_sender) }}"
+                                                        placeholder="628xxx (kosongkan untuk default)">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Check-out -->
+                                    <div class="card mb-3">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Notifikasi Check-out</h6>
+                                            <div class="row">
+                                                <div class="col-md-6 mb-2">
+                                                    <label class="form-label" for="checkout_api_key">API Key</label>
+                                                    <input type="text" class="form-control" id="checkout_api_key" name="checkout_api_key"
+                                                        value="{{ old('checkout_api_key', $setting->checkout_api_key) }}"
+                                                        placeholder="Kosongkan untuk gunakan default">
+                                                </div>
+                                                <div class="col-md-6 mb-2">
+                                                    <label class="form-label" for="checkout_sender">Nomor Pengirim</label>
+                                                    <input type="text" class="form-control" id="checkout_sender" name="checkout_sender"
+                                                        value="{{ old('checkout_sender', $setting->checkout_sender) }}"
+                                                        placeholder="628xxx (kosongkan untuk default)">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Leave -->
+                                    <div class="card mb-3">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Notifikasi Cuti/Izin</h6>
+                                            <div class="row">
+                                                <div class="col-md-6 mb-2">
+                                                    <label class="form-label" for="leave_api_key">API Key</label>
+                                                    <input type="text" class="form-control" id="leave_api_key" name="leave_api_key"
+                                                        value="{{ old('leave_api_key', $setting->leave_api_key) }}"
+                                                        placeholder="Kosongkan untuk gunakan default">
+                                                </div>
+                                                <div class="col-md-6 mb-2">
+                                                    <label class="form-label" for="leave_sender">Nomor Pengirim</label>
+                                                    <input type="text" class="form-control" id="leave_sender" name="leave_sender"
+                                                        value="{{ old('leave_sender', $setting->leave_sender) }}"
+                                                        placeholder="628xxx (kosongkan untuk default)">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Warning Letter -->
+                                    <div class="card mb-3">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Notifikasi Surat Peringatan (SP)</h6>
+                                            <div class="row">
+                                                <div class="col-md-6 mb-2">
+                                                    <label class="form-label" for="warning_letter_api_key">API Key</label>
+                                                    <input type="text" class="form-control" id="warning_letter_api_key" name="warning_letter_api_key"
+                                                        value="{{ old('warning_letter_api_key', $setting->warning_letter_api_key) }}"
+                                                        placeholder="Kosongkan untuk gunakan default">
+                                                </div>
+                                                <div class="col-md-6 mb-2">
+                                                    <label class="form-label" for="warning_letter_sender">Nomor Pengirim</label>
+                                                    <input type="text" class="form-control" id="warning_letter_sender" name="warning_letter_sender"
+                                                        value="{{ old('warning_letter_sender', $setting->warning_letter_sender) }}"
+                                                        placeholder="628xxx (kosongkan untuk default)">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Payroll -->
+                                    <div class="card mb-3">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Notifikasi Payroll</h6>
+                                            <div class="row">
+                                                <div class="col-md-6 mb-2">
+                                                    <label class="form-label" for="payroll_api_key">API Key</label>
+                                                    <input type="text" class="form-control" id="payroll_api_key" name="payroll_api_key"
+                                                        value="{{ old('payroll_api_key', $setting->payroll_api_key) }}"
+                                                        placeholder="Kosongkan untuk gunakan default">
+                                                </div>
+                                                <div class="col-md-6 mb-2">
+                                                    <label class="form-label" for="payroll_sender">Nomor Pengirim</label>
+                                                    <input type="text" class="form-control" id="payroll_sender" name="payroll_sender"
+                                                        value="{{ old('payroll_sender', $setting->payroll_sender) }}"
+                                                        placeholder="628xxx (kosongkan untuk default)">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Admin Phone for Leave Notifications -->
@@ -83,6 +206,68 @@
                                 @error('admin_phone')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
+                            </div>
+
+                            <hr class="my-4">
+
+                            <!-- SP Number Format Settings -->
+                            <div class="mb-3">
+                                <h6 class="mb-3">
+                                    <i class='bx bx-file-blank'></i> Format Nomor Surat Peringatan (SP)
+                                </h6>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label" for="sp_number_format">Format Nomor Surat</label>
+                                        <input type="text" class="form-control @error('sp_number_format') is-invalid @enderror"
+                                            id="sp_number_format" name="sp_number_format"
+                                            value="{{ old('sp_number_format', $setting->sp_number_format ?? '{sp_type}/{dept}/{counter}/{year}') }}"
+                                            placeholder="{sp_type}/{dept}/{counter}/{year}">
+                                        <div class="form-text">
+                                            <strong>Variabel:</strong> {sp_type}, {dept}, {counter}, {year}, {month}
+                                        </div>
+                                        @error('sp_number_format')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label" for="sp_department_code">Kode Departemen</label>
+                                        <input type="text" class="form-control @error('sp_department_code') is-invalid @enderror"
+                                            id="sp_department_code" name="sp_department_code"
+                                            value="{{ old('sp_department_code', $setting->sp_department_code ?? 'HR') }}"
+                                            placeholder="HR" maxlength="10">
+                                        <div class="form-text">Digunakan di variabel {dept}</div>
+                                        @error('sp_department_code')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label" for="sp_counter_width">Digit Counter</label>
+                                        <select class="form-select @error('sp_counter_width') is-invalid @enderror"
+                                            id="sp_counter_width" name="sp_counter_width">
+                                            <option value="3" {{ (old('sp_counter_width', $setting->sp_counter_width ?? 3) == 3) ? 'selected' : '' }}>3 digit (001)</option>
+                                            <option value="4" {{ (old('sp_counter_width', $setting->sp_counter_width ?? 3) == 4) ? 'selected' : '' }}>4 digit (0001)</option>
+                                            <option value="5" {{ (old('sp_counter_width', $setting->sp_counter_width ?? 3) == 5) ? 'selected' : '' }}>5 digit (00001)</option>
+                                        </select>
+                                        <div class="form-text">Jumlah digit counter</div>
+                                        @error('sp_counter_width')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-info p-2 mb-0">
+                                    <small>
+                                        <strong>Contoh hasil:</strong>
+                                        <ul class="mb-0 ps-3">
+                                            <li><code>{sp_type}/{dept}/{counter}/{year}</code> → SP1/HR/001/2026</li>
+                                            <li><code>{counter}/{sp_type}/{dept}/{month}/{year}</code> → 001/SP1/HR/03/2026</li>
+                                            <li><code>{sp_type}-{counter}-{dept}-{year}</code> → SP1-001-HR-2026</li>
+                                        </ul>
+                                    </small>
+                                </div>
                             </div>
 
                             <hr class="my-4">
@@ -148,12 +333,32 @@
                                     </label>
                                 </div>
 
-                                <div class="form-check form-switch">
+                                <div class="form-check form-switch mb-2">
                                     <input class="form-check-input" type="checkbox" id="notify_leave_rejected"
                                         name="notify_leave_rejected"
                                         {{ $setting->notify_leave_rejected ? 'checked' : '' }}>
                                     <label class="form-check-label" for="notify_leave_rejected">
                                         Kirim ke karyawan saat cuti ditolak
+                                    </label>
+                                </div>
+
+                                <h6 class="mt-3 mb-2">Notifikasi Surat Peringatan (SP)</h6>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="notify_warning_letter"
+                                        name="notify_warning_letter"
+                                        {{ $setting->notify_warning_letter ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="notify_warning_letter">
+                                        Kirim notifikasi saat SP diterbitkan
+                                    </label>
+                                </div>
+
+                                <h6 class="mt-3 mb-2">Notifikasi Payroll</h6>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="notify_payroll"
+                                        name="notify_payroll"
+                                        {{ $setting->notify_payroll ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="notify_payroll">
+                                        Kirim notifikasi slip gaji
                                     </label>
                                 </div>
                             </div>
@@ -217,6 +422,14 @@
 
                             @if ($setting->notify_leave_rejected)
                                 <input type="hidden" name="notify_leave_rejected" value="1">
+                            @endif
+
+                            @if ($setting->notify_warning_letter)
+                                <input type="hidden" name="notify_warning_letter" value="1">
+                            @endif
+
+                            @if ($setting->notify_payroll)
+                                <input type="hidden" name="notify_payroll" value="1">
                             @endif
 
                             <h5 class="mb-3">Template Absensi</h5>
@@ -291,6 +504,36 @@
                                     {end_date}, {total_days}, {rejection_reason}, {approved_by}
                                 </div>
                                 @error('leave_rejected_template')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <h5 class="mb-3 mt-4">Template Surat Peringatan (SP)</h5>
+
+                            <!-- Warning Letter Template -->
+                            <div class="mb-4">
+                                <label class="form-label" for="warning_letter_template">Template Surat Peringatan (ke Karyawan)</label>
+                                <textarea class="form-control @error('warning_letter_template') is-invalid @enderror" id="warning_letter_template"
+                                    name="warning_letter_template" rows="8">{{ old('warning_letter_template', $setting->warning_letter_template ?? \App\Models\WhatsAppSetting::getDefaultWarningLetterTemplate()) }}</textarea>
+                                <div class="form-text">
+                                    <strong>Variabel tersedia:</strong> {employee_name}, {sp_type}, {sp_number}, {violation}, {issue_date}, {effective_date}, {issued_by}
+                                </div>
+                                @error('warning_letter_template')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <h5 class="mb-3 mt-4">Template Payroll</h5>
+
+                            <!-- Payroll Template -->
+                            <div class="mb-4">
+                                <label class="form-label" for="payroll_template">Template Slip Gaji (ke Karyawan)</label>
+                                <textarea class="form-control @error('payroll_template') is-invalid @enderror" id="payroll_template"
+                                    name="payroll_template" rows="7">{{ old('payroll_template', $setting->payroll_template ?? \App\Models\WhatsAppSetting::getDefaultPayrollTemplate()) }}</textarea>
+                                <div class="form-text">
+                                    <strong>Variabel tersedia:</strong> {employee_name}, {month}, {year}, {total_salary}, {payment_date}
+                                </div>
+                                @error('payroll_template')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
@@ -445,6 +688,26 @@
                             <li><code>{total_days}</code> - Total hari</li>
                             <li><code>{rejection_reason}</code> - Alasan ditolak</li>
                             <li><code>{approved_by}</code> - Ditolak oleh</li>
+                        </ul>
+
+                        <h6 class="small fw-bold mt-3">Surat Peringatan (SP)</h6>
+                        <ul class="small ps-3">
+                            <li><code>{employee_name}</code> - Nama karyawan</li>
+                            <li><code>{sp_type}</code> - Jenis SP (SP1/SP2/SP3)</li>
+                            <li><code>{sp_number}</code> - Nomor surat</li>
+                            <li><code>{violation}</code> - Pelanggaran</li>
+                            <li><code>{issue_date}</code> - Tanggal terbit</li>
+                            <li><code>{effective_date}</code> - Tanggal berlaku</li>
+                            <li><code>{issued_by}</code> - Diterbitkan oleh</li>
+                        </ul>
+
+                        <h6 class="small fw-bold mt-3">Payroll</h6>
+                        <ul class="small ps-3">
+                            <li><code>{employee_name}</code> - Nama karyawan</li>
+                            <li><code>{month}</code> - Bulan</li>
+                            <li><code>{year}</code> - Tahun</li>
+                            <li><code>{total_salary}</code> - Total gaji</li>
+                            <li><code>{payment_date}</code> - Tanggal bayar</li>
                         </ul>
                     </div>
                 </div>
@@ -728,6 +991,20 @@
                     });
                 }
             });
+        }
+
+        // Toggle custom keys section
+        function toggleCustomKeys() {
+            const section = document.getElementById('customKeysSection');
+            const text = document.getElementById('toggleCustomKeysText');
+
+            if (section.style.display === 'none') {
+                section.style.display = 'block';
+                text.textContent = 'Sembunyikan';
+            } else {
+                section.style.display = 'none';
+                text.textContent = 'Tampilkan';
+            }
         }
     </script>
 @endpush

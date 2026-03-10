@@ -14,8 +14,18 @@ class WhatsAppSetting extends Model
     protected $fillable = [
         'provider',
         'api_key',
+        'checkin_api_key',
+        'checkout_api_key',
+        'leave_api_key',
+        'warning_letter_api_key',
+        'payroll_api_key',
         'api_url',
         'sender',
+        'checkin_sender',
+        'checkout_sender',
+        'leave_sender',
+        'warning_letter_sender',
+        'payroll_sender',
         'admin_phone',
         'is_enabled',
         'notify_checkin',
@@ -25,11 +35,18 @@ class WhatsAppSetting extends Model
         'notify_leave_request',
         'notify_leave_approved',
         'notify_leave_rejected',
+        'notify_warning_letter',
+        'notify_payroll',
         'checkin_template',
         'checkout_template',
         'leave_request_template',
         'leave_approved_template',
         'leave_rejected_template',
+        'warning_letter_template',
+        'payroll_template',
+        'sp_number_format',
+        'sp_department_code',
+        'sp_counter_width',
     ];
 
     protected $casts = [
@@ -41,6 +58,8 @@ class WhatsAppSetting extends Model
         'notify_leave_request' => 'boolean',
         'notify_leave_approved' => 'boolean',
         'notify_leave_rejected' => 'boolean',
+        'notify_warning_letter' => 'boolean',
+        'notify_payroll' => 'boolean',
     ];
 
     /**
@@ -138,5 +157,42 @@ class WhatsAppSetting extends Model
             "Alasan Penolakan: {rejection_reason}\n" .
             "Ditolak oleh: {approved_by}\n\n" .
             "_Silakan hubungi HRD untuk informasi lebih lanjut_";
+    }
+
+    /**
+     * Get default warning letter template (notifikasi ke karyawan)
+     */
+    public static function getDefaultWarningLetterTemplate()
+    {
+        return "⚠️ *SURAT PERINGATAN*\n\n" .
+            "Kepada Yth.\n" .
+            "*{employee_name}*\n\n" .
+            "Dengan ini kami sampaikan *{sp_type}* dengan detail sebagai berikut:\n\n" .
+            "📄 Nomor: *{sp_number}*\n" .
+            "📅 Tanggal Terbit: {issue_date}\n" .
+            "📅 Berlaku: {effective_date}\n\n" .
+            "⚠️ *Pelanggaran:*\n" .
+            "{violation}\n\n" .
+            "Dokumen SP akan dikirimkan melalui pesan ini.\n" .
+            "Mohon untuk membaca dan memahami isi surat peringatan dengan seksama.\n\n" .
+            "Diterbitkan oleh: {issued_by}\n" .
+            "HRD PT Mingda Indonesia Furniture";
+    }
+
+    /**
+     * Get default payroll template (notifikasi ke karyawan)
+     */
+    public static function getDefaultPayrollTemplate()
+    {
+        return "💰 *SLIP GAJI*\n\n" .
+            "Yth. {employee_name},\n\n" .
+            "Slip gaji Anda untuk periode:\n" .
+            "Bulan: *{month}*\n" .
+            "Tahun: *{year}*\n\n" .
+            "Total Gaji: *Rp {total_salary}*\n" .
+            "Tanggal Transfer: {payment_date}\n\n" .
+            "Detail slip gaji terlampir.\n" .
+            "Terima kasih atas dedikasi Anda.\n\n" .
+            "_HRD PT Mingda Indonesia Furniture_";
     }
 }

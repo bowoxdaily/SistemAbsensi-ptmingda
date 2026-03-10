@@ -132,6 +132,25 @@
                 </a>
             </li>
 
+            <!-- Menu Header - SDM & Disiplin -->
+            <li class="menu-header small text-uppercase">
+                <span class="menu-header-text">SDM & Disiplin</span>
+            </li>
+
+            <!-- Surat Peringatan -->
+            <li class="menu-item {{ request()->routeIs('admin.warning-letters.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.warning-letters.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-error-circle"></i>
+                    <div data-i18n="WarningLetter">Surat Peringatan</div>
+                    @php
+                        $activeSpCount = \App\Models\WarningLetter::where('status', 'aktif')->count();
+                    @endphp
+                    @if($activeSpCount > 0)
+                        <span class="badge bg-danger badge-notifications ms-auto">{{ $activeSpCount }}</span>
+                    @endif
+                </a>
+            </li>
+
             <!-- Menu Header - Laporan -->
             <li class="menu-header small text-uppercase">
                 <span class="menu-header-text">Laporan</span>
@@ -252,6 +271,24 @@
             </li>
 
             <li class="menu-header small text-uppercase">
+                <span class="menu-header-text">SDM & Disiplin</span>
+            </li>
+
+            <!-- Surat Peringatan -->
+            <li class="menu-item {{ request()->routeIs('admin.warning-letters.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.warning-letters.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-error-circle"></i>
+                    <div data-i18n="WarningLetter">Surat Peringatan</div>
+                    @php
+                        $activeSpCount = \App\Models\WarningLetter::where('status', 'aktif')->count();
+                    @endphp
+                    @if($activeSpCount > 0)
+                        <span class="badge bg-danger badge-notifications ms-auto">{{ $activeSpCount }}</span>
+                    @endif
+                </a>
+            </li>
+
+            <li class="menu-header small text-uppercase">
                 <span class="menu-header-text">Master Data</span>
             </li>
 
@@ -365,6 +402,23 @@
                 <a href="{{ route('employee.leave.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-calendar-event"></i>
                     <div data-i18n="Leave">Cuti & Izin</div>
+                </a>
+            </li>
+
+            <!-- Surat Peringatan -->
+            <li class="menu-item {{ request()->routeIs('employee.warning-letters.*') ? 'active' : '' }}">
+                <a href="{{ route('employee.warning-letters.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-error-circle"></i>
+                    <div data-i18n="MySP">Surat Peringatan</div>
+                    @php
+                        $employee = Auth::user()->employee ?? null;
+                        $myActiveSp = $employee ? \App\Models\WarningLetter::where('employee_id', $employee->id)
+                            ->where('status', 'aktif')
+                            ->count() : 0;
+                    @endphp
+                    @if($myActiveSp > 0)
+                        <span class="badge bg-danger badge-notifications ms-auto">{{ $myActiveSp }}</span>
+                    @endif
                 </a>
             </li>
 
