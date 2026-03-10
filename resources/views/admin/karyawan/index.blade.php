@@ -1050,7 +1050,7 @@
             const select = $('#position_id');
             select.find('option:not(:first)').remove();
             masterData.positions.forEach(pos => {
-                select.append(`<option value="${pos.id}">${pos.name}</option>`);
+                select.append(`<option value="${pos.id}">${pos.display_name}</option>`);
             });
         }
 
@@ -1074,7 +1074,7 @@
             const select = $('#filterPosition');
             select.find('option:not(:first)').remove();
             masterData.positions.forEach(pos => {
-                select.append(`<option value="${pos.id}">${pos.name}</option>`);
+                select.append(`<option value="${pos.id}">${pos.display_name}</option>`);
             });
         }
 

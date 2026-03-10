@@ -319,7 +319,15 @@ class KaryawanController extends Controller
             'success' => true,
             'data' => [
                 'departments' => Department::orderBy('name')->get(),
-                'positions' => Position::orderBy('name')->get(),
+                'positions' => Position::where('status', 'active')->orderBy('name')->orderByRaw('ISNULL(level) ASC')->orderBy('level')->get()->map(function ($p) {
+                    return [
+                        'id' => $p->id,
+                        'code' => $p->code,
+                        'name' => $p->name,
+                        'level' => $p->level,
+                        'display_name' => $p->display_name,
+                    ];
+                }),
                 'work_schedules' => WorkSchedule::where('is_active', true)->orderBy('name')->get(),
                 // Return all sub departments (filtering will be done on frontend)
                 'sub_departments' => \App\Models\SubDepartment::with('department')->orderBy('name')->get(),

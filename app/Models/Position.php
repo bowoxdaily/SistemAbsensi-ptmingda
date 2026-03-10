@@ -10,9 +10,23 @@ class Position extends Model
     protected $fillable = [
         'code',
         'name',
+        'level',
         'description',
         'status',
     ];
+
+    protected $appends = ['display_name'];
+
+    /**
+     * Nama tampilan dengan level (jika ada)
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        if ($this->level) {
+            return $this->name . ' Level ' . $this->level;
+        }
+        return $this->name;
+    }
 
     /**
      * Relasi ke Employees (Karyawans)

@@ -35,16 +35,17 @@
                             <thead>
                                 <tr>
                                     <th style="width: 50px;">#</th>
-                                    <th style="width: 15%;">Kode</th>
-                                    <th style="width: 25%;">Nama Jabatan</th>
-                                    <th style="width: 40%;">Deskripsi</th>
+                                    <th style="width: 12%;">Kode</th>
+                                    <th style="width: 28%;">Nama Jabatan</th>
+                                    <th style="width: 8%;" class="text-center">Level</th>
+                                    <th style="width: 32%;">Deskripsi</th>
                                     <th style="width: 10%;" class="text-center">Status</th>
                                     <th style="width: 60px;" class="text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="table-border-bottom-0" id="positionTableBody">
                                 <tr id="loadingRow">
-                                    <td colspan="6" class="text-center py-4">
+                                    <td colspan="7" class="text-center py-4">
                                         <div class="spinner-border text-primary" role="status">
                                             <span class="visually-hidden">Loading...</span>
                                         </div>
@@ -103,6 +104,20 @@
                         </div>
 
                         <div class="mb-3">
+                            <label for="level" class="form-label">Level</label>
+                            <select class="form-select" id="level" name="level">
+                                <option value="">Tidak Berlevel</option>
+                                <option value="1">Level 1</option>
+                                <option value="2">Level 2</option>
+                                <option value="3">Level 3</option>
+                                <option value="4">Level 4</option>
+                                <option value="5">Level 5</option>
+                            </select>
+                            <div class="form-text text-muted">Isi jika jabatan ini memiliki tingkatan level</div>
+                            <div class="invalid-feedback" id="levelError"></div>
+                        </div>
+
+                        <div class="mb-3">
                             <label for="description" class="form-label">Deskripsi</label>
                             <textarea class="form-control" id="description" name="description" rows="3"
                                 placeholder="Deskripsi jabatan (opsional)"></textarea>
@@ -148,6 +163,10 @@
                         <tr>
                             <th>Nama Jabatan</th>
                             <td id="detailName">-</td>
+                        </tr>
+                        <tr>
+                            <th>Level</th>
+                            <td id="detailLevel">-</td>
                         </tr>
                         <tr>
                             <th>Deskripsi</th>
@@ -208,7 +227,7 @@
 
             if (data.data.length === 0) {
                 tbody.append(`
-                    <tr><td colspan="6" class="text-center py-4">
+                    <tr><td colspan="7" class="text-center py-4">
                         <div class="mb-3"><i class='bx bx-briefcase' style="font-size: 48px; color: #ddd;"></i></div>
                         <p class="text-muted mb-2">Belum ada data jabatan</p>
                         <button class="btn btn-sm btn-primary" onclick="openCreateModal()" data-bs-toggle="modal" data-bs-target="#positionModal">
@@ -232,12 +251,15 @@
                     const statusBadge = getStatusBadge(p.status);
                     const description = p.description ? (p.description.length > 80 ? p.description.substring(0,
                         80) + '...' : p.description) : '-';
+                    const levelBadge = p.level ? `<span class="badge bg-label-info">Level ${p.level}</span>` : '<span class="text-muted">-</span>';
+                    const displayName = p.level ? `${p.name} <small class="text-muted">Lv.${p.level}</small>` : p.name;
 
                     tbody.append(`
                         <tr>
                             <td style="white-space: nowrap;">${rowNumber}</td>
                             <td style="white-space: nowrap;"><strong>${p.code}</strong></td>
-                            <td><strong>${p.name}</strong></td>
+                            <td><strong>${displayName}</strong></td>
+                            <td class="text-center">${levelBadge}</td>
                             <td><small class="text-muted">${description}</small></td>
                             <td class="text-center" style="white-space: nowrap;">${statusBadge}</td>
                             <td class="text-center" style="white-space: nowrap; position: relative;">
@@ -265,7 +287,7 @@
                             <div class="card-body p-3">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
                                     <div class="flex-grow-1">
-                                        <h6 class="mb-1 fw-bold">${p.name}</h6>
+                                        <h6 class="mb-1 fw-bold">${p.name}${p.level ? ` <span class="badge bg-label-info">Level ${p.level}</span>` : ''}</h6>
                                         <p class="text-muted small mb-1">Kode: ${p.code}</p>
                                         <p class="text-muted small mb-2">${description}</p>
                                         ${statusBadge}
@@ -357,6 +379,7 @@
             $('#modalTitle').text('Tambah Jabatan');
             $('#positionId').val('');
             $('#positionForm')[0].reset();
+            $('#level').val('');
             $('.form-control, .form-select').removeClass('is-invalid');
         }
 
@@ -370,6 +393,7 @@
                     $('#positionId').val(p.id);
                     $('#code').val(p.code);
                     $('#name').val(p.name);
+                    $('#level').val(p.level || '');
                     $('#description').val(p.description);
                     $('#status').val(p.status);
                     $('.form-control, .form-select').removeClass('is-invalid');
@@ -386,6 +410,7 @@
             const data = {
                 code: $('#code').val(),
                 name: $('#name').val(),
+                level: $('#level').val() || null,
                 description: $('#description').val(),
                 status: $('#status').val()
             };
@@ -430,7 +455,8 @@
                 success: function(response) {
                     const p = response.data;
                     $('#detailCode').text(p.code);
-                    $('#detailName').text(p.name);
+                    $('#detailName').text(p.level ? `${p.name} Level ${p.level}` : p.name);
+                    $('#detailLevel').html(p.level ? `<span class="badge bg-label-info">Level ${p.level}</span>` : '-');
                     $('#detailDescription').text(p.description || '-');
                     $('#detailStatus').html(getStatusBadge(p.status));
                     detailModal.show();

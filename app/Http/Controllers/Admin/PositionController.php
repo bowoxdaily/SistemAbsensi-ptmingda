@@ -28,12 +28,18 @@ class PositionController extends Controller
         $query = Position::query();
 
         if ($search) {
-            $query->where('name', 'like', "%{$search}%")
-                ->orWhere('code', 'like', "%{$search}%")
-                ->orWhere('description', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('code', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
         }
 
-        $positions = $query->orderBy('name', 'asc')->paginate($perPage);
+        $positions = $query
+            ->orderBy('name', 'asc')
+            ->orderByRaw('ISNULL(level) ASC')
+            ->orderBy('level', 'asc')
+            ->paginate($perPage);
 
         return response()->json([
             'success' => true,
@@ -50,12 +56,16 @@ class PositionController extends Controller
         $validator = Validator::make($request->all(), [
             'code' => 'required|string|max:20|unique:positions,code',
             'name' => 'required|string|max:100',
+            'level' => 'nullable|integer|min:1|max:9',
             'description' => 'nullable|string',
             'status' => 'required|in:active,inactive'
         ], [
             'code.required' => 'Kode jabatan harus diisi',
             'code.unique' => 'Kode jabatan sudah digunakan',
             'name.required' => 'Nama jabatan harus diisi',
+            'level.integer' => 'Level harus berupa angka',
+            'level.min' => 'Level minimal 1',
+            'level.max' => 'Level maksimal 9',
             'status.required' => 'Status harus dipilih'
         ]);
 
@@ -68,7 +78,7 @@ class PositionController extends Controller
         }
 
         try {
-            $position = Position::create($request->only(['code', 'name', 'description', 'status']));
+            $position = Position::create($request->only(['code', 'name', 'level', 'description', 'status']));
 
             return response()->json([
                 'success' => true,
@@ -115,12 +125,16 @@ class PositionController extends Controller
             $validator = Validator::make($request->all(), [
                 'code' => 'required|string|max:20|unique:positions,code,' . $id,
                 'name' => 'required|string|max:100',
+                'level' => 'nullable|integer|min:1|max:9',
                 'description' => 'nullable|string',
                 'status' => 'required|in:active,inactive'
             ], [
                 'code.required' => 'Kode jabatan harus diisi',
                 'code.unique' => 'Kode jabatan sudah digunakan',
                 'name.required' => 'Nama jabatan harus diisi',
+                'level.integer' => 'Level harus berupa angka',
+                'level.min' => 'Level minimal 1',
+                'level.max' => 'Level maksimal 9',
                 'status.required' => 'Status harus dipilih'
             ]);
 
@@ -132,7 +146,8 @@ class PositionController extends Controller
                 ], 422);
             }
 
-            $position->update($request->only(['code', 'name', 'description', 'status']));
+            $position->update($request->only(['code', 'name', 'level', 'description', 'status']));
+            $position->refresh();
 
             return response()->json([
                 'success' => true,
