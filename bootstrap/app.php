@@ -19,7 +19,13 @@ return Application::configure(basePath: dirname(__DIR__))
             'guest_monitor' => \App\Http\Middleware\EnsureUserIsGuest::class,
             'viewer' => \App\Http\Middleware\EnsureUserIsViewer::class,
         ]);
-        
+
+        // Enable Sanctum stateful authentication for API routes (supports both
+        // session-based web clients and Bearer token external apps)
+        $middleware->api(append: [
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        ]);
+
         // Trust proxies for ngrok
         $middleware->trustProxies(at: '*');
     })

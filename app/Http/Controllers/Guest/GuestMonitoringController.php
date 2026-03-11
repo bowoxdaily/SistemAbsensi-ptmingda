@@ -127,9 +127,16 @@ class GuestMonitoringController extends Controller
 
         $paginated = $query->paginate((int) $perPage);
 
+        // Hide sensitive PII and financial data from the public endpoint
+        $items = collect($paginated->items())->map(fn($k) => $k->makeHidden([
+            'fingerspot_pin', 'nik', 'ktp', 'kartu_keluarga', 'tax_npwp',
+            'bpjs_kesehatan', 'bpjs_ketenagakerjaan', 'bank', 'nomor_rekening',
+            'salary_base', 'nama_ibu_kandung', 'user_id',
+        ])->toArray());
+
         return response()->json([
             'success' => true,
-            'data'    => $paginated->items(),
+            'data'    => $items,
             'meta'    => [
                 'total'        => $paginated->total(),
                 'per_page'     => $paginated->perPage(),

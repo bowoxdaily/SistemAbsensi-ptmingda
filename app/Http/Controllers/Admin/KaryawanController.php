@@ -37,9 +37,11 @@ class KaryawanController extends Controller
 
         $karyawans = Karyawans::with(['department', 'subDepartment', 'position', 'workSchedule'])
             ->when($search, function ($query, $search) {
-                return $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('employee_code', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
+                return $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('employee_code', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+                });
             })
             ->when($departmentId, function ($query, $departmentId) {
                 return $query->where('department_id', $departmentId);

@@ -10,12 +10,40 @@ use App\Http\Controllers\Admin\PayrollController;
 use App\Http\Controllers\Admin\InterviewController;
 use App\Http\Controllers\Admin\BroadcastController;
 use App\Http\Controllers\Admin\WarningLetterController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ExternalKaryawanController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
+
+// ─── External API Authentication ─────────────────────────────────────────────
+// Use these endpoints to get/revoke a Bearer token for external app access.
+// POST /api/auth/login        → { email, password } → returns { token }
+// POST /api/auth/logout       → revoke current token
+// POST /api/auth/logout-all   → revoke all tokens of current user
+Route::prefix('auth')->group(function () {
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::post('/logout-all', [AuthController::class, 'logoutAll']);
+    });
+});
+
+// ─── External API v1 (Bearer Token) ──────────────────────────────────────────
+// Accessible by external applications via Bearer token.
+// Roles allowed: admin, manager, viewer (karyawan role is blocked).
+// Sensitive PII/financial fields are hidden from all responses.
+//
+// GET /api/v1/karyawan           → list with pagination
+//   Params: per_page, search, department_id, position_id, status, page
+// GET /api/v1/karyawan/{id}      → single record
+Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
+    Route::get('/karyawan',      [ExternalKaryawanController::class, 'index']);
+    Route::get('/karyawan/{id}', [ExternalKaryawanController::class, 'show']);
+});
 
 Route::prefix('departments')->group(function () {
     Route::get('/', [DepartmentController::class, 'index']);
