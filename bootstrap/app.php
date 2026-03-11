@@ -20,11 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'viewer' => \App\Http\Middleware\EnsureUserIsViewer::class,
         ]);
 
-        // Enable Sanctum stateful authentication for API routes (supports both
-        // session-based web clients and Bearer token external apps)
-        $middleware->api(append: [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-        ]);
+        // Note: EnsureFrontendRequestsAreStateful is intentionally NOT added here.
+        // Existing API routes use the 'web' middleware (session + CSRF) for browser clients.
+        // External API (/api/v1/*) uses auth:sanctum with Bearer tokens — no SPA session needed.
+        // Adding EnsureFrontendRequestsAreStateful causes double session init → CSRF mismatch.
 
         // Trust proxies for ngrok
         $middleware->trustProxies(at: '*');
