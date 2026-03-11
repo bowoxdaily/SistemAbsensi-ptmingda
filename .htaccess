@@ -1,5 +1,8 @@
 <IfModule mod_rewrite.c>
 RewriteEngine On
+# Forward Authorization header to public/ so PHP-FPM / LiteSpeed can read it
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>
 

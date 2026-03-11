@@ -1,3 +1,13 @@
+# ---------------------------------------------------------------------------
+# Authorization header forwarding for cPanel (Apache + PHP-FPM / LiteSpeed).
+# Apache strips the Authorization header before passing the request to PHP.
+# SetEnvIf sets HTTP_AUTHORIZATION directly in $_SERVER (no REDIRECT_ prefix)
+# which is the most reliable method for PHP-FPM and LiteSpeed SAPI.
+# ---------------------------------------------------------------------------
+<IfModule mod_setenvif.c>
+    SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
@@ -5,7 +15,7 @@
 
     RewriteEngine On
 
-    # Handle Authorization Header
+    # Handle Authorization Header (mod_rewrite fallback when mod_setenvif is unavailable)
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 

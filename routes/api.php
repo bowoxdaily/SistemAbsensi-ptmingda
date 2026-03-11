@@ -37,10 +37,12 @@ Route::prefix('auth')->group(function () {
 // Roles allowed: admin, manager, viewer (karyawan role is blocked).
 // Sensitive PII/financial fields are hidden from all responses.
 //
+// GET /api/v1/me               → verify token; returns authenticated user info
 // GET /api/v1/karyawan           → list with pagination
 //   Params: per_page, search, department_id, position_id, status, page
 // GET /api/v1/karyawan/{id}      → single record
 Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
+    Route::get('/me',            [AuthController::class, 'me']);
     Route::get('/karyawan',      [ExternalKaryawanController::class, 'index']);
     Route::get('/karyawan/{id}', [ExternalKaryawanController::class, 'show']);
 });
