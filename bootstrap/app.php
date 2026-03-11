@@ -27,6 +27,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Trust proxies for ngrok
         $middleware->trustProxies(at: '*');
+
+        // cPanel (Apache+PHP-FPM) strips Authorization header — recover it for auth:sanctum
+        $middleware->prependToGroup('api', \App\Http\Middleware\ForwardAuthorizationHeader::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Always return JSON for all /api/* routes, regardless of Accept header.
