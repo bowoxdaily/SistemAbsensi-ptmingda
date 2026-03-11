@@ -29,5 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Always return JSON for all /api/* routes, regardless of Accept header.
+        // Without this, auth:sanctum redirects unauthenticated requests to /login (HTML 302).
+        $exceptions->shouldRenderJsonWhen(fn ($request, $e) => $request->is('api/*'));
     })->create();
