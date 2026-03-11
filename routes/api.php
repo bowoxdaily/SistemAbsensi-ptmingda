@@ -19,6 +19,18 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+// ─── TEMPORARY DEBUG (remove after diagnosing) ───────────────────────────────
+Route::get('/debug-auth', function (Request $request) {
+    return response()->json([
+        'bearer_token'    => $request->bearerToken(),
+        'auth_header'     => $request->header('Authorization'),
+        'HTTP_AUTH'       => $_SERVER['HTTP_AUTHORIZATION'] ?? null,
+        'REDIRECT_AUTH'   => $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null,
+        'getallheaders'   => function_exists('getallheaders') ? (getallheaders()['Authorization'] ?? (getallheaders()['authorization'] ?? null)) : 'N/A',
+        'forward_mw_ran'  => $request->headers->has('Authorization') ? 'YES (header present)' : 'NO (header missing)',
+    ]);
+});
+
 // ─── External API Authentication ─────────────────────────────────────────────
 // Use these endpoints to get/revoke a Bearer token for external app access.
 // POST /api/auth/login        → { email, password } → returns { token }
