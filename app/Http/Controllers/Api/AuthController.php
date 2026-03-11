@@ -91,4 +91,28 @@ class AuthController extends Controller
             'message' => 'Semua token telah dicabut.',
         ]);
     }
+
+    /**
+     * Return the currently authenticated user's info.
+     *
+     * GET /api/v1/me
+     * Header: Authorization: Bearer <token>
+     *
+     * Useful for external applications to verify the token is valid and
+     * to retrieve the user's role before making further API calls.
+     */
+    public function me(Request $request)
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'id'    => $user->id,
+                'name'  => $user->name,
+                'email' => $user->email,
+                'role'  => $user->role,
+            ],
+        ]);
+    }
 }
