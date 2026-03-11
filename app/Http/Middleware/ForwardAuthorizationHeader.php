@@ -11,11 +11,10 @@ use Illuminate\Http\Request;
  * locations in $_SERVER so Sanctum can read the Bearer token.
  *
  * Sources checked (in priority order):
- *  1. $_SERVER['HTTP_AUTHORIZATION']          — standard; set by Apache mod_setenvif
- *  2. $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] — set by mod_rewrite [E=...] after one internal redirect
- *  3. $_SERVER['REDIRECT_REDIRECT_HTTP_AUTHORIZATION'] — double-redirect (root .htaccess → public/)
- *  4. getallheaders()                         — PHP built-in; works for mod_php / LiteSpeed SAPI
- *  5. HTTP_AUTHORIZATION from getallheaders() — case-insensitive scan of all headers
+ *  1. $_SERVER['HTTP_AUTHORIZATION']                    — standard; set by mod_setenvif
+ *  2. $_SERVER['REDIRECT_HTTP_AUTHORIZATION']           — after one mod_rewrite internal redirect
+ *  3. $_SERVER['REDIRECT_REDIRECT_HTTP_AUTHORIZATION']  — after two internal redirects (root + public/)
+ *  4. getallheaders()                                   — mod_php / LiteSpeed SAPI fallback
  */
 class ForwardAuthorizationHeader
 {
