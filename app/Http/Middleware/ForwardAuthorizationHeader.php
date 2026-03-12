@@ -6,16 +6,24 @@ use Closure;
 use Illuminate\Http\Request;
 
 /**
- * In Apache + PHP-FPM (common on cPanel), the Authorization header is stripped
- * before it reaches PHP. This middleware recovers it from multiple possible
- * locations in $_SERVER so Sanctum can read the Bearer token.
+ * On Apache + PHP-FPM/CGI (cgi-fcgi, common on cPanel), the Authorization
+ * header is stripped by Apache before it reaches PHP. This middleware recovers
+ * the Bearer token from multiple fallback locations:
+ *
+ *  1. Standard $_SERVER vars (works on mod_php / some FPM configs)
+ *  2. X-Authorization header  (Apache passes custom headers through; client
+ *     can use this instead of Authorization on cPanel hosts)
+ *  3. X-Api-Token header (same reason as above)
+ *
+ * External clients that hit 401 on cPanel should switch to:
+ *   X-Authorization: Bearer <token>
  */
 class ForwardAuthorizationHeader
 {
     public function handle(Request $request, Closure $next)
     {
         if (! $request->headers->has('Authorization')) {
-            $auth = $this->resolveAuthHeader();
+            $auth = $this->resolveAuthHeader($request);
 
             if ($auth) {
                 $request->headers->set('Authorization', $auth);
@@ -25,17 +33,14 @@ class ForwardAuthorizationHeader
         return $next($request);
     }
 
-    private function resolveAuthHeader(): ?string
+    private function resolveAuthHeader(Request $request): ?string
     {
-        // Check common $_SERVER locations in priority order.
-        // Apache + PHP-FPM (cPanel) may strip the header; mod_rewrite rescues it
-        // with the HTTP_AUTHORIZATION env var. After the final internal redirect to
-        // index.php the var gains a REDIRECT_ prefix (or even double-REDIRECT_).
+        // ── Strategy 1: $_SERVER vars (mod_rewrite E= passthrough) ──────────────
         $candidates = [
             'HTTP_AUTHORIZATION',
             'REDIRECT_HTTP_AUTHORIZATION',
-            'REDIRECT_REDIRECT_HTTP_AUTHORIZATION',  // double-redirect edge case
-            'HTTP_HTTP_AUTHORIZATION',               // some Nginx/FastCGI setups
+            'REDIRECT_REDIRECT_HTTP_AUTHORIZATION',
+            'HTTP_HTTP_AUTHORIZATION',
         ];
 
         foreach ($candidates as $key) {
@@ -44,14 +49,32 @@ class ForwardAuthorizationHeader
             }
         }
 
-        // getallheaders() works on mod_php and some PHP-FPM setups
+        // ── Strategy 2: getallheaders() (mod_php / some FPM builds) ─────────────
         if (function_exists('getallheaders')) {
-            $headers = getallheaders();
-            foreach ($headers as $name => $value) {
+            foreach (getallheaders() as $name => $value) {
                 if (strtolower($name) === 'authorization') {
                     return $value;
                 }
             }
+        }
+
+        // ── Strategy 3: X-Authorization header ──────────────────────────────────
+        // Apache passes custom headers to PHP even in cgi-fcgi mode.
+        // External clients on cPanel hosts should use this header instead.
+        $xAuth = $request->headers->get('X-Authorization')
+            ?? ($_SERVER['HTTP_X_AUTHORIZATION'] ?? null);
+
+        if ($xAuth) {
+            // Accept both "Bearer TOKEN" and plain "TOKEN" formats
+            return str_starts_with($xAuth, 'Bearer ') ? $xAuth : 'Bearer ' . $xAuth;
+        }
+
+        // ── Strategy 4: X-Api-Token header ──────────────────────────────────────
+        $xToken = $request->headers->get('X-Api-Token')
+            ?? ($_SERVER['HTTP_X_API_TOKEN'] ?? null);
+
+        if ($xToken) {
+            return 'Bearer ' . ltrim(str_replace('Bearer', '', $xToken));
         }
 
         return null;

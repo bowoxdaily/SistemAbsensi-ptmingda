@@ -105,6 +105,8 @@ class AuthController extends Controller
             'REDIRECT_HTTP_AUTHORIZATION',
             'REDIRECT_REDIRECT_HTTP_AUTHORIZATION',
             'HTTP_HTTP_AUTHORIZATION',
+            'HTTP_X_AUTHORIZATION',
+            'HTTP_X_API_TOKEN',
         ];
 
         $serverValues = [];
@@ -120,11 +122,14 @@ class AuthController extends Controller
         }
 
         return response()->json([
-            'laravel_sees_auth_header' => $request->headers->has('Authorization'),
-            'laravel_bearer_token'     => $request->bearerToken() ? substr($request->bearerToken(), 0, 10) . '...' : null,
-            '_SERVER_candidates'       => $serverValues,
-            'getallheaders'            => $allHeaders,
-            'php_sapi'                 => PHP_SAPI,
+            'laravel_sees_auth_header'   => $request->headers->has('Authorization'),
+            'laravel_bearer_token'       => $request->bearerToken() ? substr($request->bearerToken(), 0, 10) . '...' : null,
+            'laravel_sees_x_auth'        => $request->headers->has('X-Authorization'),
+            'laravel_sees_x_api_token'   => $request->headers->has('X-Api-Token'),
+            '_SERVER_candidates'         => $serverValues,
+            'getallheaders'              => $allHeaders,
+            'php_sapi'                   => PHP_SAPI,
+            'workaround_instruction'     => 'If laravel_sees_auth_header=false, use X-Authorization: Bearer TOKEN header instead',
         ]);
     }
 }
