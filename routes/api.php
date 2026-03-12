@@ -19,18 +19,6 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-// ─── TEMPORARY DEBUG (remove after diagnosing) ───────────────────────────────
-Route::get('/debug-auth', function (Request $request) {
-    return response()->json([
-        'bearer_token'    => $request->bearerToken(),
-        'auth_header'     => $request->header('Authorization'),
-        'HTTP_AUTH'       => $_SERVER['HTTP_AUTHORIZATION'] ?? null,
-        'REDIRECT_AUTH'   => $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null,
-        'getallheaders'   => function_exists('getallheaders') ? (getallheaders()['Authorization'] ?? (getallheaders()['authorization'] ?? null)) : 'N/A',
-        'forward_mw_ran'  => $request->headers->has('Authorization') ? 'YES (header present)' : 'NO (header missing)',
-    ]);
-});
-
 // ─── External API Authentication ─────────────────────────────────────────────
 // Use these endpoints to get/revoke a Bearer token for external app access.
 // POST /api/auth/login        → { email, password } → returns { token }
@@ -57,7 +45,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::get('/karyawan/{id}', [ExternalKaryawanController::class, 'show']);
 });
 
-Route::prefix('departments')->group(function () {
+Route::middleware(['web', 'auth', 'admin'])->prefix('departments')->group(function () {
     Route::get('/', [DepartmentController::class, 'index']);
     Route::post('/', [DepartmentController::class, 'store']);
     Route::get('/{id}', [DepartmentController::class, 'show']);
@@ -65,7 +53,7 @@ Route::prefix('departments')->group(function () {
     Route::delete('/{id}', [DepartmentController::class, 'destroy']);
 });
 
-Route::prefix('sub-departments')->group(function () {
+Route::middleware(['web', 'auth', 'admin'])->prefix('sub-departments')->group(function () {
     Route::get('/', [SubDepartmentController::class, 'list']);
     Route::post('/', [SubDepartmentController::class, 'store']);
     Route::get('/by-department/{departmentId}', [SubDepartmentController::class, 'getByDepartment']);
@@ -89,7 +77,7 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('karyawan')->group(function 
     Route::delete('/{id}', [KaryawanController::class, 'destroy']);
 });
 
-Route::prefix('positions')->group(function () {
+Route::middleware(['web', 'auth', 'admin'])->prefix('positions')->group(function () {
     Route::get('/', [PositionController::class, 'index']);
     Route::post('/', [PositionController::class, 'store']);
     Route::get('/{id}', [PositionController::class, 'show']);
@@ -97,7 +85,7 @@ Route::prefix('positions')->group(function () {
     Route::delete('/{id}', [PositionController::class, 'destroy']);
 });
 
-Route::prefix('attendance')->group(function () {
+Route::middleware(['web', 'auth'])->prefix('attendance')->group(function () {
     Route::get('/', [AttendanceController::class, 'list']);
     Route::get('/today/{employeeId}', [AttendanceController::class, 'getTodayAttendance']);
     Route::get('/by-date/{employeeId}', [AttendanceController::class, 'getAttendanceByDate']);
@@ -169,13 +157,13 @@ Route::middleware(['web', 'auth', 'manager'])->prefix('payroll')->group(function
 });
 
 // Office Settings API
-Route::prefix('settings/office')->group(function () {
+Route::middleware(['web', 'auth', 'admin'])->prefix('settings/office')->group(function () {
     Route::get('/', [\App\Http\Controllers\Admin\OfficeSettingController::class, 'show']);
     Route::post('/', [\App\Http\Controllers\Admin\OfficeSettingController::class, 'update']);
 });
 
 // Work Schedule API
-Route::prefix('settings/work-schedule')->group(function () {
+Route::middleware(['web', 'auth', 'admin'])->prefix('settings/work-schedule')->group(function () {
     Route::get('/', [\App\Http\Controllers\Admin\WorkScheduleController::class, 'index']);
     Route::post('/', [\App\Http\Controllers\Admin\WorkScheduleController::class, 'store']);
     Route::get('/{id}', [\App\Http\Controllers\Admin\WorkScheduleController::class, 'show']);
@@ -307,16 +295,20 @@ Route::prefix('guest')->group(function () {
 });
 
 // Import/Export API
-Route::prefix('karyawan')->group(function () {
+Route::middleware(['web', 'auth', 'admin'])->prefix('karyawan')->group(function () {
     Route::post('/import', [\App\Http\Controllers\Admin\KaryawanController::class, 'import']);
 });
 
-// Fingerspot Webhook API (No Auth - uses token)
+// Fingerspot Webhook API (No Auth - uses device token via X-Fingerspot-Token header)
 Route::prefix('fingerspot')->group(function () {
     Route::post('/webhook', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'handleWebhook']);
+    Route::post('/test-photo-url', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'testPhotoUrl']);
+});
+
+// Fingerspot debug/test endpoints (admin only)
+Route::middleware(['web', 'auth', 'admin'])->prefix('fingerspot')->group(function () {
     Route::get('/test', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'test']);
     Route::get('/debug-logs', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'debugLogs']);
-    Route::post('/test-photo-url', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'testPhotoUrl']);
 });
 
 // Fingerspot Admin API (Requires Auth)

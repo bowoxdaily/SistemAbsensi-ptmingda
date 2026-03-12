@@ -5,9 +5,16 @@
 
     RewriteEngine On
 
-    # Handle Authorization Header
+    # Handle Authorization Header (multiple strategies for Apache/PHP-FPM on cPanel)
+    # Strategy 1: SetEnvIf - most reliable on cPanel shared hosting
+    SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
+    # Strategy 2: mod_rewrite passthrough
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Strategy 3: CGIPassAuth (Apache 2.4.13+ with PHP-FPM)
+    CGIPassAuth On
 
     # Handle X-XSRF-Token Header
     RewriteCond %{HTTP:x-xsrf-token} .
