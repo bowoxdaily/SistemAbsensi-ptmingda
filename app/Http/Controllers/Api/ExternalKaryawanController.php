@@ -11,28 +11,10 @@ use Illuminate\Http\Request;
  * External API controller for karyawan data.
  *
  * Requires Bearer token auth (Sanctum). Accessible by roles: admin, manager, viewer.
- * Sensitive PII and financial fields are hidden from responses.
+ * Returns all fields including NIK and other identifiers.
  */
 class ExternalKaryawanController extends Controller
 {
-    /**
-     * Fields containing sensitive PII / financial / device data.
-     * These are never returned to external applications.
-     */
-    private const HIDDEN_FIELDS = [
-        'fingerspot_pin',
-        'nik',
-        'ktp',
-        'kartu_keluarga',
-        'tax_npwp',
-        'bpjs_kesehatan',
-        'bpjs_ketenagakerjaan',
-        'bank',
-        'nomor_rekening',
-        'salary_base',
-        'nama_ibu_kandung',
-        'user_id',
-    ];
 
     /**
      * List karyawan with pagination and filters.
@@ -132,9 +114,10 @@ class ExternalKaryawanController extends Controller
 
     /**
      * Remove sensitive fields from a Karyawans model instance.
+     * Returns all fields including NIK and identifiers.
      */
     private function sanitize(Karyawans $karyawan): array
     {
-        return $karyawan->makeHidden(self::HIDDEN_FIELDS)->toArray();
+        return $karyawan->toArray();
     }
 }
