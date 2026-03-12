@@ -118,6 +118,6 @@ class ExternalKaryawanController extends Controller
      */
     private function sanitize(Karyawans $karyawan): array
     {
-        return $karyawan->makeHidden(['nik'])->toArray();
+        return $karyawan->makeHidden(['ktp'])->toArray();
     }
 }
