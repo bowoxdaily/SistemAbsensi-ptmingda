@@ -26,6 +26,7 @@ Route::get('/user', function (Request $request) {
 // POST /api/auth/logout-all   → revoke all tokens of current user
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+    Route::get('/header-diag', [AuthController::class, 'headerDiag']); // TEMPORARY - delete after use
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::post('/logout-all', [AuthController::class, 'logoutAll']);

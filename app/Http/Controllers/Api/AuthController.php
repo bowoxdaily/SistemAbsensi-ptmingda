@@ -91,4 +91,40 @@ class AuthController extends Controller
             'message' => 'Semua token telah dicabut.',
         ]);
     }
+
+    /**
+     * TEMPORARY: Diagnose Authorization header delivery on production.
+     * GET /api/auth/header-diag
+     *
+     * Delete this method and its route once the issue is resolved.
+     */
+    public function headerDiag(Request $request)
+    {
+        $candidates = [
+            'HTTP_AUTHORIZATION',
+            'REDIRECT_HTTP_AUTHORIZATION',
+            'REDIRECT_REDIRECT_HTTP_AUTHORIZATION',
+            'HTTP_HTTP_AUTHORIZATION',
+        ];
+
+        $serverValues = [];
+        foreach ($candidates as $key) {
+            $serverValues[$key] = isset($_SERVER[$key]) ? substr($_SERVER[$key], 0, 30) . '...' : null;
+        }
+
+        $allHeaders = [];
+        if (function_exists('getallheaders')) {
+            foreach (getallheaders() as $k => $v) {
+                $allHeaders[strtolower($k)] = strlen($v) > 30 ? substr($v, 0, 30) . '...' : $v;
+            }
+        }
+
+        return response()->json([
+            'laravel_sees_auth_header' => $request->headers->has('Authorization'),
+            'laravel_bearer_token'     => $request->bearerToken() ? substr($request->bearerToken(), 0, 10) . '...' : null,
+            '_SERVER_candidates'       => $serverValues,
+            'getallheaders'            => $allHeaders,
+            'php_sapi'                 => PHP_SAPI,
+        ]);
+    }
 }
