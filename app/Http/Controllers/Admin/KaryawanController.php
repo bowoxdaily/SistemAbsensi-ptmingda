@@ -351,18 +351,20 @@ class KaryawanController extends Controller
     {
         $search = $request->get('search');
         $departmentId = $request->get('department_id');
+        $subDepartmentId = $request->get('sub_department_id');
         $positionId = $request->get('position_id');
         $status = $request->get('status');
 
         $filters = [
             'search' => $search,
             'department_id' => $departmentId,
+            'sub_department_id' => $subDepartmentId,
             'position_id' => $positionId,
             'status' => $status,
         ];
 
         $filename = 'Data_Karyawan';
-        if ($search || $departmentId || $positionId || $status) {
+        if ($search || $departmentId || $subDepartmentId || $positionId || $status) {
             $filename .= '_Filtered';
         }
         $filename .= '_' . date('Y-m-d_His') . '.xlsx';

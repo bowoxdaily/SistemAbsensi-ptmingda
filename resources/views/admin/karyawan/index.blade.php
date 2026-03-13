@@ -1322,6 +1322,9 @@
             if (currentFilters.department_id) {
                 url += '&department_id=' + currentFilters.department_id;
             }
+            if (currentFilters.sub_department_id) {
+                url += '&sub_department_id=' + currentFilters.sub_department_id;
+            }
             if (currentFilters.position_id) {
                 url += '&position_id=' + currentFilters.position_id;
             }

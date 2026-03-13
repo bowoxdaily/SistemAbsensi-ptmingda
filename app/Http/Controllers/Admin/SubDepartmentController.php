@@ -24,7 +24,11 @@ class SubDepartmentController extends Controller
     public function list(Request $request)
     {
         $query = SubDepartment::with(['department', 'employees'])
-            ->withCount('employees');
+            ->withCount([
+                'employees as employees_count' => function ($q) {
+                    $q->where('status', 'active');
+                }
+            ]);
 
         // Filter by department
         if ($request->filled('department_id')) {
@@ -56,7 +60,11 @@ class SubDepartmentController extends Controller
     public function show($id)
     {
         $subDepartment = SubDepartment::with(['department', 'employees'])
-            ->withCount('employees')
+            ->withCount([
+                'employees as employees_count' => function ($q) {
+                    $q->where('status', 'active');
+                }
+            ])
             ->findOrFail($id);
 
         return response()->json([
@@ -140,9 +148,13 @@ class SubDepartmentController extends Controller
      */
     public function destroy($id)
     {
-        $subDepartment = SubDepartment::withCount('employees')->findOrFail($id);
+        $subDepartment = SubDepartment::withCount([
+            'employees as employees_count' => function ($q) {
+                $q->where('status', 'active');
+            }
+        ])->findOrFail($id);
 
-        // Check if has employees
+        // Check if has active employees only
         if ($subDepartment->employees_count > 0) {
             return response()->json([
                 'success' => false,
