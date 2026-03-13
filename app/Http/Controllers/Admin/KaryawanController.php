@@ -32,6 +32,7 @@ class KaryawanController extends Controller
         $perPage = $request->get('per_page', 10);
         $search = $request->get('search', '');
         $departmentId = $request->get('department_id');
+        $subDepartmentId = $request->get('sub_department_id');
         $positionId = $request->get('position_id');
         $status = $request->get('status');
 
@@ -45,6 +46,9 @@ class KaryawanController extends Controller
             })
             ->when($departmentId, function ($query, $departmentId) {
                 return $query->where('department_id', $departmentId);
+            })
+            ->when($subDepartmentId, function ($query, $subDepartmentId) {
+                return $query->where('sub_department_id', $subDepartmentId);
             })
             ->when($positionId, function ($query, $positionId) {
                 return $query->where('position_id', $positionId);

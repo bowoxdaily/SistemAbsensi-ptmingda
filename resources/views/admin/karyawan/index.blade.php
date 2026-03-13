@@ -114,19 +114,25 @@
 
                 <!-- Advanced Filters -->
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label for="filterDepartment" class="form-label small mb-1">Departemen</label>
-                        <select class="form-select form-select-sm" id="filterDepartment">
+                        <select class="form-select form-select-sm" id="filterDepartment" onchange="onFilterDepartmentChange()">
                             <option value="">Semua Departemen</option>
                         </select>
                     </div>
                     <div class="col-md-3">
+                        <label for="filterSubDepartment" class="form-label small mb-1">Sub Departemen</label>
+                        <select class="form-select form-select-sm" id="filterSubDepartment">
+                            <option value="">Semua Sub Departemen</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
                         <label for="filterPosition" class="form-label small mb-1">Posisi</label>
                         <select class="form-select form-select-sm" id="filterPosition">
                             <option value="">Semua Posisi</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label for="filterStatus" class="form-label small mb-1">Status</label>
                         <select class="form-select form-select-sm" id="filterStatus">
                             <option value="">Semua Status</option>
@@ -921,6 +927,7 @@
         let masterData = {};
         let currentFilters = {
             department_id: '',
+            sub_department_id: '',
             position_id: '',
             status: '',
             search: ''
@@ -1009,6 +1016,7 @@
                     populatePositions();
                     populateWorkSchedules();
                     populateFilterDepartments();
+                    populateFilterSubDepartments();
                     populateFilterPositions();
                 },
                 error: function(xhr) {
@@ -1068,6 +1076,25 @@
             masterData.departments.forEach(dept => {
                 select.append(`<option value="${dept.id}">${dept.name}</option>`);
             });
+        }
+
+        function populateFilterSubDepartments(departmentId = null) {
+            const select = $('#filterSubDepartment');
+            select.find('option:not(:first)').remove();
+            if (!masterData || !masterData.sub_departments) return;
+            let list = masterData.sub_departments;
+            if (departmentId) {
+                list = list.filter(sd => sd.department_id == departmentId);
+            }
+            list.forEach(sd => {
+                select.append(`<option value="${sd.id}">${sd.name}</option>`);
+            });
+        }
+
+        function onFilterDepartmentChange() {
+            const deptId = $('#filterDepartment').val();
+            $('#filterSubDepartment').val('');
+            populateFilterSubDepartments(deptId || null);
         }
 
         function populateFilterPositions() {
@@ -1162,6 +1189,7 @@
 
         function applyFilter() {
             currentFilters.department_id = $('#filterDepartment').val();
+            currentFilters.sub_department_id = $('#filterSubDepartment').val();
             currentFilters.position_id = $('#filterPosition').val();
             currentFilters.status = $('#filterStatus').val();
             currentFilters.search = $('#searchInput').val();
@@ -1172,11 +1200,14 @@
         function resetFilter() {
             currentFilters = {
                 department_id: '',
+                sub_department_id: '',
                 position_id: '',
                 status: '',
                 search: ''
             };
             $('#filterDepartment').val('');
+            populateFilterSubDepartments();
+            $('#filterSubDepartment').val('');
             $('#filterPosition').val('');
             $('#filterStatus').val('');
             $('#searchInput').val('');
@@ -1214,6 +1245,12 @@
                 hasFilter = true;
             }
 
+            if (currentFilters.sub_department_id) {
+                const subDeptName = $('#filterSubDepartment option:selected').text();
+                container.append(`<span class="badge bg-label-secondary">Sub Dept: ${subDeptName}</span>`);
+                hasFilter = true;
+            }
+
             if (currentFilters.position_id) {
                 const posName = $('#filterPosition option:selected').text();
                 container.append(`<span class="badge bg-label-info">Posisi: ${posName}</span>`);
@@ -1248,6 +1285,9 @@
             }
             if (currentFilters.department_id) {
                 url += '&department_id=' + currentFilters.department_id;
+            }
+            if (currentFilters.sub_department_id) {
+                url += '&sub_department_id=' + currentFilters.sub_department_id;
             }
             if (currentFilters.position_id) {
                 url += '&position_id=' + currentFilters.position_id;
