@@ -89,6 +89,11 @@
                             </div>
                         </form>
 
+                        <div class="text-center my-3 text-muted">atau</div>
+                        <a class="btn btn-outline-danger d-grid w-100 mb-3" href="{{ route('auth.google.redirect') }}">
+                            <i class="bx bxl-google me-2"></i> Login dengan Google
+                        </a>
+
                         <p class="text-center">
                             <span>Sistem Absensi Karyawan</span>
                         </p>

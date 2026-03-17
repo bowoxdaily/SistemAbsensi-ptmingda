@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Laravel\Socialite\Facades\Socialite;
 
 class LoginController extends Controller
 {
@@ -36,6 +39,70 @@ class LoginController extends Controller
         throw ValidationException::withMessages([
             'email' => 'Email atau password yang Anda masukkan salah.',
         ]);
+    }
+
+    /**
+     * Redirect user to Google OAuth
+     */
+    public function redirectToGoogle()
+    {
+        return Socialite::driver('google')->redirect();
+    }
+
+    /**
+     * Handle Google OAuth callback
+     */
+    public function handleGoogleCallback(Request $request)
+    {
+        try {
+            $googleUser = Socialite::driver('google')->user();
+        } catch (\Throwable $e) {
+            return redirect()->route('login')->withErrors([
+                'email' => 'Gagal login dengan Google. Silakan coba lagi.',
+            ]);
+        }
+
+        if (!$googleUser->email) {
+            return redirect()->route('login')->withErrors([
+                'email' => 'Email Google tidak tersedia. Silakan gunakan metode login lain.',
+            ]);
+        }
+
+        $user = User::where('google_id', $googleUser->id)->first();
+
+        if (!$user && $googleUser->email) {
+            $user = User::where('email', $googleUser->email)->first();
+        }
+
+        if (!$user) {
+            $user = User::create([
+                'name' => $googleUser->name ?: 'User',
+                'email' => $googleUser->email,
+                'google_id' => $googleUser->id,
+                'profile_photo' => $googleUser->avatar,
+                'password' => Str::random(32),
+                'email_verified_at' => now(),
+            ]);
+        } else {
+            $updates = ['google_id' => $googleUser->id];
+
+            if (!$user->profile_photo && $googleUser->avatar) {
+                $updates['profile_photo'] = $googleUser->avatar;
+            }
+
+            $user->fill($updates)->save();
+        }
+
+        if ($user->status !== 'aktif') {
+            return redirect()->route('login')->withErrors([
+                'email' => 'Akun Anda tidak aktif. Silakan hubungi admin.',
+            ]);
+        }
+
+        Auth::login($user, true);
+        $request->session()->regenerate();
+
+        return redirect()->intended(route('dashboard'));
     }
 
     /**
