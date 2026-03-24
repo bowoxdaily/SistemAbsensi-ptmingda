@@ -39,9 +39,12 @@ Route::prefix('auth')->group(function () {
 //
 // GET /api/v1/karyawan           → list with pagination
 //   Params: per_page, search, department_id, position_id, status, page
+// GET /api/v1/karyawan/all       → list all (no pagination)
+//   Params: search, department_id, position_id, status
 // GET /api/v1/karyawan/{id}      → single record
 Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::get('/karyawan',      [ExternalKaryawanController::class, 'index']);
+    Route::get('/karyawan/all',  [ExternalKaryawanController::class, 'all']);
     Route::get('/karyawan/{id}', [ExternalKaryawanController::class, 'show']);
 });
 

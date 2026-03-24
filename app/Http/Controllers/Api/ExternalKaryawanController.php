@@ -71,6 +71,49 @@ class ExternalKaryawanController extends Controller
     }
 
     /**
+     * List all karyawan without pagination.
+     *
+     * GET /api/v1/karyawan/all
+     * Params:
+     *   - search         (string) — name, employee_code, or email
+     *   - department_id  (int)
+     *   - position_id    (int)
+     *   - status         (string: active|inactive|resign|mangkir|gagal_probation)
+     */
+    public function all(Request $request)
+    {
+        if ($denied = $this->denyIfNotAllowed($request)) {
+            return $denied;
+        }
+
+        $search       = $request->get('search', '');
+        $departmentId = $request->get('department_id');
+        $positionId   = $request->get('position_id');
+        $status       = $request->get('status');
+
+        $items = Karyawans::with(['department', 'subDepartment', 'position'])
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($q2) use ($search) {
+                    $q2->where('name', 'like', "%{$search}%")
+                       ->orWhere('employee_code', 'like', "%{$search}%")
+                       ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->when($departmentId, fn($q) => $q->where('department_id', $departmentId))
+            ->when($positionId,   fn($q) => $q->where('position_id', $positionId))
+            ->when($status,       fn($q) => $q->where('status', $status))
+            ->orderBy('employee_code')
+            ->get()
+            ->map(fn($k) => $this->sanitize($k))
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'data'    => $items,
+        ]);
+    }
+
+    /**
      * Get a single karyawan record.
      *
      * GET /api/v1/karyawan/{id}
