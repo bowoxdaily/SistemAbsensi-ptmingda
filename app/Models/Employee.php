@@ -75,6 +75,15 @@ class Employee extends Model
     ];
 
     /**
+     * Append computed attributes to JSON.
+     *
+     * @var list<string>
+     */
+    protected $appends = [
+        'profile_photo_url',
+    ];
+
+    /**
      * Relasi ke Department
      */
     public function department(): BelongsTo
@@ -176,6 +185,24 @@ class Employee extends Model
     public function getTanggalResignAttribute($value)
     {
         return $value ? $this->asDate($value)->format('Y-m-d') : null;
+    }
+
+    /**
+     * Accessor for profile photo URL (local path or remote URL).
+     */
+    public function getProfilePhotoUrlAttribute(): ?string
+    {
+        $path = $this->profile_photo;
+
+        if (!$path) {
+            return null;
+        }
+
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            return $path;
+        }
+
+        return asset('storage/' . ltrim($path, '/'));
     }
 
     /**

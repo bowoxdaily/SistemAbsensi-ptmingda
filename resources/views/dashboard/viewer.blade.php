@@ -140,8 +140,8 @@
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <div class="avatar avatar-sm me-3">
-                                                    @if ($absensi->employee->profile_photo)
-                                                        <img src="{{ asset('storage/' . $absensi->employee->profile_photo) }}"
+                                                        @if ($absensi->employee->profile_photo_url)
+                                                            <img src="{{ $absensi->employee->profile_photo_url }}"
                                                             alt="Avatar" class="rounded-circle" width="38" height="38"
                                                             style="object-fit: cover;">
                                                     @else
@@ -192,8 +192,8 @@
                                     <div class="d-flex align-items-center justify-content-between">
                                         <div class="d-flex align-items-center gap-2">
                                             <div class="avatar avatar-sm">
-                                                @if ($absensi->employee->profile_photo)
-                                                    <img src="{{ asset('storage/' . $absensi->employee->profile_photo) }}"
+                                                    @if ($absensi->employee->profile_photo_url)
+                                                        <img src="{{ $absensi->employee->profile_photo_url }}"
                                                         alt="Avatar" class="rounded-circle" width="36" height="36"
                                                         style="object-fit: cover;">
                                                 @else

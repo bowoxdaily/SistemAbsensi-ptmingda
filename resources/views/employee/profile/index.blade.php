@@ -37,8 +37,8 @@
                         <div class="card-body text-center">
                             <div class="mb-4">
                                 <div class="position-relative d-inline-block mb-3">
-                                    @if ($employee->profile_photo)
-                                        <img src="{{ asset('storage/' . $employee->profile_photo) }}" alt="Avatar"
+                                    @if ($employee->profile_photo_url)
+                                        <img src="{{ $employee->profile_photo_url }}" alt="Avatar"
                                             class="rounded-circle"
                                             style="width: 120px; height: 120px; object-fit: cover; border: 3px solid #f0f0f0;">
                                     @else

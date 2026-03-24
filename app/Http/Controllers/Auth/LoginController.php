@@ -86,8 +86,18 @@ class LoginController extends Controller
         } else {
             $updates = ['google_id' => $googleUser->id];
 
-            if (!$user->profile_photo && $googleUser->avatar) {
-                $updates['profile_photo'] = $googleUser->avatar;
+            $employee = $user->employee;
+            $hasUserPhoto = !empty($user->profile_photo);
+            $hasEmployeePhoto = $employee && !empty($employee->profile_photo);
+
+            if ($googleUser->avatar) {
+                if (!$hasUserPhoto && !$hasEmployeePhoto) {
+                    $updates['profile_photo'] = $googleUser->avatar;
+                }
+
+                if ($employee && !$hasEmployeePhoto) {
+                    $employee->update(['profile_photo' => $googleUser->avatar]);
+                }
             }
 
             $user->fill($updates)->save();

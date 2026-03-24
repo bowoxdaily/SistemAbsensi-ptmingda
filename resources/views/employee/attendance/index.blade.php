@@ -365,9 +365,9 @@
 
                         // Set avatar - photo or initial
                         const avatarContainer = document.getElementById('empAvatarContainer');
-                        if (emp.profile_photo) {
+                        if (emp.profile_photo_url) {
                             avatarContainer.innerHTML = `
-                                <img src="/storage/${emp.profile_photo}" alt="${emp.name}"
+                                <img src="${emp.profile_photo_url}" alt="${emp.name}"
                                      class="rounded-circle"
                                      style="width: 48px; height: 48px; object-fit: cover;">
                             `;

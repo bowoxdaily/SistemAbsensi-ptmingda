@@ -171,8 +171,8 @@
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <div class="avatar avatar-sm me-3">
-                                                    @if ($absensi->employee->profile_photo)
-                                                        <img src="{{ asset('storage/' . $absensi->employee->profile_photo) }}"
+                                                    @if ($absensi->employee->profile_photo_url)
+                                                        <img src="{{ $absensi->employee->profile_photo_url }}"
                                                             alt="Avatar" class="rounded-circle" loading="lazy"
                                                             width="38" height="38" style="object-fit: cover;">
                                                     @else
@@ -226,8 +226,8 @@
                                 <div class="card-body p-3">
                                     <div class="d-flex align-items-start mb-2">
                                         <div class="avatar avatar-sm me-2">
-                                            @if ($absensi->employee->profile_photo)
-                                                <img src="{{ asset('storage/' . $absensi->employee->profile_photo) }}"
+                                            @if ($absensi->employee->profile_photo_url)
+                                                <img src="{{ $absensi->employee->profile_photo_url }}"
                                                     alt="Avatar" class="rounded-circle" loading="lazy" width="38"
                                                     height="38" style="object-fit: cover;">
                                             @else

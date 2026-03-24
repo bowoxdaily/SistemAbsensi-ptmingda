@@ -145,7 +145,7 @@
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <div class="avatar avatar-sm me-3">
-                                                        <img src="{{ $absensi->employee->profile_photo ?? asset('sneat-1.0.0/assets/img/avatars/1.png') }}"
+                                                        <img src="{{ $absensi->employee->profile_photo_url ?? asset('sneat-1.0.0/assets/img/avatars/1.png') }}"
                                                             alt="Avatar" class="rounded-circle">
                                                     </div>
                                                     <div>
@@ -241,7 +241,7 @@
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <div class="avatar avatar-xs me-2">
-                                                        <img src="{{ $member->profile_photo ?? asset('sneat-1.0.0/assets/img/avatars/1.png') }}"
+                                                        <img src="{{ $member->profile_photo_url ?? asset('sneat-1.0.0/assets/img/avatars/1.png') }}"
                                                             alt="Avatar" class="rounded-circle">
                                                     </div>
                                                     <small>{{ $member->name }}</small>

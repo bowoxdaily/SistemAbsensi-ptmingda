@@ -41,6 +41,15 @@ class User extends Authenticatable
     ];
 
     /**
+     * Append computed attributes to JSON.
+     *
+     * @var list<string>
+     */
+    protected $appends = [
+        'profile_photo_url',
+    ];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -51,6 +60,24 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Accessor for profile photo URL (local path or remote URL).
+     */
+    public function getProfilePhotoUrlAttribute(): ?string
+    {
+        $path = $this->profile_photo;
+
+        if (!$path) {
+            return null;
+        }
+
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            return $path;
+        }
+
+        return asset('storage/' . ltrim($path, '/'));
     }
 
     /**
