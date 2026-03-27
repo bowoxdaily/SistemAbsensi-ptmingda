@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\PayrollController;
 use App\Http\Controllers\Admin\InterviewController;
 use App\Http\Controllers\Admin\BroadcastController;
 use App\Http\Controllers\Admin\WarningLetterController;
+use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ExternalKaryawanController;
 use Illuminate\Http\Request;
@@ -293,6 +294,19 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('settings/holidays')->group(
     Route::put('/{id}', [\App\Http\Controllers\Admin\HolidayController::class, 'update']);
     Route::delete('/{id}', [\App\Http\Controllers\Admin\HolidayController::class, 'destroy']);
     Route::post('/{id}/toggle', [\App\Http\Controllers\Admin\HolidayController::class, 'toggleActive']);
+});
+
+// Analytics API Routes
+Route::middleware(['web', 'auth', 'admin'])->prefix('analytics')->group(function () {
+    Route::get('/overview', [AnalyticsController::class, 'overview']);
+    Route::get('/trend', [AnalyticsController::class, 'trend']);
+    Route::get('/by-department', [AnalyticsController::class, 'byDepartment']);
+    Route::get('/overtime', [AnalyticsController::class, 'overtime']);
+    Route::get('/top-late-employees', [AnalyticsController::class, 'topLateEmployees']);
+    Route::get('/top-absent-employees', [AnalyticsController::class, 'topAbsentEmployees']);
+    Route::get('/attendance-rate', [AnalyticsController::class, 'attendanceRate']);
+    Route::get('/heatmap', [AnalyticsController::class, 'heatmap']);
+    Route::get('/supervisor-performance', [AnalyticsController::class, 'supervisorPerformance']);
 });
 
 // Guest Monitoring API Routes (public - no login required)

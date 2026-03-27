@@ -156,6 +156,14 @@
                 <span class="menu-header-text">Laporan</span>
             </li>
 
+            <!-- Analytics Dashboard -->
+            <li class="menu-item {{ request()->routeIs('admin.analytics.index') ? 'active' : '' }}">
+                <a href="{{ route('admin.analytics.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bxs-bar-chart-alt-2"></i>
+                    <div data-i18n="Analytics">Analytics Dashboard</div>
+                </a>
+            </li>
+
             <!-- Rekapitulasi Absensi -->
             <li class="menu-item {{ request()->routeIs('admin.rekapitulasi.*') ? 'active' : '' }}">
                 <a href="{{ route('admin.rekapitulasi.index') }}" class="menu-link">
