@@ -14,7 +14,6 @@ use App\Http\Controllers\Admin\InterviewController;
 use App\Http\Controllers\Admin\BroadcastController;
 use App\Http\Controllers\Admin\RekapitulasiController;
 use App\Http\Controllers\Admin\WarningLetterController;
-use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\InterviewScanController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
@@ -99,8 +98,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/karyawan/status-report', [KaryawanController::class, 'statusReportPage'])->name('admin.karyawan.status-report');
         Route::get('/admin/karyawan/status-report/export', [KaryawanController::class, 'statusReportExport'])->name('admin.karyawan.status-report.export');
 
-        // Analytics Dashboard
-        Route::get('/admin/analytics', [AnalyticsController::class, 'index'])->name('admin.analytics.index');
+
     });
 
     // Viewer Routes (accessible by admin, manager, viewer)
