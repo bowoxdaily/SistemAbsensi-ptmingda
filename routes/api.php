@@ -48,6 +48,13 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::get('/karyawan/{id}', [ExternalKaryawanController::class, 'show']);
 });
 
+// ─── Public API v1 (No Authentication) ──────────────────────────────────────
+// Publicly accessible endpoints without bearer token.
+// GET /api/v1/photo/{filename}   → get profile photo (public)
+Route::prefix('v1')->group(function () {
+    Route::get('/photo/{filename}', [ExternalKaryawanController::class, 'getProfilePhoto']);
+});
+
 Route::middleware(['web', 'auth', 'admin'])->prefix('departments')->group(function () {
     Route::get('/', [DepartmentController::class, 'index']);
     Route::post('/', [DepartmentController::class, 'store']);

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Karyawans;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * External API controller for karyawan data.
@@ -140,6 +141,28 @@ class ExternalKaryawanController extends Controller
     }
 
     /**
+     * Get profile photo (PUBLIC - no authentication needed).
+     *
+     * GET /api/v1/karyawan/photo/{filename}
+     * Returns the profile photo file directly or 404 if not found.
+     */
+    public function getProfilePhoto($filename)
+    {
+        // Security: only allow alphanumeric, dash, dot, underscore
+        if (!preg_match('/^[a-zA-Z0-9._-]+$/', $filename)) {
+            abort(404, 'Invalid filename');
+        }
+
+        $path = 'profile_photos/' . $filename;
+
+        if (!Storage::disk('public')->exists($path)) {
+            abort(404, 'Photo not found');
+        }
+
+        return Storage::disk('public')->download($path);
+    }
+
+    /**
      * Return a 403 JSON response if the user is not admin/manager/viewer,
      * or null if access is allowed.
      */
@@ -157,10 +180,24 @@ class ExternalKaryawanController extends Controller
 
     /**
      * Remove sensitive fields from a Karyawans model instance.
-     * Returns all fields including NIK and identifiers.
+     * Returns all fields including NIK and identifiers, and converts profile_photo to full public URL.
      */
     private function sanitize(Karyawans $karyawan): array
     {
-        return $karyawan->makeHidden(['ktp'])->toArray();
+        // Convert to array dan kemudian manipulasi
+        $data = $karyawan->toArray();
+
+        // Hapus field sensitif
+        unset($data['ktp']);
+
+        // Selalu tambahkan profile_photo_url
+        $profilePhoto = $data['profile_photo'] ?? null;
+        if (!empty($profilePhoto)) {
+            $data['profile_photo_url'] = Storage::disk('public')->url($profilePhoto);
+        } else {
+            $data['profile_photo_url'] = null;
+        }
+
+        return $data;
     }
 }
