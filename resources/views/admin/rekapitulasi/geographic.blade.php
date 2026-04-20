@@ -145,6 +145,62 @@
                     </div>
                 </div>
 
+                <!-- Doughnut Charts Section -->
+                <h6 class="mb-3 mt-4 fw-bold">Statistik Karyawan Aktif per Wilayah</h6>
+                <div class="row mb-4">
+                    <!-- Chart 1: All Employees by Province -->
+                    <div class="col-lg-4 mb-3">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Semua Karyawan Aktif</h6>
+                                <small class="text-muted">Per Provinsi</small>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="chart1Doughnut" height="200"></canvas>
+                                <div class="mt-2">
+                                    <small class="text-muted">Total: <strong id="chart1Total">0</strong> karyawan</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chart 2: Indramayu by Kecamatan -->
+                    <div class="col-lg-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h6 class="mb-0">Indramayu</h6>
+                                <small class="text-muted">Per Kecamatan</small>
+                            </div>
+                            <div class="card-body">
+                                <div style="height: 260px; overflow: hidden;">
+                                    <canvas id="chart2Doughnut"></canvas>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted">Total: <strong id="chart2Total">0</strong> karyawan</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chart 3: Losarang by Desa -->
+                    <div class="col-lg-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h6 class="mb-0">Losarang</h6>
+                                <small class="text-muted">Per Desa</small>
+                            </div>
+                            <div class="card-body">
+                                <div style="height: 260px; overflow: hidden;">
+                                    <canvas id="chart3Doughnut"></canvas>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted">Total: <strong id="chart3Total">0</strong> karyawan</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Data Table -->
                 <div class="table-responsive">
                     <table class="table table-hover" id="rekapTable">
@@ -202,16 +258,29 @@
             let locationsData = {};
             let distributionChart = null;
             let statusChart = null;
+            let chart1Doughnut = null;
+            let chart2Bar = null;
+            let chart3Bar = null;
+
+            // Chart colors
+            const chartColors = [
+                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+                '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+            ];
 
             $(document).ready(function() {
                 initializeSelects();
                 loadData();
+                loadChartData();
 
                 $('#filter-group-level').on('change', loadData);
                 $('#filter-province').on('change', loadData);
                 $('#filter-kabupaten').on('change', loadData);
                 $('#filter-kecamatan').on('change', loadData);
-                $('#btnRefresh').on('click', loadData);
+                $('#btnRefresh').on('click', function() {
+                    loadData();
+                    loadChartData();
+                });
                 $('#exportExcel').on('click', exportToExcel);
             });
 
@@ -679,6 +748,271 @@
                 const b = Math.min(255, Math.max(0, parseInt(rgba[2]) + percent));
                 
                 return `rgba(${r}, ${g}, ${b}, 1)`;
+            }
+
+            /**
+             * Draw numeric labels at the end of horizontal bars.
+             */
+            function createBarValueLabelPlugin() {
+                return {
+                    id: 'barValueLabelPlugin',
+                    afterDatasetsDraw(chart) {
+                        const { ctx } = chart;
+                        const chartArea = chart.chartArea;
+
+                        chart.data.datasets.forEach((dataset, datasetIndex) => {
+                            const meta = chart.getDatasetMeta(datasetIndex);
+
+                            meta.data.forEach((bar, index) => {
+                                const value = dataset.data[index];
+                                if (!value) return;
+
+                                ctx.save();
+                                ctx.fillStyle = '#111';
+                                ctx.font = 'bold 11px Arial';
+                                ctx.textAlign = 'left';
+                                ctx.textBaseline = 'middle';
+
+                                const text = String(value);
+                                const textWidth = ctx.measureText(text).width;
+                                const padding = 8;
+                                const maxX = chartArea.right - 4;
+                                const minX = chartArea.left + 4;
+                                const fitsOutside = (bar.x + padding + textWidth) <= maxX;
+                                const x = fitsOutside
+                                    ? bar.x + padding
+                                    : Math.max(minX, bar.x - padding - textWidth);
+                                const y = bar.y;
+                                if (!fitsOutside) {
+                                    ctx.textAlign = 'right';
+                                }
+
+                                ctx.fillText(text, x, y);
+                                ctx.restore();
+                            });
+                        });
+                    }
+                };
+            }
+
+            /**
+             * Load data for 3 doughnut charts
+             */
+            function loadChartData() {
+                $.ajax({
+                    url: '/api/admin/rekapitulasi/geographic-chart-data',
+                    method: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            renderChart1(response.chart1);
+                            renderChart2(response.chart2);
+                            renderChart3(response.chart3);
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error('Failed to load chart data:', xhr);
+                    }
+                });
+            }
+
+            /**
+             * Render Chart 1: All active employees by province
+             */
+            function renderChart1(data) {
+                if (!data.labels || data.labels.length === 0) {
+                    $('#chart1Total').text('0');
+                    return;
+                }
+
+                $('#chart1Total').text(data.total);
+
+                const ctx = document.getElementById('chart1Doughnut');
+                if (!ctx) return;
+
+                if (chart1Doughnut) {
+                    chart1Doughnut.destroy();
+                }
+
+                const bgColors = chartColors.slice(0, data.labels.length);
+                const borderColors = bgColors.map(c => c.replace('0.8', '1'));
+
+                chart1Doughnut = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            data: data.data,
+                            backgroundColor: bgColors,
+                            borderColor: borderColors,
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    font: {
+                                        size: 11
+                                    },
+                                    padding: 10,
+                                    usePointStyle: true
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const value = context.parsed;
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return `${context.label}: ${value} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            /**
+             * Render Chart 2: Indramayu by kecamatan
+             */
+            function renderChart2(data) {
+                if (!data.labels || data.labels.length === 0) {
+                    $('#chart2Total').text('0');
+                    return;
+                }
+
+                $('#chart2Total').text(data.total);
+
+                const chartData = prepareTopCategories(data, 8);
+
+                const ctx = document.getElementById('chart2Doughnut');
+                if (!ctx) return;
+
+                if (chart2Bar) {
+                    chart2Bar.destroy();
+                }
+
+                const bgColors = chartColors.slice(0, chartData.labels.length);
+                const borderColors = bgColors.map(c => c.replace('0.8', '1'));
+
+                chart2Bar = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: chartData.labels,
+                        datasets: [{
+                            data: chartData.data,
+                            backgroundColor: bgColors,
+                            borderColor: borderColors,
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const value = context.parsed;
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return `${context.label}: ${value} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    plugins: [createBarValueLabelPlugin()]
+                });
+            }
+
+            /**
+             * Render Chart 3: Losarang by desa
+             */
+            function renderChart3(data) {
+                if (!data.labels || data.labels.length === 0) {
+                    $('#chart3Total').text('0');
+                    return;
+                }
+
+                $('#chart3Total').text(data.total);
+
+                const chartData = prepareTopCategories(data, 8);
+
+                const ctx = document.getElementById('chart3Doughnut');
+                if (!ctx) return;
+
+                if (chart3Bar) {
+                    chart3Bar.destroy();
+                }
+
+                const bgColors = chartColors.slice(0, data.labels.length);
+                const borderColors = bgColors.map(c => c.replace('0.8', '1'));
+
+                chart3Bar = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: chartData.labels,
+                        datasets: [{
+                            data: chartData.data,
+                            backgroundColor: bgColors,
+                            borderColor: borderColors,
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const value = context.parsed;
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return `${context.label}: ${value} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    plugins: [createBarValueLabelPlugin()]
+                });
+            }
+
+            /**
+             * Keep charts readable by showing only the top categories.
+             */
+            function prepareTopCategories(data, limit) {
+                const pairs = data.labels.map((label, index) => ({
+                    label,
+                    value: Number(data.data[index]) || 0
+                }));
+
+                const visible = pairs.slice(0, limit);
+                const hidden = pairs.slice(limit);
+                const hiddenTotal = hidden.reduce((sum, item) => sum + item.value, 0);
+
+                if (hiddenTotal > 0) {
+                    visible.push({ label: 'Lainnya', value: hiddenTotal });
+                }
+
+                return {
+                    labels: visible.map(item => item.label),
+                    data: visible.map(item => item.value),
+                };
             }
         </script>
     @endpush

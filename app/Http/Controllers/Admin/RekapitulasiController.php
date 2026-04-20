@@ -794,4 +794,86 @@ class RekapitulasiController extends Controller
 
         return $filters;
     }
+
+    /**
+     * Get data for 3 doughnut charts:
+     * 1. All active employees by location
+     * 2. Indramayu (Kabupaten INDRAMAYU)
+     * 3. Losarang (Kecamatan LOSARANG in Indramayu)
+     */
+    public function getGeographicChartData()
+    {
+        try {
+            // Chart 1: All active employees by province
+            $allEmployeesByProvince = Karyawans::where('status', 'active')
+                ->whereNotNull('province')
+                ->selectRaw('province, COUNT(*) as count')
+                ->groupBy('province')
+                ->orderBy('count', 'desc')
+                ->get();
+
+            // Chart 2: Indramayu - by kecamatan (district)
+            $indramayuByDistrict = Karyawans::where('status', 'active')
+                ->where('kabupaten', 'INDRAMAYU')
+                ->whereNotNull('kecamatan')
+                ->selectRaw('kecamatan, COUNT(*) as count')
+                ->groupBy('kecamatan')
+                ->orderBy('count', 'desc')
+                ->get();
+
+            // Chart 3: Losarang - by desa (village)
+            $losarangByVillage = Karyawans::where('status', 'active')
+                ->where('kabupaten', 'INDRAMAYU')
+                ->where('kecamatan', 'LOSARANG')
+                ->whereNotNull('desa')
+                ->selectRaw('desa, COUNT(*) as count')
+                ->groupBy('desa')
+                ->orderBy('count', 'desc')
+                ->get();
+
+            // Format data for charts
+            $chart1Data = [
+                'labels' => $allEmployeesByProvince->pluck('province')->toArray(),
+                'data' => $allEmployeesByProvince->pluck('count')->toArray(),
+            ];
+
+            $chart2Data = [
+                'labels' => $indramayuByDistrict->pluck('kecamatan')->toArray(),
+                'data' => $indramayuByDistrict->pluck('count')->toArray(),
+            ];
+
+            $chart3Data = [
+                'labels' => $losarangByVillage->pluck('desa')->toArray(),
+                'data' => $losarangByVillage->pluck('count')->toArray(),
+            ];
+
+            return response()->json([
+                'success' => true,
+                'chart1' => [
+                    'title' => 'Statistik Karyawan Aktif per Provinsi',
+                    'labels' => $chart1Data['labels'],
+                    'data' => $chart1Data['data'],
+                    'total' => array_sum($chart1Data['data']),
+                ],
+                'chart2' => [
+                    'title' => 'Statistik Karyawan Indramayu per Kecamatan',
+                    'labels' => $chart2Data['labels'],
+                    'data' => $chart2Data['data'],
+                    'total' => array_sum($chart2Data['data']),
+                ],
+                'chart3' => [
+                    'title' => 'Statistik Karyawan Losarang per Desa',
+                    'labels' => $chart3Data['labels'],
+                    'data' => $chart3Data['data'],
+                    'total' => array_sum($chart3Data['data']),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in getGeographicChartData: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching chart data: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

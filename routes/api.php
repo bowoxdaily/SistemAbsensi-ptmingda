@@ -367,6 +367,7 @@ Route::middleware(['web', 'auth', 'viewer'])->prefix('admin/rekapitulasi')->grou
     Route::get('/data', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'getData']);
     Route::get('/filter-options', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'getFilterOptions']);
     Route::get('/geographic-data', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'getGeographicData']);
+    Route::get('/geographic-chart-data', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'getGeographicChartData']);
     Route::get('/geographic-location-detail', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'getGeographicLocationDetail']);
     Route::get('/geographic-export-excel', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'exportGeographicExcel']);
 });
