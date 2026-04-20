@@ -13,13 +13,13 @@ class ExternalAttendanceController extends Controller
     /**
      * GET /api/v1/attendance
      *
+     * Default: Returns today + yesterday attendance
      * Params:
-     * - per_page (int, default 25, max 100)
      * - employee_id (int)
      * - employee_code (string)
      * - status (string)
-     * - date_from (Y-m-d)
-     * - date_to (Y-m-d)
+     * - date_from (Y-m-d) - optional override
+     * - date_to (Y-m-d) - optional override
      */
     public function index(Request $request): JsonResponse
     {
@@ -27,14 +27,15 @@ class ExternalAttendanceController extends Controller
             return $denied;
         }
 
-        $perPage = min(max((int) $request->get('per_page', 25), 1), 100);
         $employeeId = $request->get('employee_id');
         $employeeCode = $request->get('employee_code');
         $status = $request->get('status');
-        $dateFrom = $request->get('date_from');
-        $dateTo = $request->get('date_to');
 
-        $query = Attendance::with(['employee.department', 'employee.position'])
+        // Default: today + yesterday
+        $dateFrom = $request->get('date_from') ?? Carbon::now()->subDay()->format('Y-m-d');
+        $dateTo = $request->get('date_to') ?? Carbon::now()->format('Y-m-d');
+
+        $results = Attendance::with(['employee.department', 'employee.position'])
             ->when($employeeId, fn ($q) => $q->where('employee_id', $employeeId))
             ->when($employeeCode, function ($q) use ($employeeCode) {
                 $q->whereHas('employee', function ($e) use ($employeeCode) {
@@ -42,27 +43,19 @@ class ExternalAttendanceController extends Controller
                 });
             })
             ->when($status, fn ($q) => $q->where('status', $status))
-            ->when($dateFrom, fn ($q) => $q->whereDate('attendance_date', '>=', $dateFrom))
-            ->when($dateTo, fn ($q) => $q->whereDate('attendance_date', '<=', $dateTo))
+            ->whereDate('attendance_date', '>=', $dateFrom)
+            ->whereDate('attendance_date', '<=', $dateTo)
             ->orderBy('attendance_date', 'desc')
-            ->orderBy('id', 'desc');
+            ->orderBy('id', 'desc')
+            ->get();
 
-        $paginated = $query->paginate($perPage);
-
-        $data = collect($paginated->items())
-            ->map(fn (Attendance $item) => $this->serializeAttendance($item))
-            ->values();
+        $data = $results->map(fn (Attendance $item) => $this->serializeAttendance($item))->values();
 
         return response()->json([
             'success' => true,
             'data' => $data,
             'meta' => [
-                'total' => $paginated->total(),
-                'per_page' => $paginated->perPage(),
-                'current_page' => $paginated->currentPage(),
-                'last_page' => $paginated->lastPage(),
-                'from' => $paginated->firstItem(),
-                'to' => $paginated->lastItem(),
+                'total' => $results->count(),
             ],
             'filters' => [
                 'employee_id' => $employeeId,
@@ -100,6 +93,8 @@ class ExternalAttendanceController extends Controller
 
     /**
      * GET /api/v1/attendance/employee/{employeeId}
+     *
+     * Default: Returns today + yesterday attendance for specific employee
      */
     public function byEmployee(Request $request, int $employeeId): JsonResponse
     {
@@ -107,35 +102,28 @@ class ExternalAttendanceController extends Controller
             return $denied;
         }
 
-        $perPage = min(max((int) $request->get('per_page', 31), 1), 100);
         $status = $request->get('status');
-        $dateFrom = $request->get('date_from');
-        $dateTo = $request->get('date_to');
 
-        $query = Attendance::with(['employee.department', 'employee.position'])
+        // Default: today + yesterday
+        $dateFrom = $request->get('date_from') ?? Carbon::now()->subDay()->format('Y-m-d');
+        $dateTo = $request->get('date_to') ?? Carbon::now()->format('Y-m-d');
+
+        $results = Attendance::with(['employee.department', 'employee.position'])
             ->where('employee_id', $employeeId)
             ->when($status, fn ($q) => $q->where('status', $status))
-            ->when($dateFrom, fn ($q) => $q->whereDate('attendance_date', '>=', $dateFrom))
-            ->when($dateTo, fn ($q) => $q->whereDate('attendance_date', '<=', $dateTo))
+            ->whereDate('attendance_date', '>=', $dateFrom)
+            ->whereDate('attendance_date', '<=', $dateTo)
             ->orderBy('attendance_date', 'desc')
-            ->orderBy('id', 'desc');
+            ->orderBy('id', 'desc')
+            ->get();
 
-        $paginated = $query->paginate($perPage);
-
-        $data = collect($paginated->items())
-            ->map(fn (Attendance $item) => $this->serializeAttendance($item))
-            ->values();
+        $data = $results->map(fn (Attendance $item) => $this->serializeAttendance($item))->values();
 
         return response()->json([
             'success' => true,
             'data' => $data,
             'meta' => [
-                'total' => $paginated->total(),
-                'per_page' => $paginated->perPage(),
-                'current_page' => $paginated->currentPage(),
-                'last_page' => $paginated->lastPage(),
-                'from' => $paginated->firstItem(),
-                'to' => $paginated->lastItem(),
+                'total' => $results->count(),
             ],
             'filters' => [
                 'employee_id' => $employeeId,
