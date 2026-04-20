@@ -157,15 +157,22 @@
                 <div class="row mb-4">
                     <!-- Chart 1: All Employees by Province -->
                     <div class="col-lg-4 mb-3">
-                        <div class="card">
-                            <div class="card-header">
-                                <h6 class="mb-0">Semua Karyawan Aktif</h6>
-                                <small class="text-muted">Per Provinsi</small>
+                        <div class="card h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">Semua Karyawan Aktif</h6>
+                                    <small class="text-muted">Per Provinsi</small>
+                                </div>
+                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#chart1Collapse" aria-expanded="true" aria-controls="chart1Collapse">
+                                    Expand
+                                </button>
                             </div>
-                            <div class="card-body">
-                                <canvas id="chart1Doughnut" height="200"></canvas>
-                                <div class="mt-2">
-                                    <small class="text-muted">Total: <strong id="chart1Total">0</strong> karyawan</small>
+                            <div class="collapse show" id="chart1Collapse">
+                                <div class="card-body">
+                                    <canvas id="chart1Doughnut" height="200"></canvas>
+                                    <div class="mt-2">
+                                        <small class="text-muted">Total: <strong id="chart1Total">0</strong> karyawan</small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -174,16 +181,22 @@
                     <!-- Chart 2: Indramayu by Kecamatan -->
                     <div class="col-lg-4 mb-3">
                         <div class="card h-100">
-                            <div class="card-header">
-                                <h6 class="mb-0">Indramayu</h6>
-                                <small class="text-muted">Per Kecamatan</small>
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">Indramayu</h6>
+                                    <small class="text-muted">Per Kecamatan</small>
+                                </div>
+                                <button class="btn btn-sm btn-outline-secondary" type="button" id="chart2ToggleBtn">
+                                    Lihat semua
+                                </button>
                             </div>
                             <div class="card-body">
-                                <div style="height: 260px; overflow: hidden;">
+                                <div id="chart2Wrapper" style="height: 260px; overflow: hidden;">
                                     <canvas id="chart2Doughnut"></canvas>
                                 </div>
                                 <div class="mt-2">
                                     <small class="text-muted">Total: <strong id="chart2Total">0</strong> karyawan</small>
+                                    <small class="text-muted d-block">Klik <strong>Lainnya</strong> untuk lihat semua kecamatan.</small>
                                 </div>
                             </div>
                         </div>
@@ -192,16 +205,22 @@
                     <!-- Chart 3: Losarang by Desa -->
                     <div class="col-lg-4 mb-3">
                         <div class="card h-100">
-                            <div class="card-header">
-                                <h6 class="mb-0">Losarang</h6>
-                                <small class="text-muted">Per Desa</small>
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">Losarang</h6>
+                                    <small class="text-muted">Per Desa</small>
+                                </div>
+                                <button class="btn btn-sm btn-outline-secondary" type="button" id="chart3ToggleBtn">
+                                    Lihat semua
+                                </button>
                             </div>
                             <div class="card-body">
-                                <div style="height: 260px; overflow: hidden;">
+                                <div id="chart3Wrapper" style="height: 260px; overflow: hidden;">
                                     <canvas id="chart3Doughnut"></canvas>
                                 </div>
                                 <div class="mt-2">
                                     <small class="text-muted">Total: <strong id="chart3Total">0</strong> karyawan</small>
+                                    <small class="text-muted d-block">Klik <strong>Lainnya</strong> untuk lihat semua desa.</small>
                                 </div>
                             </div>
                         </div>
@@ -268,6 +287,10 @@
             let chart1Doughnut = null;
             let chart2Bar = null;
             let chart3Bar = null;
+            let chart2SourceData = null;
+            let chart3SourceData = null;
+            let chart2Expanded = false;
+            let chart3Expanded = false;
 
             // Chart colors
             const chartColors = [
@@ -287,6 +310,14 @@
                 $('#filter-position-scope').on('change', function() {
                     loadData();
                     loadChartData();
+                });
+                $('#chart2ToggleBtn').on('click', function() {
+                    chart2Expanded = !chart2Expanded;
+                    renderChart2(chart2SourceData);
+                });
+                $('#chart3ToggleBtn').on('click', function() {
+                    chart3Expanded = !chart3Expanded;
+                    renderChart3(chart3SourceData);
                 });
                 $('#btnRefresh').on('click', function() {
                     loadData();
@@ -827,6 +858,8 @@
                     },
                     success: function(response) {
                         if (response.success) {
+                            chart2SourceData = response.chart2;
+                            chart3SourceData = response.chart3;
                             renderChart1(response.chart1);
                             renderChart2(response.chart2);
                             renderChart3(response.chart3);
@@ -910,7 +943,7 @@
 
                 $('#chart2Total').text(data.total);
 
-                const chartData = prepareTopCategories(data, 8);
+                const chartData = chart2Expanded ? prepareAllCategories(data) : prepareTopCategories(data, 8);
 
                 const ctx = document.getElementById('chart2Doughnut');
                 if (!ctx) return;
@@ -919,8 +952,11 @@
                     chart2Bar.destroy();
                 }
 
-                const bgColors = chartColors.slice(0, chartData.labels.length);
+                const bgColors = chartColors.slice(0, data.labels.length);
                 const borderColors = bgColors.map(c => c.replace('0.8', '1'));
+
+                adjustChartWrapper('chart2Wrapper', chartData.labels.length, chart2Expanded);
+                $('#chart2ToggleBtn').text(chart2Expanded ? 'Ringkas' : 'Lihat semua');
 
                 chart2Bar = new Chart(ctx, {
                     type: 'bar',
@@ -937,6 +973,16 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         indexAxis: 'y',
+                        onClick: function(event, elements, chart) {
+                            if (!elements.length) return;
+
+                            const index = elements[0].index;
+                            const label = chart.data.labels[index];
+                            if (!chart2Expanded && label === 'Lainnya') {
+                                chart2Expanded = true;
+                                renderChart2(chart2SourceData);
+                            }
+                        },
                         plugins: {
                             legend: {
                                 display: false
@@ -968,7 +1014,7 @@
 
                 $('#chart3Total').text(data.total);
 
-                const chartData = prepareTopCategories(data, 8);
+                const chartData = chart3Expanded ? prepareAllCategories(data) : prepareTopCategories(data, 8);
 
                 const ctx = document.getElementById('chart3Doughnut');
                 if (!ctx) return;
@@ -979,6 +1025,9 @@
 
                 const bgColors = chartColors.slice(0, data.labels.length);
                 const borderColors = bgColors.map(c => c.replace('0.8', '1'));
+
+                adjustChartWrapper('chart3Wrapper', chartData.labels.length, chart3Expanded);
+                $('#chart3ToggleBtn').text(chart3Expanded ? 'Ringkas' : 'Lihat semua');
 
                 chart3Bar = new Chart(ctx, {
                     type: 'bar',
@@ -995,6 +1044,16 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         indexAxis: 'y',
+                        onClick: function(event, elements, chart) {
+                            if (!elements.length) return;
+
+                            const index = elements[0].index;
+                            const label = chart.data.labels[index];
+                            if (!chart3Expanded && label === 'Lainnya') {
+                                chart3Expanded = true;
+                                renderChart3(chart3SourceData);
+                            }
+                        },
                         plugins: {
                             legend: {
                                 display: false
@@ -1036,6 +1095,26 @@
                     labels: visible.map(item => item.label),
                     data: visible.map(item => item.value),
                 };
+            }
+
+            function prepareAllCategories(data) {
+                return {
+                    labels: data.labels,
+                    data: data.data,
+                };
+            }
+
+            function adjustChartWrapper(wrapperId, count, expanded) {
+                const wrapper = document.getElementById(wrapperId);
+                if (!wrapper) return;
+
+                if (expanded) {
+                    wrapper.style.height = Math.max(260, count * 30) + 'px';
+                    wrapper.style.overflow = 'visible';
+                } else {
+                    wrapper.style.height = '260px';
+                    wrapper.style.overflow = 'hidden';
+                }
             }
         </script>
     @endpush
