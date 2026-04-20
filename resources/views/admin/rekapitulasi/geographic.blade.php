@@ -119,6 +119,13 @@
                             <option></option>
                         </select>
                     </div>
+                    <div class="col-md-3 mt-3 mt-md-0">
+                        <label class="form-label">Filter Jabatan</label>
+                        <select class="form-select" id="filter-position-scope">
+                            <option value="operator_staff" selected>Operator s/d Staff</option>
+                            <option value="all">Semua Jabatan</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Chart Visualization -->
@@ -277,6 +284,10 @@
                 $('#filter-province').on('change', loadData);
                 $('#filter-kabupaten').on('change', loadData);
                 $('#filter-kecamatan').on('change', loadData);
+                $('#filter-position-scope').on('change', function() {
+                    loadData();
+                    loadChartData();
+                });
                 $('#btnRefresh').on('click', function() {
                     loadData();
                     loadChartData();
@@ -297,6 +308,7 @@
                 const province = $('#filter-province').val();
                 const kabupaten = $('#filter-kabupaten').val();
                 const kecamatan = $('#filter-kecamatan').val();
+                const positionScope = $('#filter-position-scope').val();
 
                 $.ajax({
                     url: '/api/admin/rekapitulasi/geographic-data',
@@ -306,6 +318,7 @@
                         province: province,
                         kabupaten: kabupaten,
                         kecamatan: kecamatan,
+                        position_scope: positionScope,
                     },
                     success: function(response) {
                         if (response.success) {
@@ -627,6 +640,8 @@
             }
 
             function showDetails(location, groupLevel) {
+                const positionScope = $('#filter-position-scope').val();
+
                 // Show loading state
                 const modal = new bootstrap.Modal(document.getElementById('detailModal'));
                 document.getElementById('detailModalLabel').textContent = 'Detail Karyawan - ' + location;
@@ -645,6 +660,7 @@
                     data: {
                         location: location,
                         group_level: groupLevel,
+                        position_scope: positionScope,
                     },
                     success: function(response) {
                         if (response.success) {
@@ -703,12 +719,14 @@
                 const province = $('#filter-province').val();
                 const kabupaten = $('#filter-kabupaten').val();
                 const kecamatan = $('#filter-kecamatan').val();
+                const positionScope = $('#filter-position-scope').val();
 
                 const params = new URLSearchParams({
                     group_level: groupLevel,
                     province: province || '',
                     kabupaten: kabupaten || '',
-                    kecamatan: kecamatan || ''
+                    kecamatan: kecamatan || '',
+                    position_scope: positionScope || 'operator_staff'
                 });
 
                 window.location.href = `/api/admin/rekapitulasi/geographic-export-excel?${params.toString()}`;
@@ -799,9 +817,14 @@
              * Load data for 3 doughnut charts
              */
             function loadChartData() {
+                const positionScope = $('#filter-position-scope').val();
+
                 $.ajax({
                     url: '/api/admin/rekapitulasi/geographic-chart-data',
                     method: 'GET',
+                    data: {
+                        position_scope: positionScope,
+                    },
                     success: function(response) {
                         if (response.success) {
                             renderChart1(response.chart1);

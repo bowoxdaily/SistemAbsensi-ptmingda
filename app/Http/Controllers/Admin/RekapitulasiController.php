@@ -457,11 +457,14 @@ class RekapitulasiController extends Controller
         $province = $request->get('province');
         $kabupaten = $request->get('kabupaten');
         $kecamatan = $request->get('kecamatan');
+        $positionScope = $request->get('position_scope', 'operator_staff');
         
         try {
             // Get all active employees with geographic filtering
             $query = Karyawans::where('status', 'active')
                 ->with(['department', 'position']);
+
+            $this->applyPositionScopeFilter($query, $positionScope);
 
             if ($province) {
                 $query->where('province', $province);
@@ -518,6 +521,7 @@ class RekapitulasiController extends Controller
                 'data' => $rekapitulasi,
                 'summary' => $summary,
                 'group_level' => $groupLevel,
+                'position_scope' => $positionScope,
                 'locations' => $locations,
             ]);
         } catch (\Exception $e) {
@@ -641,10 +645,13 @@ class RekapitulasiController extends Controller
         $province = $request->get('province');
         $kabupaten = $request->get('kabupaten');
         $kecamatan = $request->get('kecamatan');
+        $positionScope = $request->get('position_scope', 'operator_staff');
 
         // Get data
         $query = Karyawans::where('status', 'active')
             ->with(['department', 'position']);
+
+        $this->applyPositionScopeFilter($query, $positionScope);
 
         if ($province) {
             $query->where('province', $province);
@@ -676,6 +683,7 @@ class RekapitulasiController extends Controller
                         'province' => $province,
                         'kabupaten' => $kabupaten,
                         'kecamatan' => $kecamatan,
+                        'position_scope' => $positionScope,
                     ]
                 ]),
                 $filename
@@ -686,6 +694,7 @@ class RekapitulasiController extends Controller
                 'province' => $province,
                 'kabupaten' => $kabupaten,
                 'kecamatan' => $kecamatan,
+                'position_scope' => $positionScope,
             ]);
 
             return response()->json([
@@ -703,6 +712,7 @@ class RekapitulasiController extends Controller
     {
         $groupLevel = $request->get('group_level', 'kabupaten');
         $location = $request->get('location'); // Full location string like "JAWA BARAT - INDRAMAYU"
+        $positionScope = $request->get('position_scope', 'operator_staff');
 
         try {
             // Parse location based on groupLevel
@@ -711,6 +721,8 @@ class RekapitulasiController extends Controller
             // Query employees with those filters
             $query = Karyawans::where('status', 'active')
                 ->with(['department', 'position']);
+
+            $this->applyPositionScopeFilter($query, $positionScope);
 
             if (isset($filters['province'])) {
                 $query->where('province', $filters['province']);
@@ -753,6 +765,7 @@ class RekapitulasiController extends Controller
                 'success' => true,
                 'location' => $location,
                 'group_level' => $groupLevel,
+                'position_scope' => $positionScope,
                 'total_count' => $employees->count(),
                 'employees' => $data,
             ]);
@@ -801,35 +814,43 @@ class RekapitulasiController extends Controller
      * 2. Indramayu (Kabupaten INDRAMAYU)
      * 3. Losarang (Kecamatan LOSARANG in Indramayu)
      */
-    public function getGeographicChartData()
+    public function getGeographicChartData(Request $request)
     {
+        $positionScope = $request->get('position_scope', 'operator_staff');
+
         try {
             // Chart 1: All active employees by province
-            $allEmployeesByProvince = Karyawans::where('status', 'active')
+            $allEmployeesByProvinceQuery = Karyawans::where('status', 'active')
                 ->whereNotNull('province')
                 ->selectRaw('province, COUNT(*) as count')
                 ->groupBy('province')
-                ->orderBy('count', 'desc')
-                ->get();
+                ->orderBy('count', 'desc');
+
+            $this->applyPositionScopeFilter($allEmployeesByProvinceQuery, $positionScope);
+            $allEmployeesByProvince = $allEmployeesByProvinceQuery->get();
 
             // Chart 2: Indramayu - by kecamatan (district)
-            $indramayuByDistrict = Karyawans::where('status', 'active')
+            $indramayuByDistrictQuery = Karyawans::where('status', 'active')
                 ->where('kabupaten', 'INDRAMAYU')
                 ->whereNotNull('kecamatan')
                 ->selectRaw('kecamatan, COUNT(*) as count')
                 ->groupBy('kecamatan')
-                ->orderBy('count', 'desc')
-                ->get();
+                ->orderBy('count', 'desc');
+
+            $this->applyPositionScopeFilter($indramayuByDistrictQuery, $positionScope);
+            $indramayuByDistrict = $indramayuByDistrictQuery->get();
 
             // Chart 3: Losarang - by desa (village)
-            $losarangByVillage = Karyawans::where('status', 'active')
+            $losarangByVillageQuery = Karyawans::where('status', 'active')
                 ->where('kabupaten', 'INDRAMAYU')
-                ->where('kecamatan', 'LOSARANG')
+                ->whereRaw("UPPER(TRIM(kecamatan)) REGEXP '^LOSARANG(\\\\s+KAB\\\\.?)?$'")
                 ->whereNotNull('desa')
                 ->selectRaw('desa, COUNT(*) as count')
                 ->groupBy('desa')
-                ->orderBy('count', 'desc')
-                ->get();
+                ->orderBy('count', 'desc');
+
+            $this->applyPositionScopeFilter($losarangByVillageQuery, $positionScope);
+            $losarangByVillage = $losarangByVillageQuery->get();
 
             // Format data for charts
             $chart1Data = [
@@ -846,6 +867,7 @@ class RekapitulasiController extends Controller
 
             return response()->json([
                 'success' => true,
+                'position_scope' => $positionScope,
                 'chart1' => [
                     'title' => 'Statistik Karyawan Aktif per Provinsi',
                     'labels' => $chart1Data['labels'],
@@ -911,5 +933,22 @@ class RekapitulasiController extends Controller
         }
 
         return trim($value);
+    }
+
+    /**
+     * Apply position-based filtering. Default focus: Operator and Staff roles only.
+     */
+    private function applyPositionScopeFilter($query, ?string $positionScope): void
+    {
+        if ($positionScope === 'all') {
+            return;
+        }
+
+        $query->whereHas('position', function ($positionQuery) {
+            $positionQuery->where(function ($q) {
+                $q->whereRaw('UPPER(name) LIKE ?', ['%OPERATOR%'])
+                    ->orWhereRaw('UPPER(name) LIKE ?', ['%STAFF%']);
+            });
+        });
     }
 }
