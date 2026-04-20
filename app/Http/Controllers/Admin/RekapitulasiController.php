@@ -837,10 +837,7 @@ class RekapitulasiController extends Controller
                 'data' => $allEmployeesByProvince->pluck('count')->toArray(),
             ];
 
-            $chart2Data = [
-                'labels' => $indramayuByDistrict->pluck('kecamatan')->toArray(),
-                'data' => $indramayuByDistrict->pluck('count')->toArray(),
-            ];
+            $chart2Data = $this->collapseGeographicSeries($indramayuByDistrict, 'kecamatan', true);
 
             $chart3Data = [
                 'labels' => $losarangByVillage->pluck('desa')->toArray(),
@@ -875,5 +872,44 @@ class RekapitulasiController extends Controller
                 'message' => 'Error fetching chart data: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Collapse duplicate geographic labels caused by spacing or legacy suffixes.
+     */
+    private function collapseGeographicSeries($rows, string $field, bool $stripKabSuffix = false): array
+    {
+        $grouped = [];
+
+        foreach ($rows as $row) {
+            $label = $this->normalizeGeographicLabel($row->{$field} ?? '', $stripKabSuffix);
+            if ($label === '') {
+                continue;
+            }
+
+            $grouped[$label] = ($grouped[$label] ?? 0) + (int) $row->count;
+        }
+
+        arsort($grouped);
+
+        return [
+            'labels' => array_keys($grouped),
+            'data' => array_values($grouped),
+        ];
+    }
+
+    /**
+     * Normalize a geographic label for display and grouping.
+     */
+    private function normalizeGeographicLabel(string $value, bool $stripKabSuffix = false): string
+    {
+        $value = trim(preg_replace('/\s+/', ' ', $value) ?? '');
+        $value = mb_strtoupper($value);
+
+        if ($stripKabSuffix) {
+            $value = preg_replace('/\s+KAB\.?$/u', '', $value) ?? $value;
+        }
+
+        return trim($value);
     }
 }
