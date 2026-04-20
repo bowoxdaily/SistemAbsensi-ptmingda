@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\InterviewController;
 use App\Http\Controllers\Admin\BroadcastController;
 use App\Http\Controllers\Admin\WarningLetterController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ExternalAttendanceController;
 use App\Http\Controllers\Api\ExternalKaryawanController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -42,10 +43,22 @@ Route::prefix('auth')->group(function () {
 // GET /api/v1/karyawan/all       → list all (no pagination)
 //   Params: search, department_id, position_id, status
 // GET /api/v1/karyawan/{id}      → single record
+// GET /api/v1/attendance         → list attendance with pagination
+//   Params: per_page, employee_id, employee_code, status, date_from, date_to, page
+// GET /api/v1/attendance/summary → summary by status
+//   Params: date_from, date_to, employee_id
+// GET /api/v1/attendance/employee/{employeeId} → attendance by employee
+//   Params: per_page, date_from, date_to, status, page
+// GET /api/v1/attendance/{id}    → single attendance record
 Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::get('/karyawan',      [ExternalKaryawanController::class, 'index']);
     Route::get('/karyawan/all',  [ExternalKaryawanController::class, 'all']);
     Route::get('/karyawan/{id}', [ExternalKaryawanController::class, 'show']);
+
+    Route::get('/attendance', [ExternalAttendanceController::class, 'index']);
+    Route::get('/attendance/summary', [ExternalAttendanceController::class, 'summary']);
+    Route::get('/attendance/employee/{employeeId}', [ExternalAttendanceController::class, 'byEmployee']);
+    Route::get('/attendance/{id}', [ExternalAttendanceController::class, 'show']);
 });
 
 // ─── Public API v1 (No Authentication) ──────────────────────────────────────
