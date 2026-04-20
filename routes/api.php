@@ -85,6 +85,7 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('karyawan')->group(function 
     Route::post('/', [KaryawanController::class, 'store']);
     Route::put('/{id}', [KaryawanController::class, 'update']);
     Route::delete('/{id}', [KaryawanController::class, 'destroy']);
+    Route::post('/parse-address', [KaryawanController::class, 'parseAddress']);
 });
 
 Route::middleware(['web', 'auth', 'admin'])->prefix('positions')->group(function () {
@@ -352,5 +353,8 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('admin/broadcast')->group(fu
 Route::middleware(['web', 'auth', 'viewer'])->prefix('admin/rekapitulasi')->group(function () {
     Route::get('/data', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'getData']);
     Route::get('/filter-options', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'getFilterOptions']);
+    Route::get('/geographic-data', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'getGeographicData']);
+    Route::get('/geographic-location-detail', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'getGeographicLocationDetail']);
+    Route::get('/geographic-export-excel', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'exportGeographicExcel']);
 });
 

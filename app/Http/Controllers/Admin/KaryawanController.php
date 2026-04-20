@@ -101,6 +101,9 @@ class KaryawanController extends Controller
             'address' => 'required|string',
             'city' => 'required|string|max:50',
             'province' => 'required|string|max:50',
+            'kabupaten' => 'nullable|string|max:100',
+            'kecamatan' => 'nullable|string|max:100',
+            'desa' => 'nullable|string|max:100',
             'postal_code' => 'required|string|max:10',
             'phone' => 'required|string|max:20',
             'email' => 'required|email|max:100|unique:employees,email',
@@ -147,6 +150,9 @@ class KaryawanController extends Controller
             // Create employee
             $data = $request->all();
             $data['user_id'] = $user->id;
+            
+            // Normalize geographic fields to UPPERCASE
+            $data = $this->normalizeGeographicData($data);
 
             $karyawan = Karyawans::create($data);
 
@@ -252,7 +258,9 @@ class KaryawanController extends Controller
 
         DB::beginTransaction();
         try {
-            $karyawan->update($request->all());
+            // Normalize geographic fields to UPPERCASE before update
+            $data = $this->normalizeGeographicData($request->all());
+            $karyawan->update($data);
 
             // Update user if email changed
             if ($karyawan->user && $karyawan->user->email !== $request->email) {
@@ -529,5 +537,131 @@ class KaryawanController extends Controller
 
         $filename = 'Status_Karyawan_' . date('Y-m-d_His') . '.xlsx';
         return Excel::download(new \App\Exports\StatusKaryawanExport($filters), $filename);
+    }
+
+    /**
+     * Parse address to extract geographic data
+     * API endpoint: POST /api/admin/karyawan/parse-address
+     */
+    public function parseAddress(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'address' => 'required|string|max:500',
+            'city' => 'nullable|string|max:100',
+            'province' => 'nullable|string|max:100',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $parsed = $this->extractGeographicData(
+                address: $request->input('address'),
+                city: $request->input('city'),
+                province: $request->input('province')
+            );
+
+            return response()->json([
+                'success' => true,
+                'data' => $parsed
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal parse alamat: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Extract geographic data from employee fields
+     * Helper method used by parseAddress() and MigrateGeographicData command
+     */
+    public function extractGeographicData(string $address, ?string $city = null, ?string $province = null): array
+    {
+        $addressUpper = strtoupper($address);
+
+        // Kabupaten biasanya sama dengan city - normalize to UPPERCASE
+        $kabupaten = $city ? strtoupper(trim($city)) : null;
+
+        // Try to extract kecamatan and desa from address
+        $addressParts = $this->parseAddressString($addressUpper);
+
+        return [
+            'kabupaten' => $kabupaten,
+            'kecamatan' => $addressParts['kecamatan'] ?? null,
+            'desa' => $addressParts['desa'] ?? null,
+        ];
+    }
+
+    /**
+     * Parse address string to extract kecamatan and desa
+     * Pattern references:
+     * - "DESA LOSARANG RT 010 RW 003 KEL/DESA LOSARANG KEC LOSARANG INDRAMAYU JAWA BARAT"
+     * - "JL. PENDIDIKAN NO. 123 KELURAHAN CITARUM KECAMATAN BANDUNG TENGAH"
+     */
+    private function parseAddressString(string $address): array
+    {
+        $result = [
+            'desa' => null,
+            'kecamatan' => null,
+        ];
+
+        // Clean address
+        $address = trim($address);
+
+        // Pattern 1: Look for "DESA" or "KEL" or "KELURAHAN" 
+        if (preg_match('/(?:DESA|KEL|KELURAHAN)\s+([A-Z\s]+?)(?:\s+RT|\s+RW|\s+KEC|$)/i', $address, $matches)) {
+            $result['desa'] = trim($matches[1]);
+        }
+
+        // Pattern 2: Look for "KEC" or "KECAMATAN" followed by name
+        // This pattern looks for KEC followed by word(s) that are not city/province names
+        if (preg_match('/\s+KEC\s+([A-Z\s]+?)(?:\s+INDRAMAYU|\s+BANDUNG|\s+JAWA|\s+SUMATERA|\s+SULAWESI|\s+KALIMANTAN|\s+BALI|\s+NTT|\s+MALUKU|$)/i', $address, $matches)) {
+            $potentialKec = trim($matches[1]);
+            // Filter out noise
+            if (!preg_match('/^\d+$|^RT$|^RW$/i', $potentialKec)) {
+                $result['kecamatan'] = $potentialKec;
+            }
+        }
+
+        // Pattern 3: Try alternative "KECAMATAN" keyword
+        if (!$result['kecamatan']) {
+            if (preg_match('/\s+KECAMATAN\s+([A-Z\s]+?)(?:\s+KOTA|\s+KAB|\s+JAWA|$)/i', $address, $matches)) {
+                $result['kecamatan'] = trim($matches[1]);
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Normalize geographic fields to UPPERCASE
+     * Called before saving employee data to ensure consistency
+     */
+    private function normalizeGeographicData(array $data): array
+    {
+        if (isset($data['province'])) {
+            $data['province'] = $data['province'] ? strtoupper(trim($data['province'])) : null;
+        }
+        if (isset($data['city'])) {
+            $data['city'] = $data['city'] ? strtoupper(trim($data['city'])) : null;
+        }
+        if (isset($data['kabupaten'])) {
+            $data['kabupaten'] = $data['kabupaten'] ? strtoupper(trim($data['kabupaten'])) : null;
+        }
+        if (isset($data['kecamatan'])) {
+            $data['kecamatan'] = $data['kecamatan'] ? strtoupper(trim($data['kecamatan'])) : null;
+        }
+        if (isset($data['desa'])) {
+            $data['desa'] = $data['desa'] ? strtoupper(trim($data['desa'])) : null;
+        }
+
+        return $data;
     }
 }

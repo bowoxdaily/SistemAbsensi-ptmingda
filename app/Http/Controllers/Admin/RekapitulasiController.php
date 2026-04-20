@@ -439,4 +439,359 @@ class RekapitulasiController extends Controller
         // User can use browser's print to PDF feature
         return view('admin.rekapitulasi.pdf', $data);
     }
+
+    /**
+     * Display geographic-based rekapitulasi page
+     */
+    public function geographicIndex()
+    {
+        return view('admin.rekapitulasi.geographic');
+    }
+
+    /**
+     * Get rekapitulasi data grouped by geographic locations (Desa, Kecamatan, Kabupaten, Provinsi)
+     */
+    public function getGeographicData(Request $request)
+    {
+        $groupLevel = $request->get('group_level', 'kabupaten'); // 'provinsi', 'kabupaten', 'kecamatan', 'desa'
+        $province = $request->get('province');
+        $kabupaten = $request->get('kabupaten');
+        $kecamatan = $request->get('kecamatan');
+        
+        try {
+            // Get all active employees with geographic filtering
+            $query = Karyawans::where('status', 'active')
+                ->with(['department', 'position']);
+
+            if ($province) {
+                $query->where('province', $province);
+            }
+            if ($kabupaten) {
+                $query->where('kabupaten', $kabupaten);
+            }
+            if ($kecamatan) {
+                $query->where('kecamatan', $kecamatan);
+            }
+
+            $employees = $query->orderBy('province')
+                ->orderBy('kabupaten')
+                ->orderBy('kecamatan')
+                ->orderBy('desa')
+                ->orderBy('name')
+                ->get();
+
+            // Group employees by specified level
+            $grouped = $this->groupEmployeesByLevel($employees, $groupLevel);
+
+            // Calculate statistics for each group - NO nested employees array
+            $rekapitulasi = [];
+            foreach ($grouped as $location => $groupEmployees) {
+                $stats = $this->calculateLocationStats($groupEmployees);
+                
+                $rekapitulasi[] = [
+                    'location' => $location,
+                    'total_karyawan' => count($groupEmployees),
+                    'active_count' => $stats['active'],
+                    'inactive_count' => $stats['inactive'],
+                    'resign_count' => $stats['resign'],
+                    'departments' => $stats['departments'],
+                    'positions' => $stats['positions'],
+                    // Store employee IDs separately for detail modal (not in main table)
+                    '_employee_ids' => $groupEmployees->pluck('id')->toArray(),
+                ];
+            }
+
+            // Calculate summary
+            $summary = [
+                'total_karyawan' => $employees->count(),
+                'total_active' => $employees->where('status', 'active')->count(),
+                'total_inactive' => $employees->where('status', 'inactive')->count(),
+                'total_resign' => $employees->where('status', 'resign')->count(),
+                'group_count' => count($rekapitulasi),
+            ];
+
+            // Get available locations for filters
+            $locations = $this->getAvailableLocations();
+
+            return response()->json([
+                'success' => true,
+                'data' => $rekapitulasi,
+                'summary' => $summary,
+                'group_level' => $groupLevel,
+                'locations' => $locations,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in getGeographicData: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching geographic data: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Group employees by geographic level
+     */
+    private function groupEmployeesByLevel($employees, $level)
+    {
+        $grouped = collect();
+
+        foreach ($employees as $employee) {
+            $key = match($level) {
+                'provinsi' => $employee->province ?? 'Unknown',
+                'kabupaten' => ($employee->province ?? 'Unknown') . ' - ' . ($employee->kabupaten ?? 'Unknown'),
+                'kecamatan' => ($employee->province ?? 'Unknown') . ' - ' . ($employee->kabupaten ?? 'Unknown') . ' - ' . ($employee->kecamatan ?? 'Unknown'),
+                'desa' => ($employee->province ?? 'Unknown') . ' - ' . ($employee->kabupaten ?? 'Unknown') . ' - ' . ($employee->kecamatan ?? 'Unknown') . ' - ' . ($employee->desa ?? 'Unknown'),
+                default => $employee->province ?? 'Unknown',
+            };
+
+            if (!$grouped->has($key)) {
+                $grouped->put($key, collect());
+            }
+
+            $grouped->get($key)->push($employee);
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * Calculate statistics for a group of employees
+     */
+    private function calculateLocationStats($employees)
+    {
+        $departments = [];
+        $positions = [];
+
+        foreach ($employees as $employee) {
+            $dept = $employee->department->name ?? '-';
+            $pos = $employee->position->name ?? '-';
+
+            if (!isset($departments[$dept])) {
+                $departments[$dept] = 0;
+            }
+            $departments[$dept]++;
+
+            if (!isset($positions[$pos])) {
+                $positions[$pos] = 0;
+            }
+            $positions[$pos]++;
+        }
+
+        return [
+            'active' => $employees->where('status', 'active')->count(),
+            'inactive' => $employees->where('status', 'inactive')->count(),
+            'resign' => $employees->where('status', 'resign')->count(),
+            'departments' => $departments,
+            'positions' => $positions,
+        ];
+    }
+
+    /**
+     * Get available geographic locations for filter
+     */
+    private function getAvailableLocations()
+    {
+        $provinces = Karyawans::where('status', 'active')
+            ->whereNotNull('province')
+            ->distinct()
+            ->pluck('province')
+            ->sort()
+            ->values();
+
+        $kabupatens = Karyawans::where('status', 'active')
+            ->whereNotNull('kabupaten')
+            ->distinct()
+            ->pluck('kabupaten')
+            ->sort()
+            ->values();
+
+        $kecamatans = Karyawans::where('status', 'active')
+            ->whereNotNull('kecamatan')
+            ->distinct()
+            ->pluck('kecamatan')
+            ->sort()
+            ->values();
+
+        $desas = Karyawans::where('status', 'active')
+            ->whereNotNull('desa')
+            ->distinct()
+            ->pluck('desa')
+            ->sort()
+            ->values();
+
+        return [
+            'provinces' => $provinces,
+            'kabupatens' => $kabupatens,
+            'kecamatans' => $kecamatans,
+            'desas' => $desas,
+        ];
+    }
+
+    /**
+     * Export geographic recap to Excel
+     */
+    public function exportGeographicExcel(Request $request)
+    {
+        // Export can be memory intensive on large datasets.
+        @ini_set('memory_limit', '1024M');
+        @set_time_limit(300);
+
+        $groupLevel = $request->get('group_level', 'kabupaten');
+        $province = $request->get('province');
+        $kabupaten = $request->get('kabupaten');
+        $kecamatan = $request->get('kecamatan');
+
+        // Get data
+        $query = Karyawans::where('status', 'active')
+            ->with(['department', 'position']);
+
+        if ($province) {
+            $query->where('province', $province);
+        }
+        if ($kabupaten) {
+            $query->where('kabupaten', $kabupaten);
+        }
+        if ($kecamatan) {
+            $query->where('kecamatan', $kecamatan);
+        }
+
+        $employees = $query->orderBy('province')
+            ->orderBy('kabupaten')
+            ->orderBy('kecamatan')
+            ->orderBy('desa')
+            ->orderBy('name')
+            ->get();
+
+        $grouped = $this->groupEmployeesByLevel($employees, $groupLevel);
+
+        $filename = 'Rekap_Karyawan_' . ucfirst($groupLevel) . '_' . now()->format('Y-m-d_His') . '.xlsx';
+
+        try {
+            return Excel::download(
+                new \App\Exports\GeographicRekapExport([
+                    'grouped_data' => $grouped,
+                    'group_level' => $groupLevel,
+                    'filters' => [
+                        'province' => $province,
+                        'kabupaten' => $kabupaten,
+                        'kecamatan' => $kecamatan,
+                    ]
+                ]),
+                $filename
+            );
+        } catch (\Throwable $e) {
+            Log::error('Error in exportGeographicExcel: ' . $e->getMessage(), [
+                'group_level' => $groupLevel,
+                'province' => $province,
+                'kabupaten' => $kabupaten,
+                'kecamatan' => $kecamatan,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal export data geografis. Silakan coba lagi atau sempitkan filter wilayah.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Get employee detail for geographic location
+     * Called when user clicks "Detail" button to see employees in a location
+     */
+    public function getGeographicLocationDetail(Request $request)
+    {
+        $groupLevel = $request->get('group_level', 'kabupaten');
+        $location = $request->get('location'); // Full location string like "JAWA BARAT - INDRAMAYU"
+
+        try {
+            // Parse location based on groupLevel
+            $filters = $this->parseLocationString($location, $groupLevel);
+
+            // Query employees with those filters
+            $query = Karyawans::where('status', 'active')
+                ->with(['department', 'position']);
+
+            if (isset($filters['province'])) {
+                $query->where('province', $filters['province']);
+            }
+            if (isset($filters['kabupaten'])) {
+                $query->where('kabupaten', $filters['kabupaten']);
+            }
+            if (isset($filters['kecamatan'])) {
+                $query->where('kecamatan', $filters['kecamatan']);
+            }
+            if (isset($filters['desa'])) {
+                $query->where('desa', $filters['desa']);
+            }
+
+            $employees = $query->orderBy('employee_code')->get();
+
+            // Format response
+            $data = $employees->map(function($e) {
+                $joinDate = $e->join_date ?? null;
+                $joinDateFormatted = $joinDate 
+                    ? (is_string($joinDate) ? $joinDate : $joinDate->format('Y-m-d'))
+                    : null;
+
+                return [
+                    'id' => $e->id,
+                    'code' => $e->employee_code,
+                    'name' => $e->name,
+                    'department' => $e->department->name ?? '-',
+                    'position' => $e->position->name ?? '-',
+                    'join_date' => $joinDateFormatted,
+                    'status' => $e->status,
+                    'province' => $e->province ?? '-',
+                    'kabupaten' => $e->kabupaten ?? '-',
+                    'kecamatan' => $e->kecamatan ?? '-',
+                    'desa' => $e->desa ?? '-',
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'location' => $location,
+                'group_level' => $groupLevel,
+                'total_count' => $employees->count(),
+                'employees' => $data,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in getGeographicLocationDetail: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching location details: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Parse location string to extract individual location components
+     * Examples:
+     * - "JAWA BARAT" (provinsi level)
+     * - "JAWA BARAT - INDRAMAYU" (kabupaten level)
+     * - "JAWA BARAT - INDRAMAYU - LOSARANG" (kecamatan level)
+     * - "JAWA BARAT - INDRAMAYU - LOSARANG - LOSARANG" (desa level)
+     */
+    private function parseLocationString($location, $groupLevel)
+    {
+        $parts = array_map('trim', explode(' - ', $location));
+
+        $filters = [];
+
+        if (count($parts) >= 1) {
+            $filters['province'] = $parts[0];
+        }
+        if (count($parts) >= 2) {
+            $filters['kabupaten'] = $parts[1];
+        }
+        if (count($parts) >= 3) {
+            $filters['kecamatan'] = $parts[2];
+        }
+        if (count($parts) >= 4) {
+            $filters['desa'] = $parts[3];
+        }
+
+        return $filters;
+    }
 }

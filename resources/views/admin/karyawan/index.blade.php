@@ -545,19 +545,40 @@
                                 </div>
 
                                 <div class="row g-2 g-md-3">
+                                    <div class="col-sm-3 mb-2">
+                                        <label for="province" class="form-label small">Provinsi <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" class="form-control form-control-sm" id="province"
+                                            name="province">
+                                        <div class="invalid-feedback" id="provinceError"></div>
+                                    </div>
+                                    <div class="col-sm-3 mb-2">
+                                        <label for="kabupaten" class="form-label small">Kabupaten/Kota</label>
+                                        <input type="text" class="form-control form-control-sm" id="kabupaten"
+                                            name="kabupaten" placeholder="Opsional">
+                                        <div class="invalid-feedback" id="kabupatenError"></div>
+                                    </div>
+                                    <div class="col-sm-3 mb-2">
+                                        <label for="kecamatan" class="form-label small">Kecamatan</label>
+                                        <input type="text" class="form-control form-control-sm" id="kecamatan"
+                                            name="kecamatan" placeholder="Opsional">
+                                        <div class="invalid-feedback" id="kecamatanError"></div>
+                                    </div>
+                                    <div class="col-sm-3 mb-2">
+                                        <label for="desa" class="form-label small">Desa/Kelurahan</label>
+                                        <input type="text" class="form-control form-control-sm" id="desa"
+                                            name="desa" placeholder="Opsional">
+                                        <div class="invalid-feedback" id="desaError"></div>
+                                    </div>
+                                </div>
+
+                                <div class="row g-2 g-md-3">
                                     <div class="col-sm-4 mb-2">
                                         <label for="city" class="form-label small">Kota <span
                                                 class="text-danger">*</span></label>
                                         <input type="text" class="form-control form-control-sm" id="city"
                                             name="city">
                                         <div class="invalid-feedback" id="cityError"></div>
-                                    </div>
-                                    <div class="col-sm-4 mb-2">
-                                        <label for="province" class="form-label small">Provinsi <span
-                                                class="text-danger">*</span></label>
-                                        <input type="text" class="form-control form-control-sm" id="province"
-                                            name="province">
-                                        <div class="invalid-feedback" id="provinceError"></div>
                                     </div>
                                     <div class="col-sm-4 mb-2">
                                         <label for="postal_code" class="form-label small">Kode Pos <span
@@ -1656,6 +1677,9 @@
                     $('#address').val(k.address);
                     $('#city').val(k.city);
                     $('#province').val(k.province);
+                    $('#kabupaten').val(k.kabupaten);
+                    $('#kecamatan').val(k.kecamatan);
+                    $('#desa').val(k.desa);
                     $('#postal_code').val(k.postal_code);
                     $('#phone').val(k.phone);
                     $('#email').val(k.email);
@@ -1716,6 +1740,9 @@
                 address: $('#address').val(),
                 city: $('#city').val(),
                 province: $('#province').val(),
+                kabupaten: $('#kabupaten').val(),
+                kecamatan: $('#kecamatan').val(),
+                desa: $('#desa').val(),
                 postal_code: $('#postal_code').val(),
                 phone: $('#phone').val(),
                 email: $('#email').val(),

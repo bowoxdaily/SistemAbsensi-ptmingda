@@ -117,6 +117,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/rekapitulasi/export-excel', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'exportExcel'])->name('admin.rekapitulasi.export-excel');
         Route::get('/admin/rekapitulasi/export-pdf', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'exportPdf'])->name('admin.rekapitulasi.export-pdf');
 
+        // Rekapitulasi Geographic (View + Export)
+        Route::get('/admin/rekapitulasi/geographic', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'geographicIndex'])->name('admin.rekapitulasi.geographic');
+
         // Admin Profile
         Route::get('/admin/profile', [\App\Http\Controllers\Admin\AdminProfileController::class, 'index'])->name('admin.profile.index');
 

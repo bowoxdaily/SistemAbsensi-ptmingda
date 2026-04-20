@@ -85,11 +85,33 @@ class StatusKaryawanExport implements FromCollection, WithHeadings, WithMapping,
             $row->position->name ?? '-',
             $statusLabel,
             $row->employment_status,
-            $row->join_date ? \Carbon\Carbon::parse($row->join_date)->format('d/m/Y') : '-',
-            $row->tanggal_resign ? \Carbon\Carbon::parse($row->tanggal_resign)->format('d/m/Y') : '-',
-            $row->tanggal_mangkir ? \Carbon\Carbon::parse($row->tanggal_mangkir)->format('d/m/Y') : '-',
-            $row->tanggal_gagal_probation ? \Carbon\Carbon::parse($row->tanggal_gagal_probation)->format('d/m/Y') : '-',
+            $this->formatDate($row->join_date),
+            $this->formatDate($row->tanggal_resign),
+            $this->formatDate($row->tanggal_mangkir),
+            $this->formatDate($row->tanggal_gagal_probation),
         ];
+    }
+
+    /**
+     * Safely format date - handle both string and Carbon objects
+     */
+    private function formatDate($date): string
+    {
+        if (!$date) {
+            return '-';
+        }
+
+        try {
+            if (is_string($date)) {
+                // Already a string, just parse and reformat
+                return \Carbon\Carbon::createFromFormat('Y-m-d', $date)->format('d/m/Y');
+            } else {
+                // Carbon object or other date type
+                return \Carbon\Carbon::parse($date)->format('d/m/Y');
+            }
+        } catch (\Exception $e) {
+            return '-';
+        }
     }
 
     public function styles(Worksheet $sheet): array

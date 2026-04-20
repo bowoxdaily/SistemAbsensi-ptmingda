@@ -47,6 +47,9 @@ class Karyawans extends Model
         'address',
         'city',
         'province',
+        'desa',
+        'kecamatan',
+        'kabupaten',
         'postal_code',
         'phone',
         'email',
@@ -102,7 +105,17 @@ class Karyawans extends Model
      */
     public function getBirthDateAttribute($value)
     {
-        return $value ? $this->asDate($value)->format('Y-m-d') : null;
+        if (!$value) {
+            return null;
+        }
+        try {
+            if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+                return $value; // Already formatted
+            }
+            return $this->asDate($value)->format('Y-m-d');
+        } catch (\Exception $e) {
+            return $value;
+        }
     }
 
     /**
@@ -110,7 +123,17 @@ class Karyawans extends Model
      */
     public function getJoinDateAttribute($value)
     {
-        return $value ? $this->asDate($value)->format('Y-m-d') : null;
+        if (!$value) {
+            return null;
+        }
+        try {
+            if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+                return $value; // Already formatted
+            }
+            return $this->asDate($value)->format('Y-m-d');
+        } catch (\Exception $e) {
+            return $value;
+        }
     }
 
     /**
@@ -118,7 +141,17 @@ class Karyawans extends Model
      */
     public function getTanggalResignAttribute($value)
     {
-        return $value ? $this->asDate($value)->format('Y-m-d') : null;
+        if (!$value) {
+            return null;
+        }
+        try {
+            if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+                return $value; // Already formatted
+            }
+            return $this->asDate($value)->format('Y-m-d');
+        } catch (\Exception $e) {
+            return $value;
+        }
     }
 
     /**
@@ -126,7 +159,17 @@ class Karyawans extends Model
      */
     public function getTanggalMangkirAttribute($value)
     {
-        return $value ? $this->asDate($value)->format('Y-m-d') : null;
+        if (!$value) {
+            return null;
+        }
+        try {
+            if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+                return $value; // Already formatted
+            }
+            return $this->asDate($value)->format('Y-m-d');
+        } catch (\Exception $e) {
+            return $value;
+        }
     }
 
     /**
@@ -134,6 +177,16 @@ class Karyawans extends Model
      */
     public function getTanggalGagalProbationAttribute($value)
     {
-        return $value ? $this->asDate($value)->format('Y-m-d') : null;
+        if (!$value) {
+            return null;
+        }
+        try {
+            if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+                return $value; // Already formatted
+            }
+            return $this->asDate($value)->format('Y-m-d');
+        } catch (\Exception $e) {
+            return $value;
+        }
     }
 }

@@ -157,10 +157,18 @@
             </li>
 
             <!-- Rekapitulasi Absensi -->
-            <li class="menu-item {{ request()->routeIs('admin.rekapitulasi.*') ? 'active' : '' }}">
+            <li class="menu-item {{ request()->routeIs('admin.rekapitulasi.index', 'admin.rekapitulasi.show', 'admin.rekapitulasi.export', 'admin.rekapitulasi.pdf') ? 'active' : '' }}">
                 <a href="{{ route('admin.rekapitulasi.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-pie-chart-alt-2"></i>
                     <div data-i18n="Rekapitulasi">Rekapitulasi Absensi</div>
+                </a>
+            </li>
+
+            <!-- Rekap Karyawan Berdasarkan Wilayah -->
+            <li class="menu-item {{ request()->routeIs('admin.rekapitulasi.geographic') ? 'active' : '' }}">
+                <a href="{{ route('admin.rekapitulasi.geographic') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-map-pin"></i>
+                    <div data-i18n="Rekap Wilayah">Rekap Karyawan - Wilayah</div>
                 </a>
             </li>
 
@@ -263,10 +271,18 @@
             </li>
 
             <!-- Rekapitulasi Absensi -->
-            <li class="menu-item {{ request()->routeIs('admin.rekapitulasi.*') ? 'active' : '' }}">
+            <li class="menu-item {{ request()->routeIs('admin.rekapitulasi.index', 'admin.rekapitulasi.show', 'admin.rekapitulasi.export', 'admin.rekapitulasi.pdf') ? 'active' : '' }}">
                 <a href="{{ route('admin.rekapitulasi.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-pie-chart-alt-2"></i>
                     <div data-i18n="Rekapitulasi">Rekapitulasi Absensi</div>
+                </a>
+            </li>
+
+            <!-- Rekap Karyawan Berdasarkan Wilayah -->
+            <li class="menu-item {{ request()->routeIs('admin.rekapitulasi.geographic') ? 'active' : '' }}">
+                <a href="{{ route('admin.rekapitulasi.geographic') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-map-pin"></i>
+                    <div data-i18n="Rekap Wilayah">Rekap Karyawan - Wilayah</div>
                 </a>
             </li>
 
