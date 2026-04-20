@@ -844,7 +844,6 @@ class RekapitulasiController extends Controller
             $losarangByVillageQuery = Karyawans::where('status', 'active')
                 ->where('kabupaten', 'INDRAMAYU')
                 ->whereRaw("UPPER(TRIM(kecamatan)) REGEXP '^LOSARANG(\\\\s+KAB\\\\.?)?$'")
-                ->whereNotNull('desa')
                 ->selectRaw('desa, COUNT(*) as count')
                 ->groupBy('desa')
                 ->orderBy('count', 'desc');
@@ -860,10 +859,7 @@ class RekapitulasiController extends Controller
 
             $chart2Data = $this->collapseGeographicSeries($indramayuByDistrict, 'kecamatan', true);
 
-            $chart3Data = [
-                'labels' => $losarangByVillage->pluck('desa')->toArray(),
-                'data' => $losarangByVillage->pluck('count')->toArray(),
-            ];
+            $chart3Data = $this->collapseGeographicSeries($losarangByVillage, 'desa', false);
 
             return response()->json([
                 'success' => true,
@@ -927,6 +923,10 @@ class RekapitulasiController extends Controller
     {
         $value = trim(preg_replace('/\s+/', ' ', $value) ?? '');
         $value = mb_strtoupper($value);
+
+        if ($value === '') {
+            return 'TIDAK DIISI';
+        }
 
         if ($stripKabSuffix) {
             $value = preg_replace('/\s+KAB\.?$/u', '', $value) ?? $value;
