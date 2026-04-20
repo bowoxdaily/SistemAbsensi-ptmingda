@@ -19,7 +19,7 @@ class NormalizeGeographicData extends Command
      *
      * @var string
      */
-    protected $description = 'Normalize geographic data to uppercase (PROVINSI, KABUPATEN, KECAMATAN, DESA)';
+    protected $description = 'Normalize geographic data to uppercase (CITY, PROVINSI, KABUPATEN, KECAMATAN, DESA)';
 
     /**
      * Execute the console command.
@@ -31,12 +31,15 @@ class NormalizeGeographicData extends Command
         $this->info('Normalizing geographic data to UPPERCASE...');
         $this->line('');
 
-        // Get all employees with geographic data
-        $employees = Karyawans::where('status', 'active')
-            ->whereNotNull('province')
-            ->orWhereNotNull('kabupaten')
-            ->orWhereNotNull('kecamatan')
-            ->orWhereNotNull('desa')
+        // Get all employees with at least one geographic field filled.
+        $employees = Karyawans::query()
+            ->where(function ($query) {
+                $query->whereNotNull('city')
+                    ->orWhereNotNull('province')
+                    ->orWhereNotNull('kabupaten')
+                    ->orWhereNotNull('kecamatan')
+                    ->orWhereNotNull('desa');
+            })
             ->get();
 
         if ($employees->isEmpty()) {
@@ -52,6 +55,7 @@ class NormalizeGeographicData extends Command
 
         foreach ($employees as $employee) {
             $original = [
+                'city' => $employee->city,
                 'province' => $employee->province,
                 'kabupaten' => $employee->kabupaten,
                 'kecamatan' => $employee->kecamatan,
@@ -60,6 +64,7 @@ class NormalizeGeographicData extends Command
 
             // Normalize to uppercase
             $normalized = [
+                'city' => $employee->city ? strtoupper(trim($employee->city)) : null,
                 'province' => $employee->province ? strtoupper(trim($employee->province)) : null,
                 'kabupaten' => $employee->kabupaten ? strtoupper(trim($employee->kabupaten)) : null,
                 'kecamatan' => $employee->kecamatan ? strtoupper(trim($employee->kecamatan)) : null,
