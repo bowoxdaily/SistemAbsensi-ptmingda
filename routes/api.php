@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\PositionController;
 use App\Http\Controllers\Admin\PayrollController;
 use App\Http\Controllers\Admin\InterviewController;
 use App\Http\Controllers\Admin\BroadcastController;
+use App\Http\Controllers\Admin\EmployeeCalendarController;
 use App\Http\Controllers\Admin\WarningLetterController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ExternalAttendanceController;
@@ -370,5 +371,10 @@ Route::middleware(['web', 'auth', 'viewer'])->prefix('admin/rekapitulasi')->grou
     Route::get('/geographic-chart-data', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'getGeographicChartData']);
     Route::get('/geographic-location-detail', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'getGeographicLocationDetail']);
     Route::get('/geographic-export-excel', [\App\Http\Controllers\Admin\RekapitulasiController::class, 'exportGeographicExcel']);
+});
+
+// Calendar Agenda & Birthday API (Viewer accessible - read only)
+Route::middleware(['web', 'auth', 'viewer'])->prefix('admin/calendar')->group(function () {
+    Route::get('/events', [EmployeeCalendarController::class, 'events']);
 });
 

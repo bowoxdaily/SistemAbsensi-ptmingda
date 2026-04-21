@@ -180,6 +180,14 @@
                 </a>
             </li>
 
+            <!-- Kalender Ulang Tahun -->
+            <li class="menu-item {{ request()->routeIs('admin.calendar.index') ? 'active' : '' }}">
+                <a href="{{ route('admin.calendar.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-calendar-star"></i>
+                    <div data-i18n="Kalender">Kalender Ulang Tahun</div>
+                </a>
+            </li>
+
             <!-- Menu Header - Keuangan -->
             <li class="menu-header small text-uppercase">
                 <span class="menu-header-text">Keuangan</span>
@@ -283,6 +291,14 @@
                 <a href="{{ route('admin.rekapitulasi.geographic') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-map-pin"></i>
                     <div data-i18n="Rekap Wilayah">Rekap Karyawan - Wilayah</div>
+                </a>
+            </li>
+
+            <!-- Kalender Ulang Tahun -->
+            <li class="menu-item {{ request()->routeIs('admin.calendar.index') ? 'active' : '' }}">
+                <a href="{{ route('admin.calendar.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-calendar-star"></i>
+                    <div data-i18n="Kalender">Kalender Ulang Tahun</div>
                 </a>
             </li>
 

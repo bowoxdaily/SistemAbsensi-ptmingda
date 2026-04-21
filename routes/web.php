@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\CronJobController;
 use App\Http\Controllers\Admin\PayrollController;
 use App\Http\Controllers\Admin\InterviewController;
 use App\Http\Controllers\Admin\BroadcastController;
+use App\Http\Controllers\Admin\EmployeeCalendarController;
 use App\Http\Controllers\Admin\RekapitulasiController;
 use App\Http\Controllers\Admin\WarningLetterController;
 use App\Http\Controllers\InterviewScanController;
@@ -125,6 +126,10 @@ Route::middleware(['auth'])->group(function () {
 
         // Warning Letters Management (View only - API handles POST/PUT/DELETE)
         Route::get('/admin/warning-letters', [WarningLetterController::class, 'index'])->name('admin.warning-letters.index');
+
+        // Calendar Agenda & Birthday (View only)
+        Route::get('/admin/calendar', [EmployeeCalendarController::class, 'index'])->name('admin.calendar.index');
+        Route::get('/admin/calendar/export-birthday', [EmployeeCalendarController::class, 'exportBirthday'])->name('admin.calendar.export-birthday');
     });
 
     // Payroll Management (Manager only)
