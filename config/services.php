@@ -41,4 +41,20 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | HRIS Payslip Integration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for the external HRIS system payslip API.
+    | The base_url should NOT include a trailing slash.
+    | Example: https://demohris.binanexa.com
+    |
+    */
+    'hris' => [
+        'base_url' => env('HRIS_BASE_URL', ''),
+        'api_key' => env('HRIS_API_KEY', ''),
+        'timeout' => env('HRIS_API_TIMEOUT', 30),
+    ],
+
 ];

@@ -161,10 +161,9 @@ Route::middleware('web')->prefix('employee')->group(function () {
     Route::get('/attendance/summary', [\App\Http\Controllers\Employee\AttendanceController::class, 'summary']);
     Route::get('/attendance/{id}/detail', [\App\Http\Controllers\Employee\AttendanceController::class, 'detail']);
 
-    // Employee Payroll API
-    Route::get('/payroll', [\App\Http\Controllers\Employee\PayrollController::class, 'list']);
-    Route::get('/payroll/statistics', [\App\Http\Controllers\Employee\PayrollController::class, 'statistics']);
-    Route::get('/payroll/{id}', [\App\Http\Controllers\Employee\PayrollController::class, 'show']);
+    // Employee Payslip API (from external HRIS)
+    Route::get('/payslip', [\App\Http\Controllers\Employee\PayrollController::class, 'list']);
+    Route::get('/payslip/download', [\App\Http\Controllers\Employee\PayrollController::class, 'downloadPdf']);
 });
 
 // Payroll API Routes (Manager only)
@@ -179,6 +178,12 @@ Route::middleware(['web', 'auth', 'manager'])->prefix('payroll')->group(function
     Route::post('/{id}/send', [PayrollController::class, 'sendNotification']);
     Route::post('/{id}/upload-proof', [PayrollController::class, 'uploadProof']);
     Route::delete('/{id}/delete-proof', [PayrollController::class, 'deleteProof']);
+
+    // HRIS Payslip Integration (Admin)
+    Route::get('/hris/payslip', [PayrollController::class, 'hrisPayslipList']);
+    Route::get('/hris/payslip/download', [PayrollController::class, 'hrisPayslipDownload']);
+    Route::post('/hris/test-connection', [PayrollController::class, 'hrisTestConnection']);
+    Route::get('/hris/status', [PayrollController::class, 'hrisStatus']);
 });
 
 // Office Settings API

@@ -7,6 +7,7 @@ use App\Models\Payroll;
 use App\Models\Employee;
 use App\Models\Attendance;
 use App\Services\WhatsAppService;
+use App\Services\HrisPayslipService;
 use App\Exports\PayrollExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\Request;
@@ -19,10 +20,12 @@ use Carbon\Carbon;
 class PayrollController extends Controller
 {
     protected $whatsappService;
+    protected $hrisService;
 
-    public function __construct(WhatsAppService $whatsappService)
+    public function __construct(WhatsAppService $whatsappService, HrisPayslipService $hrisService)
     {
         $this->whatsappService = $whatsappService;
+        $this->hrisService = $hrisService;
     }
 
     /**
@@ -698,5 +701,96 @@ class PayrollController extends Controller
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    // ─── HRIS Payslip Integration ──────────────────────────────────────────────
+
+    /**
+     * Get payslip list from HRIS for a specific employee (Admin).
+     */
+    public function hrisPayslipList(Request $request)
+    {
+        $employeeCode = $request->get('employee_code');
+        $employeeId = $request->get('employee_id');
+
+        // If employee_id is provided, look up their code
+        if ($employeeId && !$employeeCode) {
+            $employee = Employee::find($employeeId);
+            if ($employee) {
+                $employeeCode = $employee->employee_code;
+            }
+        }
+
+        if (empty($employeeCode)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'employee_code atau employee_id wajib diisi'
+            ], 422);
+        }
+
+        $result = $this->hrisService->getPayslipList($employeeCode);
+        return response()->json($result);
+    }
+
+    /**
+     * Download payslip PDF from HRIS (Admin).
+     */
+    public function hrisPayslipDownload(Request $request)
+    {
+        $employeeCode = $request->get('employee_code');
+        $employeeId = $request->get('employee_id');
+        $month = $request->get('month');
+
+        if ($employeeId && !$employeeCode) {
+            $employee = Employee::find($employeeId);
+            if ($employee) {
+                $employeeCode = $employee->employee_code;
+            }
+        }
+
+        if (empty($employeeCode) || empty($month)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'employee_code dan month wajib diisi'
+            ], 422);
+        }
+
+        $result = $this->hrisService->downloadPayslipPdf($employeeCode, $month);
+
+        if (!$result['success']) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message']
+            ], 404);
+        }
+
+        return response($result['content'])
+            ->header('Content-Type', $result['content_type'])
+            ->header('Content-Disposition', 'attachment; filename="' . $result['filename'] . '"')
+            ->header('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+
+    /**
+     * Test HRIS connection (Admin).
+     */
+    public function hrisTestConnection(Request $request)
+    {
+        $testId = $request->get('employee_code', '');
+        $result = $this->hrisService->testConnection($testId);
+        return response()->json($result);
+    }
+
+    /**
+     * Get HRIS integration status.
+     */
+    public function hrisStatus()
+    {
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'enabled' => $this->hrisService->isConfigured(),
+                'base_url' => config('services.hris.base_url') ? '***configured***' : null,
+            ]
+        ]);
     }
 }

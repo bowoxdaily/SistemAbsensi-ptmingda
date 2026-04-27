@@ -3,14 +3,21 @@
 namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
-use App\Models\Payroll;
+use App\Services\HrisPayslipService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class PayrollController extends Controller
 {
+    protected $hrisService;
+
+    public function __construct(HrisPayslipService $hrisService)
+    {
+        $this->hrisService = $hrisService;
+    }
+
     /**
-     * Display payroll history page for employee
+     * Display payroll/payslip page for employee
      */
     public function index()
     {
@@ -18,9 +25,10 @@ class PayrollController extends Controller
     }
 
     /**
-     * Get payroll history data for employee (AJAX)
+     * Get payslip list from external HRIS system.
+     * Uses the employee's employee_code as the HRIS employee_id.
      */
-    public function list(Request $request)
+    public function list()
     {
         try {
             $employee = Auth::user()->employee;
@@ -32,68 +40,37 @@ class PayrollController extends Controller
                 ], 404);
             }
 
-            $search = $request->get('search', '');
-            $period = $request->get('period');
-            $status = $request->get('status');
-            $perPage = $request->get('per_page', 10);
+            if (!$this->hrisService->isConfigured()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Integrasi HRIS belum dikonfigurasi. Hubungi administrator.'
+                ], 503);
+            }
 
-            $query = Payroll::with(['employee'])
-                ->where('employee_id', $employee->id)
-                ->when($search, function ($q, $search) {
-                    return $q->where('payroll_code', 'like', "%{$search}%");
-                })
-                ->when($period, function ($q, $period) {
-                    return $q->where('period_month', $period);
-                })
-                ->when($status, function ($q, $status) {
-                    return $q->where('status', $status);
-                })
-                ->orderBy('period_month', 'desc')
-                ->orderBy('created_at', 'desc');
+            $hrisEmployeeId = $employee->employee_code;
 
-            $payrolls = $query->paginate($perPage);
+            if (empty($hrisEmployeeId)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Kode karyawan belum diatur, tidak dapat mengambil data payslip'
+                ], 422);
+            }
 
-            return response()->json([
-                'success' => true,
-                'data' => $payrolls
-            ]);
+            $result = $this->hrisService->getPayslipList($hrisEmployeeId);
+
+            return response()->json($result);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal memuat data: ' . $e->getMessage()
+                'message' => 'Gagal memuat data payslip: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Show payroll detail
+     * Download payslip PDF from external HRIS system.
      */
-    public function show($id)
-    {
-        try {
-            $employee = Auth::user()->employee;
-
-            $payroll = Payroll::with(['employee.department', 'employee.position'])
-                ->where('id', $id)
-                ->where('employee_id', $employee->id)
-                ->firstOrFail();
-
-            return response()->json([
-                'success' => true,
-                'data' => $payroll
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Data payroll tidak ditemukan'
-            ], 404);
-        }
-    }
-
-    /**
-     * Get payroll statistics for employee
-     */
-    public function statistics()
+    public function downloadPdf(Request $request)
     {
         try {
             $employee = Auth::user()->employee;
@@ -105,55 +82,47 @@ class PayrollController extends Controller
                 ], 404);
             }
 
-            // Get current year
-            $currentYear = date('Y');
+            $month = $request->get('month');
+            if (!$month || !preg_match('/^\d{4}-\d{2}$/', $month)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Parameter month wajib diisi (format: YYYY-MM)'
+                ], 422);
+            }
 
-            // Total payroll received
-            $totalReceived = Payroll::where('employee_id', $employee->id)
-                ->where('status', '!=', 'draft')
-                ->count();
+            if (!$this->hrisService->isConfigured()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Integrasi HRIS belum dikonfigurasi'
+                ], 503);
+            }
 
-            // Total earnings this year (period_month format: YYYY-MM)
-            $totalEarningsThisYear = Payroll::where('employee_id', $employee->id)
-                ->where('status', '!=', 'draft')
-                ->where('period_month', 'like', $currentYear . '%')
-                ->sum('net_salary');
+            $hrisEmployeeId = $employee->employee_code;
 
-            // Latest payroll
-            $latestPayroll = Payroll::where('employee_id', $employee->id)
-                ->where('status', '!=', 'draft')
-                ->orderBy('period_month', 'desc')
-                ->first();
+            if (empty($hrisEmployeeId)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Kode karyawan belum diatur'
+                ], 422);
+            }
 
-            // Monthly earnings for chart (last 6 months)
-            $monthlyEarnings = Payroll::where('employee_id', $employee->id)
-                ->where('status', '!=', 'draft')
-                ->where('period_month', '>=', date('Y-m', strtotime('-6 months')))
-                ->orderBy('period_month', 'asc')
-                ->get()
-                ->map(function ($payroll) {
-                    return [
-                        'period' => $payroll->period_month,
-                        'period_formatted' => $payroll->formatted_period,
-                        'net_salary' => $payroll->net_salary,
-                        'total_earnings' => $payroll->total_earnings,
-                        'total_deductions' => $payroll->total_deductions,
-                    ];
-                });
+            $result = $this->hrisService->downloadPayslipPdf($hrisEmployeeId, $month);
 
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'total_received' => $totalReceived,
-                    'total_earnings_this_year' => $totalEarningsThisYear,
-                    'latest_payroll' => $latestPayroll,
-                    'monthly_earnings' => $monthlyEarnings,
-                ]
-            ]);
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message']
+                ], 404);
+            }
+
+            return response($result['content'])
+                ->header('Content-Type', $result['content_type'])
+                ->header('Content-Disposition', 'attachment; filename="' . $result['filename'] . '"')
+                ->header('Cache-Control', 'no-cache, no-store, must-revalidate');
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal memuat statistik: ' . $e->getMessage()
+                'message' => 'Gagal mengunduh payslip: ' . $e->getMessage()
             ], 500);
         }
     }
