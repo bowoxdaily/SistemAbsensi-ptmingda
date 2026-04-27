@@ -294,7 +294,9 @@
                                         Menampilkan {{ $attendances->firstItem() }} - {{ $attendances->lastItem() }} dari
                                         {{ $attendances->total() }} data
                                     </div>
-                                    {{ $attendances->links() }}
+                                    <div class="m-0 p-0 pagination-sm">
+                                        {{ $attendances->links() }}
+                                    </div>
                                 </div>
                             </div>
                         @endif

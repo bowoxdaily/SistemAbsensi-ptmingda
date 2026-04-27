@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Pagination\Paginator;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,5 +29,8 @@ class AppServiceProvider extends ServiceProvider
         if (request()->server('HTTP_X_FORWARDED_HOST')) {
             request()->server->set('HTTPS', 'on');
         }
+
+        // Gunakan Bootstrap 5 untuk Paginasi
+        Paginator::useBootstrapFive();
     }
 }
