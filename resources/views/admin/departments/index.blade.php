@@ -168,6 +168,13 @@
         let departmentModal, detailModal;
 
         $(document).ready(function() {
+            // Setup CSRF token for all AJAX requests
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                }
+            });
+
             // Initialize modals
             departmentModal = new bootstrap.Modal(document.getElementById('departmentModal'));
             detailModal = new bootstrap.Modal(document.getElementById('detailModal'));

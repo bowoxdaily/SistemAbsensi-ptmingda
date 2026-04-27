@@ -192,6 +192,13 @@
         let positionModal, detailModal;
 
         $(document).ready(function() {
+            // Setup CSRF token for all AJAX requests
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                }
+            });
+
             positionModal = new bootstrap.Modal(document.getElementById('positionModal'));
             detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
             loadPositions();
