@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\CronJobController;
 use App\Http\Controllers\Admin\PayrollController;
 use App\Http\Controllers\Admin\InterviewController;
 use App\Http\Controllers\Admin\BroadcastController;
+use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\EmployeeCalendarController;
 use App\Http\Controllers\Admin\RekapitulasiController;
 use App\Http\Controllers\Admin\WarningLetterController;
@@ -94,6 +95,9 @@ Route::middleware(['auth'])->group(function () {
 
         // Broadcast Messages (View only - API handles POST/DELETE)
         Route::get('/admin/broadcast', [BroadcastController::class, 'index'])->name('admin.broadcast.index');
+
+        // Pengumuman In-App (View only - API handles POST/PUT/DELETE)
+        Route::get('/admin/announcements', [AnnouncementController::class, 'index'])->name('admin.announcements.index');
 
         // Status Karyawan Report
         Route::get('/admin/karyawan/status-report', [KaryawanController::class, 'statusReportPage'])->name('admin.karyawan.status-report');

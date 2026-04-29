@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\PositionController;
 use App\Http\Controllers\Admin\PayrollController;
 use App\Http\Controllers\Admin\InterviewController;
 use App\Http\Controllers\Admin\BroadcastController;
+use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\EmployeeCalendarController;
 use App\Http\Controllers\Admin\WarningLetterController;
 use App\Http\Controllers\Api\AuthController;
@@ -383,3 +384,26 @@ Route::middleware(['web', 'auth', 'viewer'])->prefix('admin/calendar')->group(fu
     Route::get('/events', [EmployeeCalendarController::class, 'events']);
 });
 
+// ─── Pengumuman In-App (Admin) ────────────────────────────────────────────────
+Route::middleware(['web', 'auth', 'admin'])->prefix('admin/announcements')->group(function () {
+    Route::get('/', [AnnouncementController::class, 'list']);
+    Route::get('/stats', [AnnouncementController::class, 'stats']);
+    Route::get('/positions', [AnnouncementController::class, 'getPositions']);
+    Route::get('/departments', [AnnouncementController::class, 'getDepartments']);
+    Route::get('/employees', [AnnouncementController::class, 'getEmployees']);
+    Route::post('/preview-recipients', [AnnouncementController::class, 'previewRecipients']);
+    Route::post('/', [AnnouncementController::class, 'store']);
+    Route::get('/{id}', [AnnouncementController::class, 'show']);
+    Route::put('/{id}', [AnnouncementController::class, 'update']);
+    Route::post('/{id}/toggle-active', [AnnouncementController::class, 'toggleActive']);
+    Route::delete('/{id}', [AnnouncementController::class, 'destroy']);
+});
+
+// ─── Pengumuman In-App (Employee) ────────────────────────────────────────────
+Route::middleware(['web', 'auth'])->prefix('employee/announcements')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Employee\AnnouncementController::class, 'index']);
+    Route::get('/unread-count', [\App\Http\Controllers\Employee\AnnouncementController::class, 'unreadCount']);
+    Route::get('/popups', [\App\Http\Controllers\Employee\AnnouncementController::class, 'getPopups']);
+    Route::post('/{id}/mark-read', [\App\Http\Controllers\Employee\AnnouncementController::class, 'markRead']);
+    Route::post('/mark-all-read', [\App\Http\Controllers\Employee\AnnouncementController::class, 'markAllRead']);
+});

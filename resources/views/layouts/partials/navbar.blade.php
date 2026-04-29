@@ -18,6 +18,16 @@
         <!-- /Search -->
 
         <ul class="navbar-nav flex-row align-items-center ms-auto">
+            <!-- Notifikasi Pengumuman -->
+            @if(Auth::user()->role === 'karyawan' || Auth::user()->role === 'employee')
+            <li class="nav-item me-2" id="notif-bell-wrap">
+                <a href="javascript:void(0)" class="nav-link position-relative" id="notif-bell-btn" onclick="toggleNotifPanel()" title="Pengumuman">
+                    <i class="bx bx-bell fs-4"></i>
+                    <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle" id="notif-badge" style="font-size:.65rem;padding:2px 5px;display:none">0</span>
+                </a>
+            </li>
+            @endif
+
             <!-- Tanggal dan Waktu -->
             <li class="nav-item lh-1 me-3">
                 <!-- Full datetime for large screens -->
@@ -108,6 +118,22 @@
             <!--/ User -->
         </ul>
     </div>
+
+    {{-- Panel Notifikasi Pengumuman (karyawan only) --}}
+    @if(Auth::user()->role === 'karyawan' || Auth::user()->role === 'employee')
+    <div id="notif-panel" style="display:none;position:fixed;top:70px;right:16px;width:360px;max-height:480px;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,.15);border-radius:12px;overflow:hidden;background:#fff;">
+        <div style="background:linear-gradient(135deg,#667eea,#764ba2);padding:14px 16px;" class="d-flex justify-content-between align-items-center">
+            <span class="text-white fw-semibold"><i class="bx bx-bell me-2"></i>Pengumuman</span>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-light py-0 px-2" style="font-size:.75rem" onclick="markAllRead()">Tandai semua</button>
+                <button class="btn btn-sm btn-light py-0 px-2" onclick="toggleNotifPanel()"><i class="bx bx-x"></i></button>
+            </div>
+        </div>
+        <div id="notif-list" style="overflow-y:auto;max-height:400px;padding:8px;">
+            <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+        </div>
+    </div>
+    @endif
 
     @push('scripts')
         <script>
@@ -215,3 +241,410 @@
         updateDateTime(); // Panggil sekali saat load
     </script>
 @endpush
+
+@if(Auth::user()->role === 'karyawan' || Auth::user()->role === 'employee')
+@push('styles')
+<style>
+/* ── Notifikasi Bell ─────────────────────────────── */
+#notif-bell-btn { transition: transform .2s; }
+#notif-bell-btn:hover { transform: scale(1.15); }
+#notif-bell-btn .bx-bell { animation: bellRing 2s ease-in-out infinite; transform-origin: top center; }
+@@keyframes bellRing {
+    0%,100% { transform: rotate(0); }
+    10%,30%  { transform: rotate(-12deg); }
+    20%,40%  { transform: rotate(12deg); }
+    50%      { transform: rotate(0); }
+}
+#notif-badge { min-width: 18px; }
+
+/* ── Notif Dropdown Panel ────────────────────────── */
+#notif-panel {
+    display: none;
+    position: fixed;
+    top: 70px; right: 16px;
+    width: 370px;
+    max-height: 500px;
+    z-index: 9999;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,.18);
+    background: #fff;
+    animation: slideDown .25s ease;
+}
+@@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.notif-item {
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    border-left: 4px solid;
+    cursor: pointer;
+    transition: background .15s, transform .15s;
+}
+.notif-item:hover { transform: translateX(3px); filter: brightness(.97); }
+.notif-item.unread { background: #f0f7ff; }
+.notif-item.read   { background: #f8f9fa; opacity: .85; }
+
+/* ── Custom Popup Overlay ────────────────────────── */
+#ann-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15,15,40,.55);
+    backdrop-filter: blur(4px);
+    z-index: 99998;
+    animation: fadeIn .3s ease;
+}
+#ann-popup {
+    display: none;
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(.9);
+    width: min(480px, 94vw);
+    border-radius: 24px;
+    overflow: hidden;
+    z-index: 99999;
+    box-shadow: 0 30px 80px rgba(0,0,0,.25);
+    animation: popIn .35s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+@@keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+@@keyframes popIn  {
+    from { opacity:0; transform: translate(-50%,-50%) scale(.75); }
+    to   { opacity:1; transform: translate(-50%,-50%) scale(1); }
+}
+.ann-header {
+    padding: 0;
+    position: relative;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.ann-header-bg {
+    position: absolute;
+    inset: 0;
+    opacity: .13;
+    background-size: 40px 40px;
+    background-image: radial-gradient(circle, #fff 1px, transparent 1px);
+}
+.ann-header img {
+    height: 145px;
+    width: auto;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 8px 20px rgba(0,0,0,.2));
+    animation: floatImg 3s ease-in-out infinite;
+}
+@@keyframes floatImg {
+    0%,100% { transform: translateY(0); }
+    50%     { transform: translateY(-8px); }
+}
+.ann-body { background: #fff; padding: 28px 28px 24px; }
+.ann-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    color: #fff;
+}
+.ann-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 10px;
+    line-height: 1.3;
+}
+.ann-content {
+    font-size: .92rem;
+    color: #555;
+    line-height: 1.65;
+    margin-bottom: 20px;
+    max-height: 120px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+.ann-content::-webkit-scrollbar { width: 4px; }
+.ann-content::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+.ann-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.ann-counter {
+    font-size: .78rem;
+    color: #aaa;
+}
+.ann-btn {
+    padding: 10px 26px;
+    border-radius: 50px;
+    border: none;
+    font-size: .9rem;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s, opacity .15s;
+    box-shadow: 0 4px 15px rgba(0,0,0,.15);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.ann-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,.2); }
+.ann-btn:active { transform: translateY(0); opacity: .9; }
+.ann-close {
+    position: absolute;
+    top: 12px; right: 14px;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.25);
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .2s;
+    z-index: 2;
+}
+.ann-close:hover { background: rgba(255,255,255,.45); }
+.ann-progress {
+    height: 4px;
+    border-radius: 0;
+    background: rgba(255,255,255,.3);
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+}
+.ann-progress-bar {
+    height: 100%;
+    background: rgba(255,255,255,.85);
+    border-radius: 0;
+    transition: width .1s linear;
+}
+/* Dots counter */
+.ann-dots { display: flex; gap: 5px; }
+.ann-dot { width: 7px; height: 7px; border-radius: 50%; background: #ddd; transition: background .2s; }
+.ann-dot.active { background: var(--ann-color, #667eea); transform: scale(1.3); }
+</style>
+@endpush
+
+@push('scripts')
+<script>
+(function() {
+const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+
+/* ─── Config ─────────────────────────────────────────── */
+const CONFIG = {
+    info:    { color: '#4361ee', grad: 'linear-gradient(135deg,#4361ee,#4cc9f0)', img: '{{ asset("images/announcements/info.png") }}',    icon: 'bx-info-circle',   label: 'Informasi' },
+    warning: { color: '#f77f00', grad: 'linear-gradient(135deg,#f77f00,#fcbf49)', img: '{{ asset("images/announcements/warning.png") }}', icon: 'bx-error',          label: 'Peringatan' },
+    success: { color: '#06d6a0', grad: 'linear-gradient(135deg,#06d6a0,#1b9e77)', img: '{{ asset("images/announcements/success.png") }}', icon: 'bx-check-circle',   label: 'Informasi Baik' },
+    danger:  { color: '#ef233c', grad: 'linear-gradient(135deg,#ef233c,#d62839)', img: '{{ asset("images/announcements/danger.png") }}',  icon: 'bx-bell',           label: 'Penting' },
+};
+
+/* ─── Badge ──────────────────────────────────────────── */
+async function loadNotifBadge() {
+    try {
+        const r    = await fetch('/api/employee/announcements/unread-count', { headers: { Accept: 'application/json' } });
+        const data = await r.json();
+        const badge = document.getElementById('notif-badge');
+        if (badge) {
+            badge.textContent = data.count > 99 ? '99+' : data.count;
+            badge.style.display = data.count > 0 ? 'inline' : 'none';
+        }
+    } catch(e) {}
+}
+
+/* ─── Dropdown Panel ─────────────────────────────────── */
+let panelOpen = false;
+
+async function loadNotifList() {
+    const list = document.getElementById('notif-list');
+    if (!list) return;
+    list.innerHTML = '<div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
+    try {
+        const r    = await fetch('/api/employee/announcements', { headers: { Accept: 'application/json' } });
+        const data = await r.json();
+        if (!data.success || !data.data.length) {
+            list.innerHTML = `<div class="text-center py-5 text-muted">
+                <i class="bx bx-bell-off" style="font-size:2.5rem;opacity:.4"></i>
+                <p class="mt-2 mb-0 small">Tidak ada pengumuman</p>
+            </div>`;
+            return;
+        }
+        list.innerHTML = data.data.map(a => {
+            const c = CONFIG[a.type] || CONFIG.info;
+            return `
+            <div class="notif-item ${a.is_read ? 'read' : 'unread'}" style="border-color:${c.color}" onclick="readAndShowItem(${a.id})">
+                <div class="d-flex align-items-start gap-2">
+                    <div style="width:36px;height:36px;border-radius:10px;background:${c.grad};flex-shrink:0;display:flex;align-items:center;justify-content:center">
+                        <i class="bx ${c.icon} text-white" style="font-size:1.1rem"></i>
+                    </div>
+                    <div class="flex-grow-1 overflow-hidden">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong style="font-size:.82rem;color:${a.is_read ? '#888' : '#1a1a2e'}">${a.title}</strong>
+                            ${!a.is_read ? `<span style="width:8px;height:8px;border-radius:50%;background:${c.color};flex-shrink:0;display:inline-block"></span>` : ''}
+                        </div>
+                        <p class="mb-0" style="font-size:.76rem;color:#777;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${a.content}</p>
+                        <small style="font-size:.68rem;color:#aaa">${a.created_at}</small>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    } catch(e) {}
+}
+
+async function readAndShowItem(id) {
+    await fetch(`/api/employee/announcements/${id}/mark-read`, {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json' }
+    });
+    loadNotifBadge();
+    loadNotifList();
+}
+
+async function markAllRead() {
+    await fetch('/api/employee/announcements/mark-all-read', {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json' }
+    });
+    loadNotifBadge();
+    loadNotifList();
+}
+
+window.toggleNotifPanel = function() {
+    const panel = document.getElementById('notif-panel');
+    panelOpen = !panelOpen;
+    if (panelOpen) {
+        panel.style.display = 'block';
+        loadNotifList();
+    } else {
+        panel.style.display = 'none';
+    }
+};
+
+window.markAllRead = markAllRead;
+window.readAndShowItem = readAndShowItem;
+
+document.addEventListener('click', e => {
+    const panel = document.getElementById('notif-panel');
+    const bell  = document.getElementById('notif-bell-btn');
+    if (panel && bell && panelOpen && !panel.contains(e.target) && !bell.contains(e.target)) {
+        panelOpen = false;
+        panel.style.display = 'none';
+    }
+});
+
+/* ─── Custom Popup dengan SweetAlert2 ───────────────────────────────────── */
+let popupQueue = [];
+let currentIdx = 0;
+
+async function showPopupAtIndex(idx) {
+    if (idx >= popupQueue.length) {
+        loadNotifList();
+        return;
+    }
+    
+    currentIdx = idx;
+    const a = popupQueue[idx];
+    const c = CONFIG[a.type] || CONFIG.info;
+    
+    const counterText = popupQueue.length > 1 ? `<div style="text-align:center;margin-top:15px;font-size:0.8rem;color:#888;">Pengumuman ${idx + 1} dari ${popupQueue.length}</div>` : '';
+    
+    const isLast = idx === popupQueue.length - 1;
+
+    try {
+        await Swal.fire({
+            title: `<div style="color:${c.color};font-weight:bold;margin-top:10px;">${a.title}</div>`,
+            html: `
+                <div style="margin-bottom:15px;">
+                    <img src="${c.img}" style="max-height:120px; animation: floatImg 3s ease-in-out infinite; drop-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+                </div>
+                <div style="margin-bottom:15px;">
+                    <span style="background:${c.color};color:#fff;padding:4px 12px;border-radius:20px;font-size:0.75rem;font-weight:bold;display:inline-block;margin-bottom:10px;">
+                        <i class="bx ${c.icon}"></i> ${c.label}
+                    </span>
+                </div>
+                <div style="font-size:0.95rem;color:#555;line-height:1.6;text-align:left;max-height:200px;overflow-y:auto;padding:0 10px;">
+                    ${a.content}
+                </div>
+                <div style="margin-top:15px;text-align:right;">
+                    <span class="badge" style="background-color:#6c757d;font-size:0.7rem;">Prioritas: ${a.priority_label}</span>
+                </div>
+                ${counterText}
+            `,
+            confirmButtonText: isLast ? '<i class="bx bx-check"></i> Mengerti' : 'Lanjut <i class="bx bx-chevron-right"></i>',
+            confirmButtonColor: c.color,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showCloseButton: true,
+            customClass: {
+                popup: 'rounded-4 shadow-lg',
+                confirmButton: 'rounded-pill px-4'
+            }
+        });
+
+        // Tandai sudah dibaca
+        await fetch(`/api/employee/announcements/${a.id}/mark-read`, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json' }
+        });
+        
+        loadNotifBadge();
+        
+        // Lanjut ke popup berikutnya
+        showPopupAtIndex(idx + 1);
+        
+    } catch (e) {
+        // Jika di-close menggunakan tombol X, tandai dibaca lalu tutup
+        await fetch(`/api/employee/announcements/${a.id}/mark-read`, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json' }
+        });
+        loadNotifBadge();
+        loadNotifList();
+    }
+}
+
+async function checkPopups() {
+    try {
+        const r    = await fetch('/api/employee/announcements/popups', { headers: { Accept: 'application/json' } });
+        const data = await r.json();
+        if (!data.success || !data.data.length) return;
+
+        popupQueue = data.data;
+        showPopupAtIndex(0);
+    } catch(e) {
+        console.warn('Announcement popup error:', e);
+    }
+}
+
+/* ─── Init ───────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+    loadNotifBadge();
+    setInterval(loadNotifBadge, 60000);
+
+    // Tunggu SweetAlert2 siap (karena di-load dengan defer), lalu cek popup
+    waitForSwalThenCheckPopups();
+});
+
+function waitForSwalThenCheckPopups(attempt = 0) {
+    if (typeof Swal !== 'undefined') {
+        setTimeout(checkPopups, 800);
+    } else if (attempt < 20) {
+        setTimeout(() => waitForSwalThenCheckPopups(attempt + 1), 300);
+    }
+}
+
+})();
+</script>
+@endpush
+@endif
+
+

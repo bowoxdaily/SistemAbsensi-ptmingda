@@ -132,6 +132,20 @@
                 </a>
             </li>
 
+            <!-- Pengumuman In-App -->
+            <li class="menu-item {{ request()->routeIs('admin.announcements.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.announcements.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-bell"></i>
+                    <div data-i18n="Pengumuman">Pengumuman Karyawan</div>
+                    @php
+                        $activeAnnouncementCount = \App\Models\Announcement::active()->count();
+                    @endphp
+                    @if($activeAnnouncementCount > 0)
+                        <span class="badge bg-primary badge-notifications ms-auto">{{ $activeAnnouncementCount }}</span>
+                    @endif
+                </a>
+            </li>
+
             <!-- Menu Header - SDM & Disiplin -->
             <li class="menu-header small text-uppercase">
                 <span class="menu-header-text">SDM & Disiplin</span>
