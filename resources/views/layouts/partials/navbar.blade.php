@@ -429,9 +429,199 @@
     transition: width .1s linear;
 }
 /* Dots counter */
-.ann-dots { display: flex; gap: 5px; }
-.ann-dot { width: 7px; height: 7px; border-radius: 50%; background: #ddd; transition: background .2s; }
-.ann-dot.active { background: var(--ann-color, #667eea); transform: scale(1.3); }
+.ann-dots { display: flex; gap: 5px; justify-content: center; }
+.ann-dot { width: 7px; height: 7px; border-radius: 50%; background: #ddd; transition: background .2s, transform .2s; }
+.ann-dot.active { background: var(--ann-color, #667eea); transform: scale(1.4); }
+
+/* ── New Modern Swal Popup ───────────────────────── */
+.swal2-popup.ann-modern-popup {
+    padding: 0 !important;
+    border-radius: 24px !important;
+    overflow: hidden !important;
+    box-shadow: 0 30px 80px rgba(0,0,0,.25) !important;
+    width: min(460px, 94vw) !important;
+}
+.swal2-popup.ann-modern-popup .swal2-html-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+}
+.swal2-popup.ann-modern-popup .swal2-actions {
+    margin: 0 !important;
+    padding: 0 24px 22px !important;
+    width: 100%;
+    justify-content: center;
+}
+.swal2-popup.ann-modern-popup .swal2-close {
+    position: absolute;
+    top: 14px; right: 16px;
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.28) !important;
+    color: #fff !important;
+    font-size: 1.4rem !important;
+    box-shadow: none !important;
+    transition: background .2s, transform .2s;
+    z-index: 10;
+}
+.swal2-popup.ann-modern-popup .swal2-close:hover {
+    background: rgba(255,255,255,.5) !important;
+    transform: rotate(90deg);
+}
+.ann-hero {
+    position: relative;
+    height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.ann-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle at 20% 30%, rgba(255,255,255,.25) 0, transparent 40%),
+                      radial-gradient(circle at 80% 70%, rgba(255,255,255,.2)  0, transparent 45%),
+                      radial-gradient(circle, rgba(255,255,255,.18) 1px, transparent 1.5px);
+    background-size: auto, auto, 26px 26px;
+    opacity: .9;
+}
+.ann-hero::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0; right: 0;
+    height: 30px;
+    background: #fff;
+    clip-path: ellipse(60% 100% at 50% 100%);
+}
+.swal2-popup.ann-modern-popup .ann-hero img,
+.ann-hero img {
+    height: 70px !important;
+    max-height: 70px !important;
+    max-width: 45% !important;
+    width: auto !important;
+    object-fit: contain !important;
+    position: relative;
+    z-index: 2;
+    filter: drop-shadow(0 6px 14px rgba(0,0,0,.28));
+    animation: floatImg 3.2s ease-in-out infinite;
+    margin: 0 !important;
+    border-radius: 0 !important;
+}
+.ann-body-modern {
+    background: #fff;
+    padding: 8px 28px 18px;
+    text-align: center;
+}
+.ann-badge-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    color: #fff;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.12);
+}
+.ann-title-modern {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #1a1a2e;
+    margin: 0 0 10px;
+    line-height: 1.3;
+    letter-spacing: -.3px;
+}
+.ann-content-modern {
+    font-size: .92rem;
+    color: #555;
+    line-height: 1.65;
+    text-align: left;
+    max-height: 180px;
+    overflow-y: auto;
+    padding: 4px 6px 4px 0;
+    margin-bottom: 14px;
+    word-wrap: break-word;
+}
+.ann-content-modern::-webkit-scrollbar { width: 5px; }
+.ann-content-modern::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 3px; }
+.ann-content-modern::-webkit-scrollbar-thumb:hover { background: #c0c0c0; }
+.ann-meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 12px;
+    border-top: 1px dashed #eee;
+    font-size: .72rem;
+    color: #888;
+}
+.ann-priority-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: #f1f3f9;
+    color: #555;
+    font-weight: 600;
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
+.ann-btn-modern {
+    padding: 11px 32px !important;
+    border-radius: 50px !important;
+    font-size: .92rem !important;
+    font-weight: 600 !important;
+    box-shadow: 0 6px 18px rgba(67,97,238,.3) !important;
+    transition: transform .15s, box-shadow .15s !important;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 6px;
+}
+.ann-btn-modern:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(67,97,238,.4) !important; }
+.ann-btn-modern:active { transform: translateY(0); }
+
+/* ── Responsive Popup ────────────────────────────── */
+@@media (max-width: 576px) {
+    .swal2-popup.ann-modern-popup {
+        width: 94vw !important;
+        border-radius: 20px !important;
+    }
+    .swal2-popup.ann-modern-popup .swal2-actions {
+        padding: 0 18px 18px !important;
+    }
+    .swal2-popup.ann-modern-popup .swal2-close {
+        width: 30px; height: 30px;
+        top: 10px; right: 10px;
+        font-size: 1.2rem !important;
+    }
+    .ann-hero { height: 110px; }
+    .swal2-popup.ann-modern-popup .ann-hero img,
+    .ann-hero img { height: 75px !important; max-height: 75px !important; max-width: 55% !important; }
+    .ann-body-modern { padding: 6px 18px 14px; }
+    .ann-badge-modern { font-size: .65rem; padding: 4px 11px; }
+    .ann-title-modern { font-size: 1.1rem; }
+    .ann-content-modern { font-size: .85rem; max-height: 140px; }
+    .ann-meta-row { font-size: .68rem; }
+    .ann-priority-chip { font-size: .62rem; padding: 2px 8px; }
+    .ann-btn-modern {
+        padding: 9px 24px !important;
+        font-size: .85rem !important;
+        width: 100%;
+        justify-content: center;
+    }
+}
+@@media (max-width: 360px) {
+    .ann-hero { height: 95px; }
+    .swal2-popup.ann-modern-popup .ann-hero img,
+    .ann-hero img { height: 60px !important; max-height: 60px !important; max-width: 50% !important; }
+    .ann-title-modern { font-size: 1rem; }
+    .ann-content-modern { font-size: .8rem; max-height: 120px; }
+}
 </style>
 @endpush
 
@@ -555,59 +745,155 @@ async function showPopupAtIndex(idx) {
     const a = popupQueue[idx];
     const c = CONFIG[a.type] || CONFIG.info;
     
-    const counterText = popupQueue.length > 1 ? `<div style="text-align:center;margin-top:15px;font-size:0.8rem;color:#888;">Pengumuman ${idx + 1} dari ${popupQueue.length}</div>` : '';
-    
     const isLast = idx === popupQueue.length - 1;
 
+    // Dots indicator (hanya jika lebih dari 1 popup)
+    let dotsHtml = '';
+    if (popupQueue.length > 1) {
+        const dots = popupQueue.map((_, i) =>
+            `<span class="ann-dot ${i === idx ? 'active' : ''}" style="${i === idx ? `background:${c.color};` : ''}"></span>`
+        ).join('');
+        dotsHtml = `<div class="ann-dots" style="margin-top:6px;">${dots}</div>`;
+    }
+
+    // Gradient untuk hero (sedikit lebih gelap dari c.color sebagai aksen)
+    const heroGradient = `linear-gradient(135deg, ${c.color} 0%, ${c.color}dd 100%)`;
+
+    const isMobile = window.innerWidth <= 480;
+    const imgSize   = isMobile ? '60px' : '75px';
+    const heroH     = isMobile ? '100px' : '120px';
+    const titleSize = isMobile ? '1.1rem' : '1.25rem';
+    const bodyPad   = isMobile ? '10px 16px 14px' : '12px 26px 18px';
+    const btnWidth  = isMobile ? '100%' : 'auto';
+
+    const html = `
+        <!-- Hero Header -->
+        <div style="background:${heroGradient};
+                    position:relative;
+                    height:${heroH};
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    overflow:hidden;
+                    border-radius:0;">
+            <!-- Dot pattern overlay -->
+            <div style="position:absolute;inset:0;
+                        background-image:radial-gradient(circle,rgba(255,255,255,.2) 1px,transparent 1.5px);
+                        background-size:22px 22px;
+                        opacity:.7;pointer-events:none;"></div>
+            <!-- Wave bottom -->
+            <div style="position:absolute;bottom:-1px;left:0;right:0;
+                        height:28px;background:#fff;
+                        clip-path:ellipse(60% 100% at 50% 100%);z-index:1;"></div>
+            <!-- Image -->
+            <img src="${c.img}" alt=""
+                 style="height:${imgSize};
+                        max-height:${imgSize};
+                        max-width:40%;
+                        width:auto;
+                        object-fit:contain;
+                        position:relative;
+                        z-index:2;
+                        display:block;
+                        margin:0 auto;
+                        filter:drop-shadow(0 6px 16px rgba(0,0,0,.25));
+                        animation:floatImg 3s ease-in-out infinite;">
+        </div>
+
+        <!-- Body -->
+        <div style="background:#fff;padding:${bodyPad};text-align:center;font-family:inherit;">
+
+            <!-- Type Badge -->
+            <span style="display:inline-flex;align-items:center;gap:5px;
+                         background:${heroGradient};
+                         color:#fff;padding:4px 13px;border-radius:20px;
+                         font-size:.68rem;font-weight:700;
+                         letter-spacing:.7px;text-transform:uppercase;
+                         box-shadow:0 3px 10px rgba(0,0,0,.15);
+                         margin-bottom:10px;">
+                <i class="bx ${c.icon}"></i> ${c.label}
+            </span>
+
+            <!-- Title -->
+            <h3 style="font-size:${titleSize};font-weight:800;color:#1a1a2e;
+                       margin:0 0 8px;line-height:1.3;letter-spacing:-.3px;">
+                ${a.title}
+            </h3>
+
+            <!-- Content -->
+            <div style="font-size:.88rem;color:#555;line-height:1.65;
+                        text-align:left;max-height:160px;overflow-y:auto;
+                        padding:0 2px 0 0;margin-bottom:12px;word-wrap:break-word;">
+                ${a.content}
+            </div>
+
+            <!-- Meta Row -->
+            <div style="display:flex;align-items:center;justify-content:space-between;
+                        padding-top:10px;border-top:1px dashed #eee;
+                        font-size:.72rem;color:#888;flex-wrap:wrap;gap:6px;">
+                <span style="display:inline-flex;align-items:center;gap:4px;
+                             background:#f1f3f9;color:#555;
+                             padding:3px 10px;border-radius:12px;
+                             font-weight:600;font-size:.68rem;
+                             text-transform:uppercase;letter-spacing:.3px;">
+                    <i class="bx bx-flag" style="color:${c.color};"></i>
+                    ${a.priority_label}
+                </span>
+                ${popupQueue.length > 1
+                    ? `<span style="font-weight:700;color:${c.color};font-size:.8rem;">
+                           ${idx + 1} / ${popupQueue.length}
+                       </span>`
+                    : `<span style="display:inline-flex;align-items:center;gap:3px;">
+                           <i class="bx bx-bell" style="color:${c.color};"></i> Pengumuman
+                       </span>`
+                }
+            </div>
+
+            <!-- Dots (hanya jika >1 popup) -->
+            ${dotsHtml}
+        </div>
+    `;
+
+    let result;
     try {
-        await Swal.fire({
-            title: `<div style="color:${c.color};font-weight:bold;margin-top:10px;">${a.title}</div>`,
-            html: `
-                <div style="margin-bottom:15px;">
-                    <img src="${c.img}" style="max-height:120px; animation: floatImg 3s ease-in-out infinite; drop-shadow: 0 5px 15px rgba(0,0,0,0.1);">
-                </div>
-                <div style="margin-bottom:15px;">
-                    <span style="background:${c.color};color:#fff;padding:4px 12px;border-radius:20px;font-size:0.75rem;font-weight:bold;display:inline-block;margin-bottom:10px;">
-                        <i class="bx ${c.icon}"></i> ${c.label}
-                    </span>
-                </div>
-                <div style="font-size:0.95rem;color:#555;line-height:1.6;text-align:left;max-height:200px;overflow-y:auto;padding:0 10px;">
-                    ${a.content}
-                </div>
-                <div style="margin-top:15px;text-align:right;">
-                    <span class="badge" style="background-color:#6c757d;font-size:0.7rem;">Prioritas: ${a.priority_label}</span>
-                </div>
-                ${counterText}
-            `,
-            confirmButtonText: isLast ? '<i class="bx bx-check"></i> Mengerti' : 'Lanjut <i class="bx bx-chevron-right"></i>',
+        result = await Swal.fire({
+            html: html,
+            confirmButtonText: isLast
+                ? '<i class="bx bx-check" style="margin-right:5px;"></i>Mengerti'
+                : 'Lanjut <i class="bx bx-chevron-right" style="margin-left:3px;"></i>',
             confirmButtonColor: c.color,
             allowOutsideClick: false,
             allowEscapeKey: false,
             showCloseButton: true,
+            buttonsStyling: true,
+            width: Math.min(460, window.innerWidth * 0.94),
             customClass: {
-                popup: 'rounded-4 shadow-lg',
-                confirmButton: 'rounded-pill px-4'
-            }
+                popup:         'ann-modern-popup',
+                confirmButton: 'ann-btn-modern',
+            },
+            showClass: { popup: 'swal2-show' },
+            hideClass: { popup: 'swal2-hide' }
         });
-
-        // Tandai sudah dibaca
-        await fetch(`/api/employee/announcements/${a.id}/mark-read`, {
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json' }
-        });
-        
-        loadNotifBadge();
-        
-        // Lanjut ke popup berikutnya
-        showPopupAtIndex(idx + 1);
-        
     } catch (e) {
-        // Jika di-close menggunakan tombol X, tandai dibaca lalu tutup
+        console.warn('Swal error:', e);
+        return;
+    }
+
+    // Tandai sudah dibaca (baik klik Confirm maupun X)
+    try {
         await fetch(`/api/employee/announcements/${a.id}/mark-read`, {
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json' }
         });
-        loadNotifBadge();
+    } catch (e) { /* offline-safe */ }
+
+    loadNotifBadge();
+
+    // Jika user klik X (close) → hentikan queue, refresh list panel.
+    // Jika klik Confirm → lanjut ke popup berikutnya.
+    if (result && result.isConfirmed) {
+        showPopupAtIndex(idx + 1);
+    } else {
         loadNotifList();
     }
 }
