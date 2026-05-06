@@ -196,6 +196,13 @@ const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 let currentPage = 1;
 let positionsData = [], departmentsData = [], employeesData = [];
 
+// Strip semua tag HTML, untuk tampilan preview plain-text
+function stripHtml(html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+}
+
 async function apiFetch(url, opts = {}) {
     const res = await fetch(url, {
         headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json', 'Content-Type': 'application/json', ...opts.headers },
@@ -249,7 +256,7 @@ async function loadList(page = 1) {
                             ${a.show_popup ? '<span class="badge bg-label-primary"><i class="bx bx-window-alt"></i> Popup</span>' : ''}
                         </div>
                         <h6 class="fw-bold mb-1">${a.title}</h6>
-                        <p class="text-muted small mb-1">${a.content.substring(0, 120)}${a.content.length > 120 ? '...' : ''}</p>
+                        <p class="text-muted small mb-1">${stripHtml(a.content).substring(0, 120)}${stripHtml(a.content).length > 120 ? '...' : ''}</p>
                         <small class="text-muted">
                             <i class="bx bx-group me-1"></i>${a.filter_label} &nbsp;|&nbsp;
                             <i class="bx bx-user-check me-1"></i>${a.total_recipients} penerima &nbsp;|&nbsp;
@@ -437,14 +444,14 @@ async function showDetail(id) {
         <tr><td>${rd.name}</td><td>${rd.employee_code}</td><td>${rd.read_at}</td></tr>
     `).join('') : '<tr><td colspan="3" class="text-center text-muted">Belum ada yang membaca</td></tr>';
 
-    document.getElementById('detail-body').innerHTML = `
+    const detailHtml = `
         <div class="row g-3">
             <div class="col-12">
                 <span class="badge ${a.type_badge} me-1">${a.type_label}</span>
                 <span class="badge ${a.priority_badge} me-1">${a.priority_label}</span>
                 <span class="badge ${a.is_active ? 'bg-success' : 'bg-secondary'}">${a.is_active ? 'Aktif' : 'Nonaktif'}</span>
             </div>
-            <div class="col-12"><h5>${a.title}</h5><p>${a.content}</p></div>
+            <div class="col-12"><h5>${a.title}</h5><div id="detail-content" style="font-size:.95rem;line-height:1.7;color:#444;">${a.content}</div></div>
             <div class="col-md-6"><strong>Target:</strong> ${a.filter_label}${filter_details.length ? ': ' + filter_details.join(', ') : ''}</div>
             <div class="col-md-6"><strong>Total Penerima:</strong> ${a.total_recipients}</div>
             <div class="col-md-6"><strong>Mulai:</strong> ${a.start_date ? new Date(a.start_date).toLocaleString('id-ID') : 'Sekarang'}</div>
@@ -458,6 +465,14 @@ async function showDetail(id) {
             </div>
         </div>
     `;
+    document.getElementById('detail-body').innerHTML = detailHtml;
+
+    // Buka semua link di detail modal di tab baru
+    document.querySelectorAll('#detail-content a').forEach(el => {
+        el.setAttribute('target', '_blank');
+        el.setAttribute('rel', 'noopener noreferrer');
+        el.style.cssText += 'color:#4361ee;font-weight:600;text-decoration:underline;';
+    });
 }
 
 // ── Init ──────────────────────────────────────────────────
