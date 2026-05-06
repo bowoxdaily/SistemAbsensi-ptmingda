@@ -735,6 +735,21 @@ document.addEventListener('click', e => {
 let popupQueue = [];
 let currentIdx = 0;
 
+/**
+ * Pastikan semua <a> di konten terbuka di tab baru dan aman.
+ * Juga styling link agar terlihat klikabel di dalam popup.
+ */
+function sanitizeLinks(html) {
+    const parser = new DOMParser();
+    const doc    = parser.parseFromString(html, 'text/html');
+    doc.querySelectorAll('a').forEach(el => {
+        el.setAttribute('target', '_blank');
+        el.setAttribute('rel', 'noopener noreferrer');
+        el.style.cssText += ';color:#4361ee;font-weight:600;text-decoration:underline;word-break:break-all;';
+    });
+    return doc.body.innerHTML;
+}
+
 async function showPopupAtIndex(idx) {
     if (idx >= popupQueue.length) {
         loadNotifList();
@@ -824,7 +839,7 @@ async function showPopupAtIndex(idx) {
             <div style="font-size:.88rem;color:#555;line-height:1.65;
                         text-align:left;max-height:160px;overflow-y:auto;
                         padding:0 2px 0 0;margin-bottom:12px;word-wrap:break-word;">
-                ${a.content}
+                ${sanitizeLinks(a.content)}
             </div>
 
             <!-- Meta Row -->
@@ -872,7 +887,17 @@ async function showPopupAtIndex(idx) {
                 confirmButton: 'ann-btn-modern',
             },
             showClass: { popup: 'swal2-show' },
-            hideClass: { popup: 'swal2-hide' }
+            hideClass: { popup: 'swal2-hide' },
+            didOpen: (popup) => {
+                // Pastikan semua link di dalam popup bisa diklik (buka tab baru)
+                popup.querySelectorAll('a[target="_blank"]').forEach(link => {
+                    link.addEventListener('click', e => {
+                        e.stopPropagation();
+                        window.open(link.href, '_blank', 'noopener,noreferrer');
+                        e.preventDefault();
+                    });
+                });
+            }
         });
     } catch (e) {
         console.warn('Swal error:', e);
