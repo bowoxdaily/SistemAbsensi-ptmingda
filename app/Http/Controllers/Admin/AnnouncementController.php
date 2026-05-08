@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AnnouncementController extends Controller
 {
@@ -387,5 +388,63 @@ class AnnouncementController extends Controller
             'success' => true,
             'data'    => compact('total', 'active', 'expired', 'urgent'),
         ]);
+    }
+
+    /**
+     * Export daftar pembaca pengumuman ke CSV
+     */
+    public function exportReaders($id): StreamedResponse
+    {
+        $announcement = Announcement::findOrFail($id);
+
+        $readers = AnnouncementRead::where('announcement_id', $id)
+            ->with('employee:id,name,employee_code,position_id,department_id')
+            ->with('employee.position:id,name')
+            ->with('employee.department:id,name')
+            ->orderBy('read_at', 'asc')
+            ->get();
+
+        $filename = 'pembaca-pengumuman-' . $announcement->id . '-' . now()->format('Ymd-His') . '.csv';
+
+        $headers = [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Cache-Control'       => 'no-cache, no-store, must-revalidate',
+            'Pragma'              => 'no-cache',
+            'Expires'             => '0',
+        ];
+
+        $callback = function () use ($announcement, $readers) {
+            $out = fopen('php://output', 'w');
+
+            // BOM untuk Excel agar UTF-8 terbaca dengan benar
+            fwrite($out, "\xEF\xBB\xBF");
+
+            // Info pengumuman
+            fputcsv($out, ['Judul Pengumuman', $announcement->title]);
+            fputcsv($out, ['Tanggal Dibuat', $announcement->created_at?->format('d/m/Y H:i')]);
+            fputcsv($out, ['Total Pembaca', $readers->count()]);
+            fputcsv($out, []);
+
+            // Header kolom
+            fputcsv($out, ['No', 'Kode Karyawan', 'Nama Karyawan', 'Jabatan', 'Departemen', 'Waktu Dibaca']);
+
+            // Data pembaca
+            $no = 1;
+            foreach ($readers as $r) {
+                fputcsv($out, [
+                    $no++,
+                    $r->employee->employee_code ?? '-',
+                    $r->employee->name ?? '-',
+                    $r->employee->position->name ?? '-',
+                    $r->employee->department->name ?? '-',
+                    $r->read_at?->format('d/m/Y H:i:s') ?? '-',
+                ]);
+            }
+
+            fclose($out);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }

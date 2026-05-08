@@ -185,6 +185,12 @@
             <div class="modal-body" id="detail-body">
                 <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
             </div>
+            <div class="modal-footer">
+                <button type="button" id="btn-export-readers" class="btn btn-success d-none" onclick="exportReaders()">
+                    <i class="bx bx-download me-1"></i>Export CSV
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
         </div>
     </div>
 </div>
@@ -467,12 +473,23 @@ async function showDetail(id) {
     `;
     document.getElementById('detail-body').innerHTML = detailHtml;
 
+    // Tombol export
+    const btnExport = document.getElementById('btn-export-readers');
+    btnExport.classList.remove('d-none');
+    btnExport.dataset.announcementId = id;
+
     // Buka semua link di detail modal di tab baru
     document.querySelectorAll('#detail-content a').forEach(el => {
         el.setAttribute('target', '_blank');
         el.setAttribute('rel', 'noopener noreferrer');
         el.style.cssText += 'color:#4361ee;font-weight:600;text-decoration:underline;';
     });
+}
+
+// ── Export Readers ───────────────────────────────────────
+function exportReaders() {
+    const id = document.getElementById('btn-export-readers').dataset.announcementId;
+    window.location.href = `/api/admin/announcements/${id}/export-readers`;
 }
 
 // ── Init ──────────────────────────────────────────────────

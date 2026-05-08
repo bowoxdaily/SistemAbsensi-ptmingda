@@ -396,6 +396,7 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('admin/announcements')->grou
     Route::get('/{id}', [AnnouncementController::class, 'show']);
     Route::put('/{id}', [AnnouncementController::class, 'update']);
     Route::post('/{id}/toggle-active', [AnnouncementController::class, 'toggleActive']);
+    Route::get('/{id}/export-readers', [AnnouncementController::class, 'exportReaders']);
     Route::delete('/{id}', [AnnouncementController::class, 'destroy']);
 });
 
