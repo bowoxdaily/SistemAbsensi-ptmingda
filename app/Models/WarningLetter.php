@@ -75,6 +75,7 @@ class WarningLetter extends Model
     public function getSpTypeLabelAttribute(): string
     {
         return [
+            'ST'  => 'ST - Surat Teguran',
             'SP1' => 'SP 1 - Peringatan Pertama',
             'SP2' => 'SP 2 - Peringatan Kedua',
             'SP3' => 'SP 3 - Peringatan Terakhir',
@@ -99,6 +100,7 @@ class WarningLetter extends Model
     public function getSpTypeBadgeAttribute(): string
     {
         return [
+            'ST'  => 'bg-info',
             'SP1' => 'bg-warning',
             'SP2' => 'bg-orange',
             'SP3' => 'bg-danger',

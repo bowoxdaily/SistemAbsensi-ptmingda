@@ -97,13 +97,14 @@ class WarningLetterController extends Controller
         }
 
         $stats = [
-            'total_aktif' => WarningLetter::where('status', 'aktif')->count(),
-            'sp1_aktif' => WarningLetter::where('status', 'aktif')->where('sp_type', 'SP1')->count(),
-            'sp2_aktif' => WarningLetter::where('status', 'aktif')->where('sp_type', 'SP2')->count(),
-            'sp3_aktif' => WarningLetter::where('status', 'aktif')->where('sp_type', 'SP3')->count(),
-            'total_selesai' => WarningLetter::where('status', 'selesai')->count(),
+            'total_aktif'      => WarningLetter::where('status', 'aktif')->count(),
+            'st_aktif'         => WarningLetter::where('status', 'aktif')->where('sp_type', 'ST')->count(),
+            'sp1_aktif'        => WarningLetter::where('status', 'aktif')->where('sp_type', 'SP1')->count(),
+            'sp2_aktif'        => WarningLetter::where('status', 'aktif')->where('sp_type', 'SP2')->count(),
+            'sp3_aktif'        => WarningLetter::where('status', 'aktif')->where('sp_type', 'SP3')->count(),
+            'total_selesai'    => WarningLetter::where('status', 'selesai')->count(),
             'total_dibatalkan' => WarningLetter::where('status', 'dibatalkan')->count(),
-            'total_bulan_ini' => WarningLetter::whereMonth('issue_date', now()->month)
+            'total_bulan_ini'  => WarningLetter::whereMonth('issue_date', now()->month)
                 ->whereYear('issue_date', now()->year)
                 ->count(),
         ];
@@ -163,7 +164,7 @@ class WarningLetterController extends Controller
         // Validation
         $request->validate([
             'employee_id' => 'required|exists:employees,id',
-            'sp_type' => 'required|in:SP1,SP2,SP3',
+            'sp_type' => 'required|in:ST,SP1,SP2,SP3',
             'sp_number' => 'required|string|max:100|unique:warning_letters,sp_number',
             'issue_date' => 'required|date',
             'effective_date' => 'required|date|after_or_equal:issue_date',
@@ -559,6 +560,7 @@ class WarningLetterController extends Controller
                 'data' => [
                     'active_sps' => $activeSPs,
                     'active_types' => $activeTypes,
+                    'can_create_st'  => !in_array('ST', $activeTypes),
                     'can_create_sp1' => !in_array('SP1', $activeTypes),
                     'can_create_sp2' => !in_array('SP2', $activeTypes),
                     'can_create_sp3' => !in_array('SP3', $activeTypes),
@@ -592,7 +594,7 @@ class WarningLetterController extends Controller
 
         // Validation
         $request->validate([
-            'sp_type' => 'required|in:SP1,SP2,SP3',
+            'sp_type' => 'required|in:ST,SP1,SP2,SP3',
             'issue_date' => 'required|date',
         ]);
 

@@ -111,6 +111,9 @@ class WarningLetterController extends Controller
                 'selesai' => WarningLetter::where('employee_id', $employee->id)
                     ->where('status', 'selesai')
                     ->count(),
+                'st' => WarningLetter::where('employee_id', $employee->id)
+                    ->where('sp_type', 'ST')
+                    ->count(),
                 'sp1' => WarningLetter::where('employee_id', $employee->id)
                     ->where('sp_type', 'SP1')
                     ->count(),

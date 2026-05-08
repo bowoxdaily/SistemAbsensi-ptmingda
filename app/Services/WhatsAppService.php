@@ -768,6 +768,7 @@ class WhatsAppService
 
         // SP type labels
         $spTypeLabel = [
+            'ST' => 'ST (Surat Teguran)',
             'SP1' => 'SP 1 (Peringatan Pertama)',
             'SP2' => 'SP 2 (Peringatan Kedua)',
             'SP3' => 'SP 3 (Peringatan Terakhir)',

@@ -693,7 +693,7 @@
                         <h6 class="small fw-bold mt-3">Surat Peringatan (SP)</h6>
                         <ul class="small ps-3">
                             <li><code>{employee_name}</code> - Nama karyawan</li>
-                            <li><code>{sp_type}</code> - Jenis SP (SP1/SP2/SP3)</li>
+                            <li><code>{sp_type}</code> - Jenis SP (ST/SP1/SP2/SP3)</li>
                             <li><code>{sp_number}</code> - Nomor surat</li>
                             <li><code>{violation}</code> - Pelanggaran</li>
                             <li><code>{issue_date}</code> - Tanggal terbit</li>

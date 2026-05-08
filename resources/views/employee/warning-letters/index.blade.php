@@ -75,6 +75,7 @@
                     <label class="form-label">Jenis SP</label>
                     <select class="form-select" id="filterSpType">
                         <option value="">Semua Jenis</option>
+                        <option value="ST">ST</option>
                         <option value="SP1">SP 1</option>
                         <option value="SP2">SP 2</option>
                         <option value="SP3" >SP 3</option>
@@ -181,7 +182,10 @@ function renderList(data) {
         data.forEach(function(sp) {
             let spTypeBadge = '';
             let spTypeClass = '';
-            if (sp.sp_type === 'SP1') {
+            if (sp.sp_type === 'ST') {
+                spTypeBadge = '<span class="badge bg-info">ST</span>';
+                spTypeClass = 'border-info';
+            } else if (sp.sp_type === 'SP1') {
                 spTypeBadge = '<span class="badge bg-warning">SP 1</span>';
                 spTypeClass = 'border-warning';
             } else if (sp.sp_type === 'SP2') {
@@ -244,6 +248,7 @@ function viewDetail(id) {
             let sp = response.data;
 
             let spTypeLabel = {
+                'ST': 'ST - Surat Teguran',
                 'SP1': 'SP 1 - Peringatan Pertama',
                 'SP2': 'SP 2 - Peringatan Kedua',
                 'SP3': 'SP 3 - Peringatan Terakhir'

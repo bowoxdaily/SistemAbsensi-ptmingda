@@ -18,7 +18,7 @@
 
     <!-- Statistics Cards -->
     <div class="row mb-4" id="statsCards">
-        <div class="col-lg-3 col-md-6 col-sm-12 mb-4">
+        <div class="col-lg col-md-6 col-sm-12 mb-4">
             <div class="card">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
@@ -35,7 +35,24 @@
                 </div>
             </div>
         </div>
-        <div class="col-lg-3 col-md-6 col-sm-12 mb-4">
+        <div class="col-lg col-md-6 col-sm-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-info">
+                            <p class="card-text">ST Aktif</p>
+                            <h4 class="mb-0 text-info" id="stAktif">0</h4>
+                        </div>
+                        <div class="card-icon">
+                            <span class="badge bg-label-info rounded p-2">
+                                <i class='bx bx-message-error bx-sm'></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg col-md-6 col-sm-12 mb-4">
             <div class="card">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
@@ -52,7 +69,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-lg-3 col-md-6 col-sm-12 mb-4">
+        <div class="col-lg col-md-6 col-sm-12 mb-4">
             <div class="card">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
@@ -69,7 +86,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-lg-3 col-md-6 col-sm-12 mb-4">
+        <div class="col-lg col-md-6 col-sm-12 mb-4">
             <div class="card">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
@@ -111,6 +128,7 @@
                         <label class="form-label">Jenis SP</label>
                         <select class="form-select" id="filterSpType">
                             <option value="">Semua Jenis</option>
+                            <option value="ST">ST</option>
                             <option value="SP1">SP 1</option>
                             <option value="SP2">SP 2</option>
                             <option value="SP3">SP 3</option>
@@ -206,6 +224,7 @@
                             <label class="form-label required">Jenis SP</label>
                             <select class="form-select" name="sp_type" id="createSpType" required>
                                 <option value="">Pilih Jenis SP</option>
+                                <option value="ST">ST - Surat Teguran</option>
                                 <option value="SP1">SP 1 - Peringatan Pertama</option>
                                 <option value="SP2">SP 2 - Peringatan Kedua</option>
                                 <option value="SP3">SP 3 - Peringatan Terakhir</option>
@@ -646,6 +665,7 @@ function loadStatistics() {
     $.get('/api/admin/warning-letters/statistics', function(response) {
         if (response.success) {
             $('#totalAktif').text(response.data.total_aktif);
+            $('#stAktif').text(response.data.st_aktif);
             $('#sp1Aktif').text(response.data.sp1_aktif);
             $('#sp2Aktif').text(response.data.sp2_aktif);
             $('#sp3Aktif').text(response.data.sp3_aktif);
@@ -691,7 +711,8 @@ function renderTable(data) {
     } else {
         data.forEach(function(sp) {
             let spTypeBadge = '';
-            if (sp.sp_type === 'SP1') spTypeBadge = '<span class="badge bg-warning">SP 1</span>';
+            if (sp.sp_type === 'ST') spTypeBadge = '<span class="badge bg-info">ST</span>';
+            else if (sp.sp_type === 'SP1') spTypeBadge = '<span class="badge bg-warning">SP 1</span>';
             else if (sp.sp_type === 'SP2') spTypeBadge = '<span class="badge" style="background-color: #ff9800;">SP 2</span>';
             else if (sp.sp_type === 'SP3') spTypeBadge = '<span class="badge bg-danger">SP 3</span>';
 
@@ -810,6 +831,7 @@ function viewDetail(id) {
             let sp = response.data;
 
             let spTypeLabel = {
+                'ST': 'ST - Surat Teguran',
                 'SP1': 'SP 1 - Peringatan Pertama',
                 'SP2': 'SP 2 - Peringatan Kedua',
                 'SP3': 'SP 3 - Peringatan Terakhir'
@@ -1067,6 +1089,9 @@ function checkEmployeeActiveSP() {
                 $('#spWarningContainer').hide();
 
                 // Disable SP types that are already active
+                if (!data.can_create_st) {
+                    $('#createSpType option[value="ST"]').prop('disabled', true);
+                }
                 if (!data.can_create_sp1) {
                     $('#createSpType option[value="SP1"]').prop('disabled', true);
                 }
