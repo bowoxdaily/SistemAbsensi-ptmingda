@@ -32,8 +32,8 @@ class Attendance extends Model
 
     protected $casts = [
         'attendance_date' => 'date',
-        'check_in' => 'datetime:H:i:s',
-        'check_out' => 'datetime:H:i:s',
+        'check_in'  => 'string', // kolom TIME di DB, tidak perlu cast datetime
+        'check_out' => 'string', // kolom TIME di DB, tidak perlu cast datetime
         'late_minutes' => 'integer',
         'overtime_minutes' => 'integer',
         'is_mocked_in' => 'boolean',

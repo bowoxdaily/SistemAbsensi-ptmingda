@@ -1251,8 +1251,8 @@
                     timeSection.hide();
                     checkInInput.prop('required', false);
                     checkInRequired.hide();
-                    checkInInput.val('');
-                    $('#edit_check_out').val('');
+                    // Nilai check_in & check_out TIDAK dikosongkan,
+                    // agar tidak hilang jika user ganti status lagi
                 }
             }
 
@@ -1390,8 +1390,8 @@
                     $('#req_time_section').show();
                 } else {
                     $('#req_time_section').hide();
-                    $('#req_check_in').val('');
-                    $('#req_check_out').val('');
+                    // Nilai check_in & check_out TIDAK dikosongkan,
+                    // agar tidak hilang jika user ganti status lagi
                 }
             }
             $('#req_status').on('change', function() { updateReqTimeFields($(this).val()); });
