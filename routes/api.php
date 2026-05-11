@@ -408,3 +408,6 @@ Route::middleware(['web', 'auth'])->prefix('employee/announcements')->group(func
     Route::post('/{id}/mark-read', [\App\Http\Controllers\Employee\AnnouncementController::class, 'markRead']);
     Route::post('/mark-all-read', [\App\Http\Controllers\Employee\AnnouncementController::class, 'markAllRead']);
 });
+
+// WhatsApp Webhook (Fonnte/Gateway) - Dinonaktifkan sementara sesuai permintaan
+// Route::post('/whatsapp/webhook', [\App\Http\Controllers\Api\WhatsAppWebhookController::class, 'handle']);
