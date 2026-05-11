@@ -93,6 +93,7 @@ class KaryawanController extends Controller
             'tanggal_resign' => 'nullable|date',
             'tanggal_mangkir' => 'nullable|date',
             'tanggal_gagal_probation' => 'nullable|date',
+            'tanggal_pending' => 'nullable|date',
             'bank' => 'nullable|string|max:50',
             'nomor_rekening' => 'nullable|string|max:50',
             'tax_npwp' => 'nullable|string|max:20',
@@ -109,7 +110,7 @@ class KaryawanController extends Controller
             'email' => 'required|email|max:100|unique:employees,email',
             'emergency_contact_name' => 'required|string|max:100',
             'emergency_contact_phone' => 'required|string|max:20',
-            'status' => 'required|in:active,inactive,resign,mangkir,gagal_probation',
+            'status' => 'required|in:active,inactive,resign,mangkir,gagal_probation,pending',
         ], [
             'employee_code.required' => 'Kode karyawan wajib diisi',
             'employee_code.unique' => 'Kode karyawan sudah ada',
@@ -232,6 +233,7 @@ class KaryawanController extends Controller
             'tanggal_resign' => 'nullable|date',
             'tanggal_mangkir' => 'nullable|date',
             'tanggal_gagal_probation' => 'nullable|date',
+            'tanggal_pending' => 'nullable|date',
             'bank' => 'nullable|string|max:50',
             'nomor_rekening' => 'nullable|string|max:50',
             'tax_npwp' => 'nullable|string|max:20',
@@ -245,7 +247,7 @@ class KaryawanController extends Controller
             'email' => 'required|email|max:100|unique:employees,email,' . $id,
             'emergency_contact_name' => 'required|string|max:100',
             'emergency_contact_phone' => 'required|string|max:20',
-            'status' => 'required|in:active,inactive,resign,mangkir,gagal_probation',
+            'status' => 'required|in:active,inactive,resign,mangkir,gagal_probation,pending',
         ]);
 
         if ($validator->fails()) {
@@ -493,6 +495,7 @@ class KaryawanController extends Controller
             'resign'           => (clone $summaryQuery)->where('status', 'resign')->count(),
             'mangkir'          => (clone $summaryQuery)->where('status', 'mangkir')->count(),
             'gagal_probation'  => (clone $summaryQuery)->where('status', 'gagal_probation')->count(),
+            'pending'          => (clone $summaryQuery)->where('status', 'pending')->count(),
         ];
 
         if ($perPage === 'all') {

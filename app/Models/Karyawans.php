@@ -39,6 +39,7 @@ class Karyawans extends Model
         'tanggal_resign',
         'tanggal_mangkir',
         'tanggal_gagal_probation',
+        'tanggal_pending',
         'bank',
         'nomor_rekening',
         'tax_npwp',
@@ -66,6 +67,7 @@ class Karyawans extends Model
         'tanggal_resign'           => 'date',
         'tanggal_mangkir'         => 'date',
         'tanggal_gagal_probation' => 'date',
+        'tanggal_pending'         => 'date',
         'salary_base' => 'decimal:2',
         'tanggungan_anak' => 'integer',
     ];
@@ -176,6 +178,24 @@ class Karyawans extends Model
      * Accessor untuk tanggal_gagal_probation - pastikan selalu dalam format Y-m-d
      */
     public function getTanggalGagalProbationAttribute($value)
+    {
+        if (!$value) {
+            return null;
+        }
+        try {
+            if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+                return $value; // Already formatted
+            }
+            return $this->asDate($value)->format('Y-m-d');
+        } catch (\Exception $e) {
+            return $value;
+        }
+    }
+
+    /**
+     * Accessor untuk tanggal_pending - pastikan selalu dalam format Y-m-d
+     */
+    public function getTanggalPendingAttribute($value)
     {
         if (!$value) {
             return null;

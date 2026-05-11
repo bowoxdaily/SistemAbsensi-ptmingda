@@ -128,6 +128,7 @@
         ['id'=>'sumKarInactive','label'=>'Tidak Aktif',    'cn'=>'未激活',       'icon'=>'bx-user-x',             'bg'=>'#f5f5f5', 'icon_bg'=>'rgba(108,117,125,.12)','text'=>'#555', 'cnsub'=>'#999'],
         ['id'=>'sumKarMangkir', 'label'=>'Mangkir',        'cn'=>'旷工',         'icon'=>'bxs-time-five',         'bg'=>'#fff8ec', 'icon_bg'=>'rgba(255,193,7,.18)', 'text'=>'#856404', 'cnsub'=>'#b89020'],
         ['id'=>'sumKarGagal',   'label'=>'Gagal Probation','cn'=>'试用期未通过', 'icon'=>'bxs-user-detail',       'bg'=>'#edf7fa', 'icon_bg'=>'rgba(23,162,184,.15)','text'=>'#0c6674', 'cnsub'=>'#3899a8'],
+        ['id'=>'sumKarPending', 'label'=>'Pending',        'cn'=>'待定',         'icon'=>'bxs-hourglass',         'bg'=>'#eef0ff', 'icon_bg'=>'rgba(105,108,255,.15)','text'=>'#4a4db8', 'cnsub'=>'#8a8fcc'],
     ] as $c)
     <div class="col-6 col-sm-4 col-lg-2">
         <div class="card metric-card shadow-sm h-100" style="background:{{ $c['bg'] }}">
@@ -304,6 +305,7 @@ function loadStats() {
         $('#sumKarInactive').text(k.inactive      ?? 0);
         $('#sumKarMangkir').text(k.mangkir        ?? 0);
         $('#sumKarGagal').text(k.gagal_probation  ?? 0);
+        $('#sumKarPending').text(k.pending          ?? 0);
 
         $('#sumHadir').text(a.hadir     ?? 0);
         $('#sumLate').text(a.terlambat  ?? 0);

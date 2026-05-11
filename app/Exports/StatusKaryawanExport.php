@@ -59,6 +59,7 @@ class StatusKaryawanExport implements FromCollection, WithHeadings, WithMapping,
             'Tanggal Resign',
             'Tanggal Mangkir',
             'Tanggal Gagal Probation',
+            'Tanggal Pending',
         ];
     }
 
@@ -73,6 +74,7 @@ class StatusKaryawanExport implements FromCollection, WithHeadings, WithMapping,
             'resign'          => 'Resign',
             'mangkir'         => 'Mangkir',
             'gagal_probation' => 'Gagal Probation',
+            'pending'         => 'Pending',
         ][$row->status] ?? $row->status;
 
         return [
@@ -89,6 +91,7 @@ class StatusKaryawanExport implements FromCollection, WithHeadings, WithMapping,
             $this->formatDate($row->tanggal_resign),
             $this->formatDate($row->tanggal_mangkir),
             $this->formatDate($row->tanggal_gagal_probation),
+            $this->formatDate($row->tanggal_pending),
         ];
     }
 

@@ -16,6 +16,7 @@
     .stat-card.mangkir-card { border-color: #fd7e14; }
     .stat-card.gagal-card   { border-color: #ffc107; }
     .stat-card.total-card   { border-color: #4e73df; }
+    .stat-card.pending-card  { border-color: #17a2b8; }
 
     .stat-card .stat-number { font-size: 1.9rem; font-weight: 700; line-height: 1; }
     .stat-card .stat-label  { font-size: 0.78rem; text-transform: uppercase; letter-spacing: .05em; }
@@ -69,6 +70,7 @@
                         <option value="resign">Resign</option>
                         <option value="mangkir">Mangkir</option>
                         <option value="gagal_probation">Gagal Probation</option>
+                        <option value="pending">Pending</option>
                     </select>
                 </div>
                 <!-- Department -->
@@ -174,6 +176,7 @@ const STATUS_INFO = {
     resign:          { label: 'Resign',           class: 'bg-danger' },
     mangkir:         { label: 'Mangkir',          class: 'bg-warning text-dark' },
     gagal_probation: { label: 'Gagal Probation',  class: 'bg-info text-dark' },
+    pending:         { label: 'Pending',           class: 'bg-primary' },
 };
 
 /* --- Department options --- */
@@ -223,6 +226,7 @@ function renderSummary(s) {
     $('#sumResign').text(s.resign);
     $('#sumMangkir').text(s.mangkir);
     $('#sumGagal').text(s.gagal_probation);
+    $('#sumPending').text(s.pending);
     $('#totalLabel').text('Total: ' + s.total);
 }
 
@@ -259,6 +263,9 @@ function renderTable(rows, meta) {
         } else if (k.status === 'gagal_probation' && k.tanggal_gagal_probation) {
             inactiveDateRaw = k.tanggal_gagal_probation;
             inactiveDateLabel = 'Gagal Prob';
+        } else if (k.status === 'pending' && k.tanggal_pending) {
+            inactiveDateRaw = k.tanggal_pending;
+            inactiveDateLabel = 'Pending';
         }
         if (inactiveDateRaw) inactiveDate = formatDate(inactiveDateRaw);
 

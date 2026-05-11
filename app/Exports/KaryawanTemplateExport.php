@@ -443,7 +443,7 @@ class KaryawanTemplateExport implements FromCollection, WithHeadings, WithStyles
                 $validation->setError('Pilih dari dropdown');
                 $validation->setPromptTitle('Status Karyawan');
                 $validation->setPrompt('Pilih status karyawan');
-                $validation->setFormula1('"Aktif,Tidak Aktif,Resign"');
+                $validation->setFormula1('"Aktif,Tidak Aktif,Resign,Pending"');
                 
                 for ($i = 3; $i <= 100; $i++) {
                     $sheet->getCell('AB' . $i)->setDataValidation(clone $validation);

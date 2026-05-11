@@ -141,6 +141,7 @@
                             <option value="resign">Resign</option>
                             <option value="mangkir">Mangkir</option>
                             <option value="gagal_probation">Gagal Probation</option>
+                            <option value="pending">Pending</option>
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -511,6 +512,7 @@
                                             <option value="resign">Resign</option>
                                             <option value="mangkir">Mangkir</option>
                                             <option value="gagal_probation">Gagal Probation</option>
+                                            <option value="pending">Pending</option>
                                         </select>
                                         <div class="invalid-feedback" id="statusError"></div>
                                     </div>
@@ -531,6 +533,12 @@
                                         <input type="date" class="form-control form-control-sm" id="tanggal_gagal_probation"
                                             name="tanggal_gagal_probation">
                                         <div class="invalid-feedback" id="tanggal_gagal_probationError"></div>
+                                    </div>
+                                    <div class="col-sm-6 mb-2" id="pendingDateContainer" style="display: none;">
+                                        <label for="tanggal_pending" class="form-label small">Tanggal Pending</label>
+                                        <input type="date" class="form-control form-control-sm" id="tanggal_pending"
+                                            name="tanggal_pending">
+                                        <div class="invalid-feedback" id="tanggal_pendingError"></div>
                                     </div>
                                 </div>
                             </div>
@@ -801,6 +809,10 @@
                                 <tr id="detailGagalProbDateRow" style="display: none;">
                                     <th>Tanggal Gagal Probation</th>
                                     <td id="detailTanggalGagalProb">-</td>
+                                </tr>
+                                <tr id="detailPendingDateRow" style="display: none;">
+                                    <th>Tanggal Pending</th>
+                                    <td id="detailTanggalPending">-</td>
                                 </tr>
                             </table>
                         </div>
@@ -1284,7 +1296,8 @@
                     'inactive': 'Tidak Aktif',
                     'resign': 'Resign',
                     'mangkir': 'Mangkir',
-                    'gagal_probation': 'Gagal Probation'
+                    'gagal_probation': 'Gagal Probation',
+                    'pending': 'Pending'
                 };
                 container.append(
                     `<span class="badge bg-label-warning">Status: ${statusLabel[currentFilters.status]}</span>`);
@@ -1474,7 +1487,8 @@
                 'inactive': '<span class="badge bg-label-warning">Tidak Aktif</span>',
                 'resign': '<span class="badge bg-label-danger">Resign</span>',
                 'mangkir': '<span class="badge bg-label-dark">Mangkir</span>',
-                'gagal_probation': '<span class="badge bg-label-danger">Gagal Probation</span>'
+                'gagal_probation': '<span class="badge bg-label-danger">Gagal Probation</span>',
+                'pending': '<span class="badge bg-label-info">Pending</span>'
             };
             return badges[status] || status;
         }
@@ -1491,11 +1505,12 @@
             if (k.status === 'resign' && k.tanggal_resign)         return formatDate(k.tanggal_resign);
             if (k.status === 'mangkir' && k.tanggal_mangkir)       return formatDate(k.tanggal_mangkir);
             if (k.status === 'gagal_probation' && k.tanggal_gagal_probation) return formatDate(k.tanggal_gagal_probation);
+            if (k.status === 'pending' && k.tanggal_pending)       return formatDate(k.tanggal_pending);
             return '-';
         }
 
         function getExitDateBadge(k) {
-            const labelMap = { resign: 'Resign', mangkir: 'Mangkir', gagal_probation: 'Gagal Prob' };
+            const labelMap = { resign: 'Resign', mangkir: 'Mangkir', gagal_probation: 'Gagal Prob', pending: 'Pending' };
             const date = getExitDate(k);
             if (date === '-') return '';
             return ` &nbsp;<i class='bx bx-calendar-x me-1'></i>${labelMap[k.status]}: <strong>${date}</strong>`;
@@ -1601,6 +1616,15 @@
                 $('#gagalProbDateContainer').hide();
                 $('#tanggal_gagal_probation').prop('required', false).val('');
             }
+
+            // Pending
+            if (status === 'pending') {
+                $('#pendingDateContainer').show();
+                $('#tanggal_pending').prop('required', true);
+            } else {
+                $('#pendingDateContainer').hide();
+                $('#tanggal_pending').prop('required', false).val('');
+            }
         }
 
         function editKaryawan(id) {
@@ -1674,6 +1698,15 @@
                         $('#tanggal_gagal_probation').val('');
                     }
 
+                    // Toggle tanggal pending
+                    if (k.status === 'pending' && k.tanggal_pending) {
+                        $('#tanggal_pending').val(k.tanggal_pending);
+                        $('#pendingDateContainer').show();
+                    } else {
+                        $('#pendingDateContainer').hide();
+                        $('#tanggal_pending').val('');
+                    }
+
                     $('#address').val(k.address);
                     $('#city').val(k.city);
                     $('#province').val(k.province);
@@ -1732,6 +1765,7 @@
                 tanggal_resign: formatDateForSubmission($('#tanggal_resign').val()),
                 tanggal_mangkir: formatDateForSubmission($('#tanggal_mangkir').val()),
                 tanggal_gagal_probation: formatDateForSubmission($('#tanggal_gagal_probation').val()),
+                tanggal_pending: formatDateForSubmission($('#tanggal_pending').val()),
                 bank: $('#bank').val(),
                 nomor_rekening: $('#nomor_rekening').val(),
                 tax_npwp: $('#tax_npwp').val(),
@@ -1911,6 +1945,15 @@
                         $('#detailGagalProbDateRow').show();
                     } else {
                         $('#detailGagalProbDateRow').hide();
+                    }
+
+                    // Tanggal pending
+                    const pendingDateFormatted = formatDateToDisplay(k.tanggal_pending);
+                    if (k.status === 'pending' && k.tanggal_pending) {
+                        $('#detailTanggalPending').text(pendingDateFormatted);
+                        $('#detailPendingDateRow').show();
+                    } else {
+                        $('#detailPendingDateRow').hide();
                     }
 
                     // Kontak & Alamat
