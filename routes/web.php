@@ -70,7 +70,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/attendance/face-detection', [AttendanceController::class, 'faceDetection'])->name('admin.attendance.face-detection');
         Route::get('/admin/attendance/manual', [AttendanceController::class, 'faceDetection'])->name('admin.attendance.manual');
         Route::post('/admin/attendance/recalculate-overtime', [AttendanceController::class, 'recalculateOvertime'])->name('admin.attendance.recalculate-overtime');
+        Route::post('/admin/attendance/send-bulk-alpha-notifications', [AttendanceController::class, 'sendBulkAlphaNotifications'])->name('admin.attendance.send-bulk-alpha-notifications');
         Route::delete('/admin/attendance/{id}', [AttendanceController::class, 'destroy'])->name('admin.attendance.destroy');
+        Route::post('/admin/attendance/{id}/send-alpha-notification', [AttendanceController::class, 'sendAlphaNotification'])->name('admin.attendance.send-alpha-notification');
 
         // Office Settings (View only - API handles POST/PUT/DELETE)
         Route::get('/admin/settings/office', [OfficeSettingController::class, 'index'])->name('admin.settings.office');

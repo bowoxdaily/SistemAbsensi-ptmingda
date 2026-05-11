@@ -114,10 +114,15 @@ class BroadcastController extends Controller
     public function preview(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'filter_type' => 'required|in:all,position,department,employee',
+            'filter_type' => 'required|in:all,position,department,employee,alpha_date',
             'filter_values' => 'required_unless:filter_type,all|array',
-            'filter_values.*' => 'integer',
         ]);
+
+        if ($request->filter_type !== 'alpha_date' && $request->filter_type !== 'all') {
+            $validator->addRules(['filter_values.*' => 'integer']);
+        } elseif ($request->filter_type === 'alpha_date') {
+            $validator->addRules(['filter_values.*' => 'date']);
+        }
 
         if ($validator->fails()) {
             return response()->json([
@@ -171,12 +176,17 @@ class BroadcastController extends Controller
         $validator = Validator::make($request->all(), [
             'title'             => 'required|string|max:255',
             'message'           => 'required|string',
-            'filter_type'       => 'required|in:all,position,department,employee',
+            'filter_type'       => 'required|in:all,position,department,employee,alpha_date',
             'filter_values'     => 'required_unless:filter_type,all|array',
-            'filter_values.*'   => 'integer',
             'image'             => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'delay_per_message' => 'nullable|integer|in:3,5,10,15,30',
         ]);
+
+        if ($request->filter_type !== 'alpha_date' && $request->filter_type !== 'all') {
+            $validator->addRules(['filter_values.*' => 'integer']);
+        } elseif ($request->filter_type === 'alpha_date') {
+            $validator->addRules(['filter_values.*' => 'date']);
+        }
 
         if ($validator->fails()) {
             return response()->json([
@@ -286,6 +296,8 @@ class BroadcastController extends Controller
                 $filterDetails = Karyawans::whereIn('id', $broadcast->filter_values ?? [])
                     ->pluck('name')
                     ->toArray();
+            } elseif ($broadcast->filter_type === 'alpha_date') {
+                $filterDetails = ["Tanggal: " . implode(', ', $broadcast->filter_values ?? [])];
             }
 
             // Get recipients list
@@ -371,6 +383,13 @@ class BroadcastController extends Controller
             
             case 'employee':
                 $query->whereIn('id', $filterValues);
+                break;
+            
+            case 'alpha_date':
+                $query->whereHas('attendances', function($q) use ($filterValues) {
+                    $q->whereIn('attendance_date', $filterValues)
+                      ->where('status', 'alpha');
+                });
                 break;
             
             case 'all':

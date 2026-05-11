@@ -25,8 +25,10 @@ class WhatsAppSettingController extends Controller
                 'is_enabled' => false,
                 'notify_checkin' => true,
                 'notify_checkout' => true,
+                'notify_alpha' => true,
                 'checkin_template' => WhatsAppSetting::getDefaultCheckinTemplate(),
                 'checkout_template' => WhatsAppSetting::getDefaultCheckoutTemplate(),
+                'alpha_template' => WhatsAppSetting::getDefaultAlphaTemplate(),
             ]);
         }
 
@@ -57,11 +59,13 @@ class WhatsAppSettingController extends Controller
             'leave_api_key' => 'nullable|string|max:255',
             'warning_letter_api_key' => 'nullable|string|max:255',
             'payroll_api_key' => 'nullable|string|max:255',
+            'alpha_api_key' => 'nullable|string|max:255',
             'checkin_sender' => 'nullable|string|max:50',
             'checkout_sender' => 'nullable|string|max:50',
             'leave_sender' => 'nullable|string|max:50',
             'warning_letter_sender' => 'nullable|string|max:50',
             'payroll_sender' => 'nullable|string|max:50',
+            'alpha_sender' => 'nullable|string|max:50',
             'sp_number_format' => 'nullable|string|max:100',
             'sp_department_code' => 'nullable|string|max:10',
             'sp_counter_width' => 'nullable|integer|min:1|max:10',
@@ -72,6 +76,7 @@ class WhatsAppSettingController extends Controller
             'leave_rejected_template' => 'nullable|string',
             'warning_letter_template' => 'nullable|string',
             'payroll_template' => 'nullable|string',
+            'alpha_template' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -114,6 +119,7 @@ class WhatsAppSettingController extends Controller
                 $setting->leave_api_key = $request->input('leave_api_key');
                 $setting->warning_letter_api_key = $request->input('warning_letter_api_key');
                 $setting->payroll_api_key = $request->input('payroll_api_key');
+                $setting->alpha_api_key = $request->input('alpha_api_key');
 
                 // Custom senders
                 $setting->checkin_sender = $request->input('checkin_sender');
@@ -121,6 +127,7 @@ class WhatsAppSettingController extends Controller
                 $setting->leave_sender = $request->input('leave_sender');
                 $setting->warning_letter_sender = $request->input('warning_letter_sender');
                 $setting->payroll_sender = $request->input('payroll_sender');
+                $setting->alpha_sender = $request->input('alpha_sender');
 
                 $setting->is_enabled = $request->has('is_enabled') ? 1 : 0;
                 $setting->notify_checkin = $request->has('notify_checkin') ? 1 : 0;
@@ -132,6 +139,7 @@ class WhatsAppSettingController extends Controller
                 $setting->notify_leave_rejected = $request->has('notify_leave_rejected') ? 1 : 0;
                 $setting->notify_warning_letter = $request->has('notify_warning_letter') ? 1 : 0;
                 $setting->notify_payroll = $request->has('notify_payroll') ? 1 : 0;
+                $setting->notify_alpha = $request->has('notify_alpha') ? 1 : 0;
 
                 // SP Number Format Settings
                 $setting->sp_number_format = $request->input('sp_number_format') ?: '{sp_type}/{dept}/{counter}/{year}';
@@ -157,6 +165,7 @@ class WhatsAppSettingController extends Controller
                 $setting->notify_leave_rejected = $request->input('notify_leave_rejected', 0) ? 1 : 0;
                 $setting->notify_warning_letter = $request->input('notify_warning_letter', 0) ? 1 : 0;
                 $setting->notify_payroll = $request->input('notify_payroll', 0) ? 1 : 0;
+                $setting->notify_alpha = $request->input('notify_alpha', 0) ? 1 : 0;
 
                 Log::info('Template Form Processing - Not updating API Key');
 
@@ -187,6 +196,11 @@ class WhatsAppSettingController extends Controller
                 // Update payroll template
                 if ($request->has('payroll_template')) {
                     $setting->payroll_template = $request->payroll_template ?: WhatsAppSetting::getDefaultPayrollTemplate();
+                }
+
+                // Update alpha template
+                if ($request->has('alpha_template')) {
+                    $setting->alpha_template = $request->alpha_template ?: WhatsAppSetting::getDefaultAlphaTemplate();
                 }
             }
 
@@ -306,6 +320,7 @@ class WhatsAppSettingController extends Controller
                     'leave_rejected_template' => WhatsAppSetting::getDefaultLeaveRejectedTemplate(),
                     'warning_letter_template' => WhatsAppSetting::getDefaultWarningLetterTemplate(),
                     'payroll_template' => WhatsAppSetting::getDefaultPayrollTemplate(),
+                    'alpha_template' => WhatsAppSetting::getDefaultAlphaTemplate(),
                 ]);
             }
 

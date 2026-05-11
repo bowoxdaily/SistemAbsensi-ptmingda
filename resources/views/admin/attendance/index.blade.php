@@ -170,6 +170,9 @@
                             <button type="button" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#bulkCheckoutModal">
                                 <i class='bx bx-log-out-circle me-1'></i> Bulk Pulang
                             </button>
+                            <button type="button" class="btn btn-danger" id="bulkAlphaNotifBtn">
+                                <i class='bx bx-bell me-1'></i> Notifikasi Alpha
+                            </button>
                             @endif
                         </div>
                     </div>
@@ -388,6 +391,14 @@
                                                     data-date="{{ \Carbon\Carbon::parse($attendance->attendance_date)->locale('id')->translatedFormat('d F Y') }}">
                                                     <i class="bx bx-trash me-1"></i> Hapus
                                                 </a>
+                                                @if($attendance->status == 'alpha')
+                                                <div class="dropdown-divider"></div>
+                                                <a class="dropdown-item text-warning send-alpha-notif-btn" href="javascript:void(0);"
+                                                    data-id="{{ $attendance->id }}"
+                                                    data-name="{{ $attendance->employee->name }}">
+                                                    <i class="bx bx-bell me-1"></i> Kirim Notifikasi Alpha
+                                                </a>
+                                                @endif
                                                 @endif
                                             </div>
                                         </div>
@@ -487,6 +498,14 @@
                                                 data-date="{{ \Carbon\Carbon::parse($attendance->attendance_date)->locale('id')->translatedFormat('d F Y') }}">
                                                 <i class="bx bx-trash me-1"></i> Hapus
                                             </a>
+                                            @if($attendance->status == 'alpha')
+                                            <div class="dropdown-divider"></div>
+                                            <a class="dropdown-item text-warning send-alpha-notif-btn" href="javascript:void(0);"
+                                                data-id="{{ $attendance->id }}"
+                                                data-name="{{ $attendance->employee->name }}">
+                                                <i class="bx bx-bell me-1"></i> Kirim Notifikasi Alpha
+                                            </a>
+                                            @endif
                                             @endif
                                         </div>
                                     </div>
@@ -845,6 +864,58 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Alpha Notification Modal -->
+    <div class="modal fade" id="bulkAlphaNotifModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">
+                        <i class='bx bx-bell me-1'></i> Kirim Notifikasi Alpha via WhatsApp
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning shadow-none border mb-3">
+                        <strong><i class='bx bx-info-circle'></i> Informasi:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Mengirim notifikasi WhatsApp ke <strong>semua karyawan yang Alpha</strong> pada rentang tanggal yang dipilih</li>
+                            <li>Karyawan akan menerima pesan berisi tanggal alpha dan total alpha bulan ini</li>
+                            <li>Karyawan dapat segera menghubungi HRD jika terjadi kesalahan data</li>
+                            <li class="text-danger"><strong>⚠️ Membutuhkan WhatsApp Gateway aktif</strong></li>
+                        </ul>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Tanggal Dari <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="alpha_notif_date_from"
+                                value="{{ request('date_from', $dateFrom) }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Tanggal Sampai <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="alpha_notif_date_to"
+                                value="{{ request('date_to', $dateTo) }}" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Departemen <small class="text-muted">(opsional, kosongkan untuk semua)</small></label>
+                            <select class="form-select" id="alpha_notif_department">
+                                <option value="">Semua Departemen</option>
+                                @foreach ($departments as $dept)
+                                    <option value="{{ $dept->id }}" {{ request('department') == $dept->id ? 'selected' : '' }}>{{ $dept->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-danger" id="sendBulkAlphaNotifBtn">
+                        <i class='bx bx-send me-1'></i> Kirim Notifikasi
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1834,6 +1905,156 @@
                                 icon: 'error',
                                 title: 'Gagal!',
                                 html: errorMsg,
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    });
+                });
+            });
+
+            // ========== ALPHA NOTIFICATION HANDLERS ==========
+
+            // Single Alpha Notification
+            $(document).on('click', '.send-alpha-notif-btn', function() {
+                const id = $(this).data('id');
+                const name = $(this).data('name');
+
+                Swal.fire({
+                    title: 'Kirim Notifikasi Alpha?',
+                    html: `Kirim notifikasi WhatsApp ke <strong>${name}</strong> untuk menginformasikan status Alpha mereka?<br><br><small class="text-muted">Karyawan akan menerima pesan berisi tanggal alpha dan total alpha bulan ini.</small>`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="bx bx-send"></i> Ya, Kirim',
+                    cancelButtonText: 'Batal',
+                    confirmButtonColor: '#ff3e1d'
+                }).then((result) => {
+                    if (!result.isConfirmed) return;
+
+                    Swal.fire({
+                        title: 'Mengirim...',
+                        html: 'Sedang mengirim notifikasi WhatsApp...',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+
+                    $.ajax({
+                        url: `/admin/attendance/${id}/send-alpha-notification`,
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                        success: function(res) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                text: res.message,
+                                confirmButtonText: 'OK'
+                            });
+                        },
+                        error: function(xhr) {
+                            let errorMsg = 'Gagal mengirim notifikasi';
+                            if (xhr.responseJSON?.message) {
+                                errorMsg = xhr.responseJSON.message;
+                            }
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal!',
+                                text: errorMsg,
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    });
+                });
+            });
+
+            // Bulk Alpha Notification - Open Modal
+            $('#bulkAlphaNotifBtn').on('click', function() {
+                const modal = new bootstrap.Modal(document.getElementById('bulkAlphaNotifModal'));
+                modal.show();
+            });
+
+            // Bulk Alpha Notification - Send
+            $('#sendBulkAlphaNotifBtn').on('click', function() {
+                const dateFrom = $('#alpha_notif_date_from').val();
+                const dateTo = $('#alpha_notif_date_to').val();
+                const department = $('#alpha_notif_department').val();
+
+                if (!dateFrom || !dateTo) {
+                    Swal.fire('Peringatan', 'Pilih rentang tanggal terlebih dahulu.', 'warning');
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'Kirim Notifikasi Alpha Massal?',
+                    html: `Mengirim notifikasi WhatsApp ke <strong>semua karyawan yang Alpha</strong> pada periode <strong>${dateFrom}</strong> s/d <strong>${dateTo}</strong>.<br><br><small class="text-muted">Proses ini mungkin memakan waktu beberapa menit...</small>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="bx bx-send"></i> Ya, Kirim Semua',
+                    cancelButtonText: 'Batal',
+                    confirmButtonColor: '#ff3e1d'
+                }).then((result) => {
+                    if (!result.isConfirmed) return;
+
+                    // Close modal
+                    bootstrap.Modal.getInstance(document.getElementById('bulkAlphaNotifModal')).hide();
+
+                    Swal.fire({
+                        title: 'Mengirim Notifikasi...',
+                        html: 'Sedang mengirim notifikasi WhatsApp ke karyawan yang Alpha. Mohon tunggu...',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+
+                    $.ajax({
+                        url: '{{ route("admin.attendance.send-bulk-alpha-notifications") }}',
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            date_from: dateFrom,
+                            date_to: dateTo,
+                            department: department || null
+                        }),
+                        timeout: 600000, // 10 minutes
+                        success: function(res) {
+                            const data = res.data;
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Selesai!',
+                                html: `
+                                    <div class="text-start">
+                                        <table class="table table-sm mb-0">
+                                            <tr>
+                                                <td>Total Alpha</td>
+                                                <td class="text-end"><strong>${data.total}</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Berhasil Dikirim</td>
+                                                <td class="text-end"><strong class="text-success">${data.sent}</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Gagal</td>
+                                                <td class="text-end"><strong class="text-danger">${data.failed}</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Dilewati (no phone)</td>
+                                                <td class="text-end"><strong class="text-warning">${data.skipped}</strong></td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                `,
+                                confirmButtonText: 'OK'
+                            });
+                        },
+                        error: function(xhr) {
+                            let errorMsg = 'Gagal mengirim notifikasi';
+                            if (xhr.responseJSON?.message) {
+                                errorMsg = xhr.responseJSON.message;
+                            }
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal!',
+                                text: errorMsg,
                                 confirmButtonText: 'OK'
                             });
                         }

@@ -1372,4 +1372,67 @@ class AttendanceController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Send alpha notification to a single employee
+     */
+    public function sendAlphaNotification($id)
+    {
+        try {
+            $attendance = Attendance::with(['employee.department'])->findOrFail($id);
+
+            if ($attendance->status !== 'alpha') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Status absensi bukan Alpha'
+                ], 400);
+            }
+
+            $whatsappService = new \App\Services\WhatsAppService();
+            $result = $whatsappService->sendAlphaNotification($attendance);
+
+            if ($result) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Notifikasi Alpha berhasil dikirim ke ' . $attendance->employee->name
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengirim notifikasi. Pastikan WhatsApp aktif dan nomor karyawan terdaftar.'
+            ], 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Send bulk alpha notifications
+     */
+    public function sendBulkAlphaNotifications(Request $request)
+    {
+        try {
+            $dateFrom = $request->get('date_from', now()->format('Y-m-d'));
+            $dateTo = $request->get('date_to', now()->format('Y-m-d'));
+            $department = $request->get('department');
+
+            $whatsappService = new \App\Services\WhatsAppService();
+            $result = $whatsappService->sendBulkAlphaNotifications($dateFrom, $dateTo, $department);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Notifikasi Alpha berhasil diproses. Terkirim: {$result['sent']}, Gagal: {$result['failed']}, Dilewati: {$result['skipped']}",
+                'data' => $result
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengirim notifikasi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

@@ -19,6 +19,7 @@ class WhatsAppSetting extends Model
         'leave_api_key',
         'warning_letter_api_key',
         'payroll_api_key',
+        'alpha_api_key',
         'api_url',
         'sender',
         'checkin_sender',
@@ -26,6 +27,7 @@ class WhatsAppSetting extends Model
         'leave_sender',
         'warning_letter_sender',
         'payroll_sender',
+        'alpha_sender',
         'admin_phone',
         'is_enabled',
         'notify_checkin',
@@ -37,6 +39,7 @@ class WhatsAppSetting extends Model
         'notify_leave_rejected',
         'notify_warning_letter',
         'notify_payroll',
+        'notify_alpha',
         'checkin_template',
         'checkout_template',
         'leave_request_template',
@@ -44,6 +47,7 @@ class WhatsAppSetting extends Model
         'leave_rejected_template',
         'warning_letter_template',
         'payroll_template',
+        'alpha_template',
         'sp_number_format',
         'sp_department_code',
         'sp_counter_width',
@@ -60,6 +64,7 @@ class WhatsAppSetting extends Model
         'notify_leave_rejected' => 'boolean',
         'notify_warning_letter' => 'boolean',
         'notify_payroll' => 'boolean',
+        'notify_alpha' => 'boolean',
     ];
 
     /**
@@ -193,6 +198,24 @@ class WhatsAppSetting extends Model
             "Tanggal Transfer: {payment_date}\n\n" .
             "Detail slip gaji terlampir.\n" .
             "Terima kasih atas dedikasi Anda.\n\n" .
+            "_HRD PT Mingda Indonesia Furniture_";
+    }
+
+    /**
+     * Get default alpha notification template (notifikasi ke karyawan)
+     */
+    public static function getDefaultAlphaTemplate()
+    {
+        return "⚠️ *PEMBERITAHUAN ALPHA*\n\n" .
+            "Kepada Yth.\n" .
+            "*{employee_name}*\n" .
+            "NIP: {employee_code}\n" .
+            "Departemen: {department}\n\n" .
+            "Kami informasikan bahwa Anda tercatat *ALPHA (Tidak Hadir Tanpa Keterangan)* pada:\n\n" .
+            "📅 Tanggal: *{date}*\n" .
+            "📊 Total Alpha Bulan Ini: *{total_alpha} hari*\n\n" .
+            "❗ Status Alpha akan mempengaruhi perhitungan gaji Anda.\n\n" .
+            "Jika Anda merasa ini adalah kesalahan, segera hubungi HRD untuk klarifikasi dan perbaikan data sebelum tutup buku penggajian.\n\n" .
             "_HRD PT Mingda Indonesia Furniture_";
     }
 }

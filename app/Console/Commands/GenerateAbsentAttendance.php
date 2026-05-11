@@ -170,7 +170,7 @@ class GenerateAbsentAttendance extends Command
             }
 
             // Create alpha attendance record
-            Attendance::create([
+            $alphaAttendance = Attendance::create([
                 'employee_id' => $employee->id,
                 'attendance_date' => $date->format('Y-m-d'),
                 'check_in' => null,
@@ -179,6 +179,18 @@ class GenerateAbsentAttendance extends Command
                 'late_minutes' => 0,
                 'notes' => 'Auto-generated: Tidak melakukan absensi',
             ]);
+
+            // Send WhatsApp notification for alpha
+            try {
+                $whatsappService = new \App\Services\WhatsAppService();
+                $alphaAttendance->load('employee.department');
+                $notifResult = $whatsappService->sendAlphaNotification($alphaAttendance);
+                if ($notifResult) {
+                    $this->line("  📱 WA notification sent to: {$employee->name}");
+                }
+            } catch (\Exception $e) {
+                $this->warn("  ⚠️ Failed to send WA notification: {$e->getMessage()}");
+            }
 
             $gracePeriodInfo = $isToday ? " (Grace period: {$gracePeriodEnd->format('H:i')})" : "";
             $this->line("✓ Generated alpha for: {$employee->name} ({$employee->employee_code}) - Check-in time: {$checkinTime->format('H:i')}{$gracePeriodInfo}");

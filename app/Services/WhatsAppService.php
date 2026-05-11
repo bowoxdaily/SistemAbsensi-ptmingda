@@ -847,6 +847,163 @@ class WhatsAppService
     }
 
     /**
+     * Send alpha notification to employee
+     */
+    public function sendAlphaNotification($attendance, $totalAlphaThisMonth = null)
+    {
+        if (!$this->setting || !$this->setting->is_enabled) {
+            Log::info('WhatsApp notification is disabled');
+            return false;
+        }
+
+        // Check notify_alpha setting (defaults to true if not set)
+        if (isset($this->setting->notify_alpha) && !$this->setting->notify_alpha) {
+            Log::info('Alpha notification is disabled in settings');
+            return false;
+        }
+
+        // Load employee relation if not loaded
+        if (!$attendance->relationLoaded('employee')) {
+            $attendance->load('employee.department');
+        }
+
+        $employee = $attendance->employee;
+
+        if (!$employee || !$employee->phone) {
+            Log::warning('Employee phone number not found for alpha notification', [
+                'employee_id' => $attendance->employee_id,
+            ]);
+            return false;
+        }
+
+        // Calculate total alpha this month if not provided
+        if ($totalAlphaThisMonth === null) {
+            $attendanceDate = \Carbon\Carbon::parse($attendance->attendance_date);
+            $totalAlphaThisMonth = \App\Models\Attendance::where('employee_id', $employee->id)
+                ->where('status', 'alpha')
+                ->whereYear('attendance_date', $attendanceDate->year)
+                ->whereMonth('attendance_date', $attendanceDate->month)
+                ->count();
+        }
+
+        // Get template
+        $template = $this->setting->alpha_template ?: \App\Models\WhatsAppSetting::getDefaultAlphaTemplate();
+
+        // Format date
+        $formattedDate = \Carbon\Carbon::parse($attendance->attendance_date)
+            ->locale('id')
+            ->translatedFormat('l, d F Y');
+
+        // Replace variables
+        $message = str_replace(
+            [
+                '{employee_name}',
+                '{employee_code}',
+                '{department}',
+                '{date}',
+                '{total_alpha}',
+            ],
+            [
+                $employee->name ?? 'N/A',
+                $employee->employee_code ?? 'N/A',
+                $employee->department->name ?? 'N/A',
+                $formattedDate,
+                $totalAlphaThisMonth,
+            ],
+            $template
+        );
+
+        // Get custom sender and API key for alpha notifications
+        $sender = $this->getSenderFor('alpha');
+        $apiKey = $this->getApiKeyFor('alpha');
+
+        $result = $this->send($employee->phone, $message, null, $sender, $apiKey);
+
+        if ($result) {
+            Log::info('Alpha notification sent to employee', [
+                'attendance_id' => $attendance->id,
+                'employee_name' => $employee->name,
+                'date' => $attendance->attendance_date,
+                'total_alpha' => $totalAlphaThisMonth,
+            ]);
+        } else {
+            Log::warning('Failed to send alpha notification', [
+                'attendance_id' => $attendance->id,
+                'employee_id' => $attendance->employee_id,
+            ]);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Send bulk alpha notifications for a date range
+     * Returns array with success/failed counts
+     */
+    public function sendBulkAlphaNotifications($dateFrom, $dateTo, $departmentId = null)
+    {
+        $query = \App\Models\Attendance::with(['employee.department'])
+            ->where('status', 'alpha')
+            ->whereBetween('attendance_date', [$dateFrom, $dateTo]);
+
+        if ($departmentId) {
+            $query->whereHas('employee', function ($q) use ($departmentId) {
+                $q->where('department_id', $departmentId);
+            });
+        }
+
+        $alphaAttendances = $query->get();
+
+        $sent = 0;
+        $failed = 0;
+        $skipped = 0;
+        $details = [];
+
+        foreach ($alphaAttendances as $attendance) {
+            $employee = $attendance->employee;
+
+            if (!$employee || !$employee->phone) {
+                $skipped++;
+                $details[] = [
+                    'employee' => $employee->name ?? 'Unknown',
+                    'status' => 'skipped',
+                    'reason' => 'No phone number',
+                ];
+                continue;
+            }
+
+            $result = $this->sendAlphaNotification($attendance);
+
+            if ($result) {
+                $sent++;
+                $details[] = [
+                    'employee' => $employee->name,
+                    'date' => $attendance->attendance_date,
+                    'status' => 'sent',
+                ];
+            } else {
+                $failed++;
+                $details[] = [
+                    'employee' => $employee->name,
+                    'date' => $attendance->attendance_date,
+                    'status' => 'failed',
+                ];
+            }
+
+            // Small delay to avoid API rate limiting
+            usleep(500000); // 0.5 second
+        }
+
+        return [
+            'total' => $alphaAttendances->count(),
+            'sent' => $sent,
+            'failed' => $failed,
+            'skipped' => $skipped,
+            'details' => $details,
+        ];
+    }
+
+    /**
      * Get default warning letter template
      */
     protected function getDefaultWarningLetterTemplate(): string

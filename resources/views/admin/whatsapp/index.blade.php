@@ -192,6 +192,27 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                    <!-- Alpha -->
+                                    <div class="card mb-3">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Notifikasi Alpha</h6>
+                                            <div class="row">
+                                                <div class="col-md-6 mb-2">
+                                                    <label class="form-label" for="alpha_api_key">API Key</label>
+                                                    <input type="text" class="form-control" id="alpha_api_key" name="alpha_api_key"
+                                                        value="{{ old('alpha_api_key', $setting->alpha_api_key) }}"
+                                                        placeholder="Kosongkan untuk gunakan default">
+                                                </div>
+                                                <div class="col-md-6 mb-2">
+                                                    <label class="form-label" for="alpha_sender">Nomor Pengirim</label>
+                                                    <input type="text" class="form-control" id="alpha_sender" name="alpha_sender"
+                                                        value="{{ old('alpha_sender', $setting->alpha_sender) }}"
+                                                        placeholder="628xxx (kosongkan untuk default)">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -353,13 +374,29 @@
                                 </div>
 
                                 <h6 class="mt-3 mb-2">Notifikasi Payroll</h6>
-                                <div class="form-check form-switch">
+                                <div class="form-check form-switch mb-2">
                                     <input class="form-check-input" type="checkbox" id="notify_payroll"
                                         name="notify_payroll"
                                         {{ $setting->notify_payroll ? 'checked' : '' }}>
                                     <label class="form-check-label" for="notify_payroll">
                                         Kirim notifikasi slip gaji
                                     </label>
+                                </div>
+
+                                <h6 class="mt-3 mb-2">Notifikasi Alpha</h6>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="notify_alpha"
+                                        name="notify_alpha"
+                                        {{ $setting->notify_alpha ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="notify_alpha">
+                                        Kirim notifikasi saat karyawan Alpha
+                                    </label>
+                                </div>
+                                <div class="ms-4">
+                                    <small class="text-muted">
+                                        <i class='bx bx-info-circle'></i> Karyawan akan menerima pesan WhatsApp otomatis saat tercatat Alpha,
+                                        sehingga dapat segera klarifikasi ke HRD sebelum tutup buku penggajian.
+                                    </small>
                                 </div>
                             </div>
 
@@ -430,6 +467,10 @@
 
                             @if ($setting->notify_payroll)
                                 <input type="hidden" name="notify_payroll" value="1">
+                            @endif
+
+                            @if ($setting->notify_alpha)
+                                <input type="hidden" name="notify_alpha" value="1">
                             @endif
 
                             <h5 class="mb-3">Template Absensi</h5>
@@ -534,6 +575,21 @@
                                     <strong>Variabel tersedia:</strong> {employee_name}, {month}, {year}, {total_salary}, {payment_date}
                                 </div>
                                 @error('payroll_template')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <h5 class="mb-3 mt-4">Template Notifikasi Alpha</h5>
+
+                            <!-- Alpha Template -->
+                            <div class="mb-4">
+                                <label class="form-label" for="alpha_template">Template Notifikasi Alpha (ke Karyawan)</label>
+                                <textarea class="form-control @error('alpha_template') is-invalid @enderror" id="alpha_template"
+                                    name="alpha_template" rows="8">{{ old('alpha_template', $setting->alpha_template ?? \App\Models\WhatsAppSetting::getDefaultAlphaTemplate()) }}</textarea>
+                                <div class="form-text">
+                                    <strong>Variabel tersedia:</strong> {employee_name}, {employee_code}, {department}, {date}, {total_alpha}
+                                </div>
+                                @error('alpha_template')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
@@ -708,6 +764,15 @@
                             <li><code>{year}</code> - Tahun</li>
                             <li><code>{total_salary}</code> - Total gaji</li>
                             <li><code>{payment_date}</code> - Tanggal bayar</li>
+                        </ul>
+
+                        <h6 class="small fw-bold mt-3">Notifikasi Alpha</h6>
+                        <ul class="small ps-3">
+                            <li><code>{employee_name}</code> - Nama karyawan</li>
+                            <li><code>{employee_code}</code> - NIP / Kode karyawan</li>
+                            <li><code>{department}</code> - Departemen</li>
+                            <li><code>{date}</code> - Tanggal alpha</li>
+                            <li><code>{total_alpha}</code> - Total alpha bulan ini</li>
                         </ul>
                     </div>
                 </div>

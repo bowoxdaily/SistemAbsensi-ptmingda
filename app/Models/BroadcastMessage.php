@@ -53,6 +53,7 @@ class BroadcastMessage extends Model
             'position' => 'Berdasarkan Jabatan',
             'department' => 'Berdasarkan Department',
             'employee' => 'Karyawan Tertentu',
+            'alpha_date' => 'Alpha (Per Tanggal)',
             default => 'Tidak diketahui'
         };
     }

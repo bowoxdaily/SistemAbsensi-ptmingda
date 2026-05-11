@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Karyawans extends Model
 {
@@ -100,6 +101,11 @@ class Karyawans extends Model
     public function workSchedule(): BelongsTo
     {
         return $this->belongsTo(WorkSchedule::class, 'work_schedule_id');
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class, 'employee_id');
     }
 
     /**

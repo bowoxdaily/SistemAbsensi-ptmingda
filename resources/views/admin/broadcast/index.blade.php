@@ -124,6 +124,7 @@
                                     <option value="position">Berdasarkan Jabatan</option>
                                     <option value="department">Berdasarkan Department</option>
                                     <option value="employee">Karyawan Tertentu</option>
+                                    <option value="alpha_date">Karyawan Alpha (Per Tanggal)</option>
                                 </select>
                             </div>
 
@@ -168,6 +169,12 @@
                                     <button type="button" class="btn btn-sm btn-link p-0" onclick="selectAllEmployees()">Pilih Semua</button> | 
                                     <button type="button" class="btn btn-sm btn-link p-0" onclick="deselectAllEmployees()">Batal Semua</button>
                                 </div>
+                            </div>
+
+                            <div class="mb-3 d-none" id="alphaDateFilterDiv">
+                                <label class="form-label">Pilih Tanggal Alpha <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="alphaDateFilter" name="alpha_date">
+                                <div class="form-text">Pesan akan dikirim ke karyawan yang tercatat "Alpha" pada tanggal ini.</div>
                             </div>
 
                             <div class="mb-3">
@@ -303,6 +310,7 @@
                 $('#positionFilterDiv').addClass('d-none');
                 $('#departmentFilterDiv').addClass('d-none');
                 $('#employeeFilterDiv').addClass('d-none');
+                $('#alphaDateFilterDiv').addClass('d-none');
 
                 if (filterType === 'position') {
                     $('#positionFilterDiv').removeClass('d-none');
@@ -310,6 +318,8 @@
                     $('#departmentFilterDiv').removeClass('d-none');
                 } else if (filterType === 'employee') {
                     $('#employeeFilterDiv').removeClass('d-none');
+                } else if (filterType === 'alpha_date') {
+                    $('#alphaDateFilterDiv').removeClass('d-none');
                 }
             });
 
@@ -580,6 +590,11 @@
                 $('.employee-checkbox:checked').each(function() {
                     filterValues.push($(this).val());
                 });
+            } else if (filterType === 'alpha_date') {
+                const dateVal = $('#alphaDateFilter').val();
+                if (dateVal) {
+                    filterValues.push(dateVal);
+                }
             }
 
             if (!filterType) {
@@ -682,6 +697,12 @@
                 $('.employee-checkbox:checked').each(function() {
                     formData.append('filter_values[]', $(this).val());
                 });
+            } else if (filterType === 'alpha_date') {
+                formData.delete('filter_values[]');
+                const dateVal = $('#alphaDateFilter').val();
+                if (dateVal) {
+                    formData.append('filter_values[]', dateVal);
+                }
             }
 
             Swal.fire({
@@ -729,12 +750,14 @@
                         $('#positionFilterDiv').addClass('d-none');
                         $('#departmentFilterDiv').addClass('d-none');
                         $('#employeeFilterDiv').addClass('d-none');
+                        $('#alphaDateFilterDiv').addClass('d-none');
                         
                         // Uncheck all checkboxes
                         $('.position-checkbox').prop('checked', false);
                         $('.department-checkbox').prop('checked', false);
                         $('.employee-checkbox').prop('checked', false);
                         $('#employeeSearch').val('');
+                        $('#alphaDateFilter').val('');
 
                         // Reload data
                         loadBroadcasts();
