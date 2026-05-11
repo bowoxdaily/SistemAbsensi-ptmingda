@@ -1565,6 +1565,9 @@
             $('.form-control, .form-select').removeClass('is-invalid');
             $('.nav-tabs button:first').tab('show');
             $('#resignDateContainer').hide();
+            $('#mangkirDateContainer').hide();
+            $('#gagalProbDateContainer').hide();
+            $('#pendingDateContainer').hide();
             
             // Reset Select2 for department
             const deptSelect = $('#department_id');
