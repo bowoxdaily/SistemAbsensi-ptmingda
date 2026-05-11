@@ -18,7 +18,7 @@ class WhatsAppService
     /**
      * Send WhatsApp message
      */
-    public function send($phoneNumber, $message, $image = null, $customSender = null, $apiKey = null)
+    public function send($phoneNumber, $message, $image = null, $customSender = null, $apiKey = null, $delay = '2')
     {
         if (!$this->setting || !$this->setting->is_enabled) {
             Log::info('WhatsApp notification disabled or not configured');
