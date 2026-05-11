@@ -25,6 +25,7 @@ class AttendanceController extends Controller
         $dateTo = $request->get('date_to', now()->format('Y-m-d'));
         $status = $request->get('status');
         $department = $request->get('department');
+        $subDepartment = $request->get('sub_department');
         $perPage = $request->get('per_page', 10);
 
         // Build query
@@ -45,6 +46,12 @@ class AttendanceController extends Controller
         if ($department) {
             $query->whereHas('employee', function ($q) use ($department) {
                 $q->where('department_id', $department);
+            });
+        }
+
+        if ($subDepartment) {
+            $query->whereHas('employee', function ($q) use ($subDepartment) {
+                $q->where('sub_department_id', $subDepartment);
             });
         }
 
@@ -96,7 +103,14 @@ class AttendanceController extends Controller
         // Get departments for filter
         $departments = \App\Models\Department::orderBy('name')->get();
 
-        return view('admin.attendance.index', compact('attendances', 'stats', 'departments', 'dateFrom', 'dateTo'));
+        // Get sub departments for filter (filtered by selected department if any)
+        $subDepartments = \App\Models\SubDepartment::where('is_active', true)
+            ->when($department, function ($q) use ($department) {
+                return $q->where('department_id', $department);
+            })
+            ->orderBy('name')->get();
+
+        return view('admin.attendance.index', compact('attendances', 'stats', 'departments', 'subDepartments', 'dateFrom', 'dateTo'));
     }
 
     /**
@@ -1233,10 +1247,11 @@ class AttendanceController extends Controller
         $dateTo = $request->get('date_to', now()->format('Y-m-d'));
         $status = $request->get('status');
         $department = $request->get('department');
+        $subDepartment = $request->get('sub_department');
         $search = $request->get('search');
 
         return Excel::download(
-            new \App\Exports\AttendanceExport($dateFrom, $dateTo, $status, $department, $search),
+            new \App\Exports\AttendanceExport($dateFrom, $dateTo, $status, $department, $search, $subDepartment),
             'absensi_' . $dateFrom . '_' . $dateTo . '.xlsx'
         );
     }

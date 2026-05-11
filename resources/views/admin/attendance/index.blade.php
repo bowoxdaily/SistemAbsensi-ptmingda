@@ -124,9 +124,14 @@
                                 <option value="alpha" {{ request('status') == 'alpha' ? 'selected' : '' }}>Alpha</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-4">
+                            <label class="form-label">Cari</label>
+                            <input type="text" class="form-control" name="search" placeholder="NIP atau Nama"
+                                value="{{ request('search') }}">
+                        </div>
+                        <div class="col-md-3">
                             <label class="form-label">Departemen</label>
-                            <select class="form-select" name="department">
+                            <select class="form-select" name="department" id="filterDepartment">
                                 <option value="">Semua Departemen</option>
                                 @foreach ($departments as $dept)
                                     <option value="{{ $dept->id }}"
@@ -136,10 +141,17 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Cari</label>
-                            <input type="text" class="form-control" name="search" placeholder="NIP atau Nama"
-                                value="{{ request('search') }}">
+                        <div class="col-md-3">
+                            <label class="form-label">Sub Departemen</label>
+                            <select class="form-select" name="sub_department" id="filterSubDepartment">
+                                <option value="">Semua Sub Departemen</option>
+                                @foreach ($subDepartments as $subDept)
+                                    <option value="{{ $subDept->id }}"
+                                        {{ request('sub_department') == $subDept->id ? 'selected' : '' }}>
+                                        {{ $subDept->name }}
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
                         <div class="col-12">
                             <button type="submit" class="btn btn-primary">
@@ -967,6 +979,35 @@
                 var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
                     return new bootstrap.Tooltip(tooltipTriggerEl);
                 });
+            });
+
+            // Dynamic Sub Department filter based on Department selection
+            $('#filterDepartment').on('change', function() {
+                const departmentId = $(this).val();
+                const $subDeptSelect = $('#filterSubDepartment');
+                
+                // Reset sub department dropdown
+                $subDeptSelect.html('<option value="">Semua Sub Departemen</option>');
+                
+                if (departmentId) {
+                    // Fetch sub departments for selected department
+                    $.ajax({
+                        url: '/api/sub-departments/by-department/' + departmentId,
+                        method: 'GET',
+                        success: function(response) {
+                            if (response.success && response.data) {
+                                response.data.forEach(function(subDept) {
+                                    $subDeptSelect.append(
+                                        '<option value="' + subDept.id + '">' + subDept.name + '</option>'
+                                    );
+                                });
+                            }
+                        },
+                        error: function() {
+                            console.error('Gagal memuat data sub departemen');
+                        }
+                    });
+                }
             });
 
             // Per page selector

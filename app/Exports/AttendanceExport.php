@@ -19,18 +19,20 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
     protected $status;
     protected $department;
     protected $search;
+    protected $subDepartment;
     protected $rowNumber = 0;
     protected $attendanceData = [];
     protected $totalHadirByEmployee = [];
     protected $weekendRows = []; // Track weekend placeholder rows
 
-    public function __construct($dateFrom, $dateTo, $status = null, $department = null, $search = null)
+    public function __construct($dateFrom, $dateTo, $status = null, $department = null, $search = null, $subDepartment = null)
     {
         $this->dateFrom = $dateFrom;
         $this->dateTo = $dateTo;
         $this->status = $status;
         $this->department = $department;
         $this->search = $search;
+        $this->subDepartment = $subDepartment;
     }
 
     /**
@@ -55,6 +57,12 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
         if ($this->department) {
             $query->whereHas('employee', function ($q) {
                 $q->where('department_id', $this->department);
+            });
+        }
+
+        if ($this->subDepartment) {
+            $query->whereHas('employee', function ($q) {
+                $q->where('sub_department_id', $this->subDepartment);
             });
         }
 
