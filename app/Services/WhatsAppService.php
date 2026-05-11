@@ -27,7 +27,7 @@ class WhatsAppService
 
         try {
             if ($this->setting->isFonnte()) {
-                return $this->sendViaFonnte($phoneNumber, $message, $image, $customSender, $apiKey);
+                return $this->sendViaFonnte($phoneNumber, $message, $image, $customSender, $apiKey, $delay);
             } elseif ($this->setting->isBaileys()) {
                 return $this->sendViaBaileys($phoneNumber, $message, $image, $customSender);
             }
@@ -74,7 +74,7 @@ class WhatsAppService
     /**
      * Send via Fonnte API
      */
-    protected function sendViaFonnte($phoneNumber, $message, $image = null, $customSender = null, $apiKey = null)
+    protected function sendViaFonnte($phoneNumber, $message, $image = null, $customSender = null, $apiKey = null, $delay = '2')
     {
         $url = 'https://api.fonnte.com/send';
 
@@ -82,6 +82,7 @@ class WhatsAppService
             'target' => $this->formatPhoneNumber($phoneNumber),
             'message' => $message,
             'countryCode' => '62', // Indonesia
+            'delay' => (string) $delay
         ];
 
         if ($image) {
@@ -849,7 +850,7 @@ class WhatsAppService
     /**
      * Send alpha notification to employee
      */
-    public function sendAlphaNotification($attendance, $totalAlphaThisMonth = null)
+    public function sendAlphaNotification($attendance, $totalAlphaThisMonth = null, $delay = '2')
     {
         if (!$this->setting || !$this->setting->is_enabled) {
             Log::info('WhatsApp notification is disabled');
@@ -917,7 +918,7 @@ class WhatsAppService
         $sender = $this->getSenderFor('alpha');
         $apiKey = $this->getApiKeyFor('alpha');
 
-        $result = $this->send($employee->phone, $message, null, $sender, $apiKey);
+        $result = $this->send($employee->phone, $message, null, $sender, $apiKey, $delay);
 
         if ($result) {
             Log::info('Alpha notification sent to employee', [
@@ -972,7 +973,11 @@ class WhatsAppService
                 continue;
             }
 
-            $result = $this->sendAlphaNotification($attendance);
+            // Calculate progressively increasing delay (e.g. 60 seconds apart)
+            // First message: 2s, second: 62s, third: 122s
+            $currentDelay = 2 + ($sent * 60);
+
+            $result = $this->sendAlphaNotification($attendance, null, $currentDelay);
 
             if ($result) {
                 $sent++;
@@ -990,8 +995,8 @@ class WhatsAppService
                 ];
             }
 
-            // Small delay to avoid API rate limiting
-            usleep(500000); // 0.5 second
+            // Small delay locally just to avoid hitting Fonnte API too fast
+            usleep(200000); // 0.2 second
         }
 
         return [
