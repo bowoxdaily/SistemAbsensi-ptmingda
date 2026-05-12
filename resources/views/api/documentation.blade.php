@@ -82,9 +82,9 @@ Dokumentasi ini berisi daftar endpoint API yang digunakan untuk membangun Aplika
 ## Base URL
 Semua endpoint dalam dokumentasi ini menggunakan prefix Base URL berikut:
 ```text
-https://[domain-anda]/api
+https://absensi.mingda.my.id/api
 ```
-*(Ganti `[domain-anda]` dengan domain website sistem absensi).*
+
 
 ## Autentikasi (Bearer Token)
 Sebagian besar endpoint memerlukan autentikasi menggunakan Sanctum Bearer Token. Token ini didapatkan saat karyawan melakukan **Login**. 
