@@ -70,6 +70,43 @@ Route::prefix('v1')->group(function () {
     Route::get('/photo/{filename}', [ExternalKaryawanController::class, 'getProfilePhoto']);
 });
 
+// ─── Mobile App API v1 (Karyawan / Employee App) ─────────────────────────────
+// Accessible by Mobile Application via Bearer token (from /api/auth/login).
+Route::middleware('auth:sanctum')->prefix('mobile/v1')->group(function () {
+    // Profil Karyawan
+    Route::get('/profile', [\App\Http\Controllers\Employee\AttendanceController::class, 'getCurrentEmployee']);
+    Route::post('/profile/photo', [\App\Http\Controllers\Employee\ProfileController::class, 'updatePhoto']);
+    Route::put('/profile/password', [\App\Http\Controllers\Employee\ProfileController::class, 'updatePassword']);
+    
+    // Absensi
+    Route::get('/attendance/today', [\App\Http\Controllers\Employee\AttendanceController::class, 'getTodayAttendance']);
+    Route::get('/attendance/history', [\App\Http\Controllers\Employee\AttendanceController::class, 'history']);
+    Route::get('/attendance/summary', [\App\Http\Controllers\Employee\AttendanceController::class, 'summary']);
+    Route::get('/attendance/{id}/detail', [\App\Http\Controllers\Employee\AttendanceController::class, 'detail']);
+
+    // Payslip / Slip Gaji
+    Route::get('/payslip', [\App\Http\Controllers\Employee\PayrollController::class, 'list']);
+    Route::get('/payslip/download', [\App\Http\Controllers\Employee\PayrollController::class, 'downloadPdf']);
+
+    // Pengumuman / Announcements
+    Route::get('/announcements', [\App\Http\Controllers\Employee\AnnouncementController::class, 'index']);
+    Route::get('/announcements/unread-count', [\App\Http\Controllers\Employee\AnnouncementController::class, 'unreadCount']);
+    Route::get('/announcements/popups', [\App\Http\Controllers\Employee\AnnouncementController::class, 'getPopups']);
+    Route::post('/announcements/{id}/mark-read', [\App\Http\Controllers\Employee\AnnouncementController::class, 'markRead']);
+    Route::post('/announcements/mark-all-read', [\App\Http\Controllers\Employee\AnnouncementController::class, 'markAllRead']);
+
+    // Cuti / Leave
+    Route::get('/leave', [\App\Http\Controllers\Employee\LeaveController::class, 'index']);
+    Route::post('/leave', [\App\Http\Controllers\Employee\LeaveController::class, 'store']);
+    Route::delete('/leave/{id}', [\App\Http\Controllers\Employee\LeaveController::class, 'cancel']);
+
+    // Surat Peringatan / Warning Letters
+    Route::get('/warning-letters', [\App\Http\Controllers\Employee\WarningLetterController::class, 'list']);
+    Route::get('/warning-letters/statistics', [\App\Http\Controllers\Employee\WarningLetterController::class, 'statistics']);
+    Route::get('/warning-letters/{id}', [\App\Http\Controllers\Employee\WarningLetterController::class, 'show']);
+    Route::get('/warning-letters/{id}/download', [\App\Http\Controllers\Employee\WarningLetterController::class, 'downloadDocument']);
+});
+
 Route::middleware(['web', 'auth', 'admin'])->prefix('departments')->group(function () {
     Route::get('/', [DepartmentController::class, 'index']);
     Route::post('/', [DepartmentController::class, 'store']);

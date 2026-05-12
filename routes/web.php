@@ -200,3 +200,8 @@ Route::prefix('guest')->group(function () {
     Route::get('/absensi', [\App\Http\Controllers\Guest\GuestMonitoringController::class, 'absensiPage'])->name('guest.absensi');
     Route::get('/interview', [\App\Http\Controllers\Guest\GuestMonitoringController::class, 'interviewPage'])->name('guest.interview');
 });
+
+// API Documentation Route (public - for mobile developers)
+Route::get('/api/documentation', function () {
+    return view('api.documentation');
+})->name('api.documentation');
