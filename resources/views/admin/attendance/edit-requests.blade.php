@@ -89,6 +89,7 @@
                             <tr>
                                 <th>#</th>
                                 <th>Karyawan</th>
+                                <th>Sub Department</th>
                                 <th>Tanggal Absensi</th>
                                 <th>Perubahan</th>
                                 <th>Alasan</th>
@@ -100,7 +101,7 @@
                         </thead>
                         <tbody id="tableBody">
                             <tr>
-                                <td colspan="9" class="text-center py-4">
+                                <td colspan="10" class="text-center py-4">
                                     <div class="spinner-border spinner-border-sm text-primary me-2"></div>
                                     Memuat data...
                                 </td>
@@ -179,7 +180,7 @@
     @push('scripts')
     <script>
     let currentPage = 1;
-    const tableColspan = 9;
+    const tableColspan = 10;
 
     function statusBadge(status) {
         const map = {
@@ -250,6 +251,7 @@
                             <div class="fw-semibold">${emp.name ?? '-'}</div>
                             <small class="text-muted">${emp.employee_code ?? ''}</small>
                         </td>
+                        <td><small>${emp.sub_department?.name ?? '-'}</small></td>
                         <td>${formatDate(r.old_attendance_date)}</td>
                         <td>${diff}</td>
                         <td style="max-width:200px;"><small>${r.reason}</small></td>
@@ -287,7 +289,7 @@
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div>
                                     <h6 class="mb-0">${emp.name ?? '-'}</h6>
-                                    <small class="text-muted">${emp.employee_code ?? ''} · ${formatDate(r.old_attendance_date)}</small>
+                                    <small class="text-muted">${emp.employee_code ?? ''} · ${emp.sub_department?.name ?? '-'} · ${formatDate(r.old_attendance_date)}</small>
                                 </div>
                                 ${statusBadge(r.status)}
                             </div>
@@ -379,7 +381,8 @@
                             <h6 class="fw-bold text-muted mb-3"><i class='bx bx-user me-1'></i>Info Karyawan</h6>
                             <p class="mb-1"><strong>Nama:</strong> ${emp.name ?? '-'}</p>
                             <p class="mb-1"><strong>NIP:</strong> ${emp.employee_code ?? '-'}</p>
-                            <p class="mb-0"><strong>Divisi:</strong> ${emp.department?.name ?? '-'}</p>
+                            <p class="mb-1"><strong>Divisi:</strong> ${emp.department?.name ?? '-'}</p>
+                            <p class="mb-0"><strong>Sub Divisi:</strong> ${emp.sub_department?.name ?? '-'}</p>
                         </div>
                     </div>
                     <div class="col-md-6">

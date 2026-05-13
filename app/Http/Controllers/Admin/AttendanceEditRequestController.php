@@ -59,6 +59,7 @@ class AttendanceEditRequestController extends Controller
     {
         $query = AttendanceEditRequest::with([
             'attendance.employee.department',
+            'attendance.employee.subDepartment',
             'requester',
             'reviewer',
         ]);
@@ -93,6 +94,7 @@ class AttendanceEditRequestController extends Controller
     {
         $editRequest = AttendanceEditRequest::with([
             'attendance.employee.department',
+            'attendance.employee.subDepartment',
             'requester',
             'reviewer',
         ])->findOrFail($id);
