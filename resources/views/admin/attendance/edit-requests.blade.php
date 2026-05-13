@@ -483,7 +483,7 @@
         $.ajax({
             url: `/api/admin/attendance-edit-requests/${id}/approve`,
             method: 'PUT',
-            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json', 'Content-Type': 'application/json' },
+            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'), 'Accept': 'application/json', 'Content-Type': 'application/json' },
             data: JSON.stringify({}),
             success: function(res) {
                 if (closeModal) bootstrap.Modal.getInstance(document.getElementById('detailModal'))?.hide();
@@ -519,7 +519,7 @@
         $.ajax({
             url: `/api/admin/attendance-edit-requests/${id}/reject`,
             method: 'PUT',
-            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json', 'Content-Type': 'application/json' },
+            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'), 'Accept': 'application/json', 'Content-Type': 'application/json' },
             data: JSON.stringify({ review_notes: notes }),
             success: function(res) {
                 bootstrap.Modal.getInstance(document.getElementById('rejectModal'))?.hide();
