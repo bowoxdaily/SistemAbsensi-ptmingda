@@ -181,16 +181,16 @@ class GenerateAbsentAttendance extends Command
             ]);
 
             // Send WhatsApp notification for alpha
-            try {
-                $whatsappService = new \App\Services\WhatsAppService();
-                $alphaAttendance->load('employee.department');
-                $notifResult = $whatsappService->sendAlphaNotification($alphaAttendance);
-                if ($notifResult) {
-                    $this->line("  📱 WA notification sent to: {$employee->name}");
-                }
-            } catch (\Exception $e) {
-                $this->warn("  ⚠️ Failed to send WA notification: {$e->getMessage()}");
-            }
+            // try {
+            //     $whatsappService = new \App\Services\WhatsAppService();
+            //     $alphaAttendance->load('employee.department');
+            //     $notifResult = $whatsappService->sendAlphaNotification($alphaAttendance);
+            //     if ($notifResult) {
+            //         $this->line("  📱 WA notification sent to: {$employee->name}");
+            //     }
+            // } catch (\Exception $e) {
+            //     $this->warn("  ⚠️ Failed to send WA notification: {$e->getMessage()}");
+            // }
 
             $gracePeriodInfo = $isToday ? " (Grace period: {$gracePeriodEnd->format('H:i')})" : "";
             $this->line("✓ Generated alpha for: {$employee->name} ({$employee->employee_code}) - Check-in time: {$checkinTime->format('H:i')}{$gracePeriodInfo}");
