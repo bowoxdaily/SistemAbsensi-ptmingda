@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\KaryawanController;
 use App\Http\Controllers\Admin\PositionController;
 use App\Http\Controllers\Admin\PayrollController;
 use App\Http\Controllers\Admin\InterviewController;
+use App\Http\Controllers\Admin\JoinCallController;
 use App\Http\Controllers\Admin\BroadcastController;
 use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\EmployeeCalendarController;
@@ -309,6 +310,30 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('admin/interviews')->group(f
     // Import/Export
     Route::get('/template/download', [InterviewController::class, 'downloadTemplate']);
     Route::post('/import', [InterviewController::class, 'import']);
+});
+
+// Join Call Management API (Admin)
+Route::middleware(['web', 'auth', 'admin'])->prefix('admin/join-calls')->group(function () {
+    // Specific routes MUST come before wildcard /{id} routes
+    Route::post('/bulk-send-notification', [JoinCallController::class, 'bulkSendNotification']);
+    Route::post('/bulk-delete', [JoinCallController::class, 'bulkDelete']);
+
+    // Message Templates
+    Route::get('/templates/list', [JoinCallController::class, 'getTemplates']);
+    Route::post('/templates/save', [JoinCallController::class, 'saveTemplate']);
+    Route::put('/templates/{id}', [JoinCallController::class, 'updateTemplate']);
+    Route::delete('/templates/{id}', [JoinCallController::class, 'deleteTemplate']);
+
+    // Import/Export
+    Route::get('/template/download', [JoinCallController::class, 'downloadTemplate']);
+    Route::post('/import', [JoinCallController::class, 'import']);
+
+    // CRUD (wildcard routes last)
+    Route::post('/', [JoinCallController::class, 'store']);
+    Route::get('/{id}', [JoinCallController::class, 'show']);
+    Route::put('/{id}', [JoinCallController::class, 'update']);
+    Route::delete('/{id}', [JoinCallController::class, 'destroy']);
+    Route::post('/{id}/send-notification', [JoinCallController::class, 'sendNotification']);
 });
 
 // Security Scanner API Routes

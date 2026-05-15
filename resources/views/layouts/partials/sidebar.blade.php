@@ -124,6 +124,14 @@
                 </a>
             </li>
 
+            <!-- Panggilan Join -->
+            <li class="menu-item {{ request()->routeIs('admin.join_calls.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.join_calls.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-user-plus"></i>
+                    <div data-i18n="Panggilan Join">Panggilan Join</div>
+                </a>
+            </li>
+
             <!-- Broadcast -->
             <li class="menu-item {{ request()->routeIs('admin.broadcast.*') ? 'active' : '' }}">
                 <a href="{{ route('admin.broadcast.index') }}" class="menu-link">

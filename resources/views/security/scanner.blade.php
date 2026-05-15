@@ -10,7 +10,8 @@
                 <i class='bx bx-qr-scan me-2'></i> Security Check-in Scanner
             </h4>
             <div>
-                <span class="badge bg-success" id="todayCount">{{ $todayInterviews->count() }} Interview Hari Ini</span>
+                <span class="badge bg-success me-1" id="todayCountInterview">{{ $todayInterviews->count() }} Interview</span>
+                <span class="badge bg-primary" id="todayCountJoin">{{ $todayJoinCalls->count() }} Panggilan Join</span>
             </div>
         </div>
 
@@ -67,6 +68,7 @@
                                 <h5 class="alert-heading">
                                     <i class='bx bx-check-circle me-2'></i> QR Code Valid!
                                 </h5>
+                                <span id="infoTypeBadge" class="badge mb-2"></span>
                                 <hr>
                                 <div class="row">
                                     <div class="col-6"><strong>Nama:</strong></div>
@@ -78,7 +80,7 @@
                                     <div class="col-6"><strong>No. HP:</strong></div>
                                     <div class="col-6" id="infoPhone"></div>
                                     
-                                    <div class="col-6"><strong>Waktu Interview:</strong></div>
+                                    <div class="col-6" id="infoTimeLabel"><strong>Waktu:</strong></div>
                                     <div class="col-6" id="infoTime"></div>
                                 </div>
                                 
@@ -98,53 +100,83 @@
 
             <!-- Today's Schedule -->
             <div class="col-lg-5 mb-4">
-                <div class="card">
+                <!-- Interview Schedule -->
+                <div class="card mb-3">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">Jadwal Hari Ini</h5>
+                        <h5 class="card-title mb-0"><i class='bx bx-briefcase me-1'></i> Interview Hari Ini</h5>
                         <button type="button" class="btn btn-sm btn-outline-primary" id="refreshScheduleBtn">
                             <i class='bx bx-refresh'></i>
                         </button>
                     </div>
-                    <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                    <div class="card-body" style="max-height: 280px; overflow-y: auto;">
                         @forelse($todayInterviews as $interview)
-                            <div class="d-flex align-items-center mb-3 p-3 border rounded {{ $interview->isCheckedIn() ? 'bg-light' : '' }}">
+                            <div class="d-flex align-items-center mb-3 p-2 border rounded {{ $interview->isCheckedIn() ? 'bg-light' : '' }}">
                                 <div class="flex-shrink-0">
                                     @if($interview->isCheckedIn())
-                                        <span class="badge bg-success">
-                                            <i class='bx bx-check'></i> Check-in
-                                        </span>
+                                        <span class="badge bg-success"><i class='bx bx-check'></i></span>
                                     @else
-                                        <span class="badge bg-warning">
-                                            <i class='bx bx-time'></i> Pending
-                                        </span>
+                                        <span class="badge bg-warning"><i class='bx bx-time'></i></span>
                                     @endif
                                 </div>
-                                <div class="flex-grow-1 ms-3">
-                                    <h6 class="mb-0">{{ $interview->candidate_name }}</h6>
+                                <div class="flex-grow-1 ms-2">
+                                    <h6 class="mb-0 small">{{ $interview->candidate_name }}</h6>
                                     <small class="text-muted">
                                         <i class='bx bx-briefcase'></i> {{ $interview->position->name }}<br>
                                         <i class='bx bx-time'></i> {{ $interview->interview_time }}
                                         @if($interview->isCheckedIn())
-                                            <br><i class='bx bx-check-circle text-success'></i> Check-in: {{ $interview->checked_in_at->format('H:i') }}
+                                            &nbsp;<i class='bx bx-check-circle text-success'></i> {{ $interview->checked_in_at->format('H:i') }}
                                         @endif
                                     </small>
                                 </div>
                             </div>
                         @empty
-                            <div class="text-center py-4 text-muted">
-                                <i class='bx bx-calendar-x bx-lg'></i>
-                                <p class="mt-2">Tidak ada jadwal interview hari ini</p>
+                            <div class="text-center py-3 text-muted">
+                                <small>Tidak ada jadwal interview hari ini</small>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                <!-- Join Call Schedule -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0"><i class='bx bx-user-check me-1'></i> Panggilan Join Hari Ini</h5>
+                    </div>
+                    <div class="card-body" style="max-height: 280px; overflow-y: auto;">
+                        @forelse($todayJoinCalls as $joinCall)
+                            <div class="d-flex align-items-center mb-3 p-2 border rounded {{ $joinCall->isCheckedIn() ? 'bg-light' : '' }}">
+                                <div class="flex-shrink-0">
+                                    @if($joinCall->isCheckedIn())
+                                        <span class="badge bg-success"><i class='bx bx-check'></i></span>
+                                    @else
+                                        <span class="badge bg-primary"><i class='bx bx-time'></i></span>
+                                    @endif
+                                </div>
+                                <div class="flex-grow-1 ms-2">
+                                    <h6 class="mb-0 small">{{ $joinCall->candidate_name }}</h6>
+                                    <small class="text-muted">
+                                        <i class='bx bx-briefcase'></i> {{ $joinCall->position->name }}<br>
+                                        <i class='bx bx-time'></i> {{ $joinCall->join_call_time->format('H:i') }}
+                                        @if($joinCall->isCheckedIn())
+                                            &nbsp;<i class='bx bx-check-circle text-success'></i> {{ $joinCall->checked_in_at->format('H:i') }}
+                                        @endif
+                                    </small>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="text-center py-3 text-muted">
+                                <small>Tidak ada panggilan join hari ini</small>
                             </div>
                         @endforelse
                     </div>
                 </div>
 
                 <!-- Check-in History Today -->
-                <div class="card mt-3">
+                <div class="card">
                     <div class="card-header">
                         <h6 class="card-title mb-0">Riwayat Check-in Hari Ini</h6>
                     </div>
-                    <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                    <div class="card-body" style="max-height: 200px; overflow-y: auto;">
                         <div id="historyList">
                             <div class="text-center text-muted py-3">
                                 <small>Belum ada check-in hari ini</small>
@@ -273,8 +305,8 @@
                     // Extract token from URL or direct token
                     let token = code.data;
                     
-                    // If it's a URL, extract token from it
-                    if (token.includes('/interview/scan/')) {
+                    // If it's a URL, extract token from it (supports both /interview/scan/ and /join-call/scan/)
+                    if (token.includes('/interview/scan/') || token.includes('/join-call/scan/')) {
                         const parts = token.split('/');
                         token = parts[parts.length - 1];
                     }
@@ -323,16 +355,21 @@
         }
 
         // Show candidate info
+        let currentScanData = null;
+
         function showCandidateInfo(data) {
-            currentInterviewId = data.id;
+            currentScanData = data;
             $('#manualToken').val('');
             
-            // Parse interview_time to avoid timezone issues (following copilot-instructions.md pattern)
-            let interviewTime = String(data.interview_time || '');
-            // Extract time portion (HH:MM) from various formats without Date object
-            const timeMatch = interviewTime.match(/(\d{1,2}):(\d{2})/);
+            const timeLabel = data.label || 'Waktu';
+            const typeLabel = data.type === 'join_call' ? 'Panggilan Join' : 'Interview';
+            const typeBadgeColor = data.type === 'join_call' ? '#696cff' : '#28a745';
+            
+            // Parse time safely
+            let eventTime = String(data.event_time || '');
+            const timeMatch = eventTime.match(/(\d{1,2}):(\d{2})/);
             if (timeMatch) {
-                interviewTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`;
+                eventTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`;
             }
             
             Swal.fire({
@@ -340,6 +377,7 @@
                 title: 'QR Code Valid!',
                 html: `
                     <div class="text-start">
+                        <span class="badge mb-2" style="background:${typeBadgeColor};">${typeLabel}</span>
                         <table class="table table-borderless">
                             <tr>
                                 <td width="40%"><strong>Nama:</strong></td>
@@ -354,8 +392,8 @@
                                 <td>${data.phone}</td>
                             </tr>
                             <tr>
-                                <td><strong>Waktu Interview:</strong></td>
-                                <td>${interviewTime}</td>
+                                <td><strong>${timeLabel}:</strong></td>
+                                <td>${eventTime} WIB</td>
                             </tr>
                         </table>
                     </div>
@@ -368,16 +406,16 @@
                 allowOutsideClick: false
             }).then((result) => {
                 if (result.isConfirmed) {
-                    confirmCheckIn(currentInterviewId);
+                    confirmCheckIn(currentScanData);
                 } else {
                     resetScanUI();
-                    currentInterviewId = null;
+                    currentScanData = null;
                 }
             });
         }
 
-        // Confirm check-in
-        function confirmCheckIn(interviewId) {
+        // Confirm check-in — pass full scan data (type + id)
+        function confirmCheckIn(scanData) {
             $('#confirmCheckInBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Processing...');
             
             $.ajax({
@@ -387,7 +425,10 @@
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
                     'Content-Type': 'application/json'
                 },
-                data: JSON.stringify({ interview_id: interviewId }),
+                data: JSON.stringify({ 
+                    type: scanData.type,
+                    id:   scanData.id 
+                }),
                 success: function(response) {
                     if (response.success) {
                         Swal.fire({
@@ -427,11 +468,13 @@
                     if (response.success && response.data.length > 0) {
                         let html = '';
                         response.data.forEach(item => {
+                            const badgeColor = item.type === 'join_call' ? 'bg-primary' : 'bg-success';
                             html += `
                                 <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
                                     <div>
                                         <strong>${item.candidate_name}</strong>
                                         <br><small class="text-muted">${item.position}</small>
+                                        <br><span class="badge ${badgeColor} badge-sm" style="font-size:10px;">${item.type_label}</span>
                                     </div>
                                     <div class="text-end">
                                         <small class="text-success">

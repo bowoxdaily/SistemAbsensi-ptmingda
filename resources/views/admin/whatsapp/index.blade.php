@@ -213,6 +213,63 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                    <!-- Interview -->
+                                    <div class="card mb-3 border-primary">
+                                        <div class="card-body">
+                                            <h6 class="card-title">
+                                                <i class='bx bx-user-voice me-1 text-primary'></i>
+                                                Notifikasi Interview Kandidat
+                                            </h6>
+                                            <div class="row">
+                                                <div class="col-md-6 mb-2">
+                                                    <label class="form-label" for="interview_api_key">API Key</label>
+                                                    <input type="text" class="form-control" id="interview_api_key" name="interview_api_key"
+                                                        value="{{ old('interview_api_key', $setting->interview_api_key) }}"
+                                                        placeholder="Kosongkan untuk gunakan default">
+                                                </div>
+                                                <div class="col-md-6 mb-2">
+                                                    <label class="form-label" for="interview_sender">Nomor Pengirim</label>
+                                                    <input type="text" class="form-control" id="interview_sender" name="interview_sender"
+                                                        value="{{ old('interview_sender', $setting->interview_sender) }}"
+                                                        placeholder="628xxx (kosongkan untuk default)">
+                                                </div>
+                                            </div>
+                                            <small class="text-muted">
+                                                <i class='bx bx-info-circle'></i>
+                                                Digunakan saat mengirim undangan interview & QR Code ke kandidat
+                                            </small>
+                                        </div>
+                                    </div>
+
+                                    <!-- Join Call -->
+                                    <div class="card mb-3 border-success">
+                                        <div class="card-body">
+                                            <h6 class="card-title">
+                                                <i class='bx bx-user-check me-1 text-success'></i>
+                                                Notifikasi Panggilan Join
+                                            </h6>
+                                            <div class="row">
+                                                <div class="col-md-6 mb-2">
+                                                    <label class="form-label" for="join_call_api_key">API Key</label>
+                                                    <input type="text" class="form-control" id="join_call_api_key" name="join_call_api_key"
+                                                        value="{{ old('join_call_api_key', $setting->join_call_api_key) }}"
+                                                        placeholder="Kosongkan untuk gunakan default">
+                                                </div>
+                                                <div class="col-md-6 mb-2">
+                                                    <label class="form-label" for="join_call_sender">Nomor Pengirim</label>
+                                                    <input type="text" class="form-control" id="join_call_sender" name="join_call_sender"
+                                                        value="{{ old('join_call_sender', $setting->join_call_sender) }}"
+                                                        placeholder="628xxx (kosongkan untuk default)">
+                                                </div>
+                                            </div>
+                                            <small class="text-muted">
+                                                <i class='bx bx-info-circle'></i>
+                                                Digunakan saat mengirim undangan bergabung & QR Code check-in ke kandidat yang diterima
+                                            </small>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
 

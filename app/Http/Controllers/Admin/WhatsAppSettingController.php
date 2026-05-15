@@ -59,13 +59,17 @@ class WhatsAppSettingController extends Controller
             'leave_api_key' => 'nullable|string|max:255',
             'warning_letter_api_key' => 'nullable|string|max:255',
             'payroll_api_key' => 'nullable|string|max:255',
-            'alpha_api_key' => 'nullable|string|max:255',
-            'checkin_sender' => 'nullable|string|max:50',
-            'checkout_sender' => 'nullable|string|max:50',
-            'leave_sender' => 'nullable|string|max:50',
-            'warning_letter_sender' => 'nullable|string|max:50',
-            'payroll_sender' => 'nullable|string|max:50',
-            'alpha_sender' => 'nullable|string|max:50',
+            'alpha_api_key'          => 'nullable|string|max:255',
+            'interview_api_key'      => 'nullable|string|max:255',
+            'join_call_api_key'      => 'nullable|string|max:255',
+            'checkin_sender'         => 'nullable|string|max:50',
+            'checkout_sender'        => 'nullable|string|max:50',
+            'leave_sender'           => 'nullable|string|max:50',
+            'warning_letter_sender'  => 'nullable|string|max:50',
+            'payroll_sender'         => 'nullable|string|max:50',
+            'alpha_sender'           => 'nullable|string|max:50',
+            'interview_sender'       => 'nullable|string|max:50',
+            'join_call_sender'       => 'nullable|string|max:50',
             'sp_number_format' => 'nullable|string|max:100',
             'sp_department_code' => 'nullable|string|max:10',
             'sp_counter_width' => 'nullable|integer|min:1|max:10',
@@ -119,15 +123,19 @@ class WhatsAppSettingController extends Controller
                 $setting->leave_api_key = $request->input('leave_api_key');
                 $setting->warning_letter_api_key = $request->input('warning_letter_api_key');
                 $setting->payroll_api_key = $request->input('payroll_api_key');
-                $setting->alpha_api_key = $request->input('alpha_api_key');
+                $setting->alpha_api_key          = $request->input('alpha_api_key');
+                $setting->interview_api_key      = $request->input('interview_api_key');
+                $setting->join_call_api_key      = $request->input('join_call_api_key');
 
                 // Custom senders
-                $setting->checkin_sender = $request->input('checkin_sender');
-                $setting->checkout_sender = $request->input('checkout_sender');
-                $setting->leave_sender = $request->input('leave_sender');
-                $setting->warning_letter_sender = $request->input('warning_letter_sender');
-                $setting->payroll_sender = $request->input('payroll_sender');
-                $setting->alpha_sender = $request->input('alpha_sender');
+                $setting->checkin_sender         = $request->input('checkin_sender');
+                $setting->checkout_sender        = $request->input('checkout_sender');
+                $setting->leave_sender           = $request->input('leave_sender');
+                $setting->warning_letter_sender  = $request->input('warning_letter_sender');
+                $setting->payroll_sender         = $request->input('payroll_sender');
+                $setting->alpha_sender           = $request->input('alpha_sender');
+                $setting->interview_sender       = $request->input('interview_sender');
+                $setting->join_call_sender       = $request->input('join_call_sender');
 
                 $setting->is_enabled = $request->has('is_enabled') ? 1 : 0;
                 $setting->notify_checkin = $request->has('notify_checkin') ? 1 : 0;

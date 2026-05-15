@@ -11,12 +11,14 @@ use App\Http\Controllers\Admin\WorkScheduleController;
 use App\Http\Controllers\Admin\CronJobController;
 use App\Http\Controllers\Admin\PayrollController;
 use App\Http\Controllers\Admin\InterviewController;
+use App\Http\Controllers\Admin\JoinCallController;
 use App\Http\Controllers\Admin\BroadcastController;
 use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\EmployeeCalendarController;
 use App\Http\Controllers\Admin\RekapitulasiController;
 use App\Http\Controllers\Admin\WarningLetterController;
 use App\Http\Controllers\InterviewScanController;
+use App\Http\Controllers\JoinCallScanController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\LoginController;
@@ -48,6 +50,11 @@ Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name(
 Route::get('/interview/scan/{token}', [InterviewScanController::class, 'scan'])->name('interview.scan');
 Route::post('/interview/scan/{token}/checkin', [InterviewScanController::class, 'checkIn'])->name('interview.checkin');
 Route::get('/interview/details/{token}', [InterviewScanController::class, 'getDetails'])->name('interview.details');
+
+// Public Join Call QR Scan Routes (no authentication required - for security gate)
+Route::get('/join-call/scan/{token}', [JoinCallScanController::class, 'scan'])->name('join_call.scan');
+Route::post('/join-call/scan/{token}/checkin', [JoinCallScanController::class, 'checkIn'])->name('join_call.checkin');
+Route::get('/join-call/details/{token}', [JoinCallScanController::class, 'getDetails'])->name('join_call.details');
 
 // Protected Routes
 Route::middleware(['auth'])->group(function () {
@@ -94,6 +101,9 @@ Route::middleware(['auth'])->group(function () {
 
         // Interview Management (View only - API handles POST/PUT/DELETE)
         Route::get('/admin/interviews', [InterviewController::class, 'index'])->name('admin.interviews.index');
+
+        // Join Call Management (View only - API handles POST/PUT/DELETE)
+        Route::get('/admin/join-calls', [JoinCallController::class, 'index'])->name('admin.join_calls.index');
 
         // Broadcast Messages (View only - API handles POST/DELETE)
         Route::get('/admin/broadcast', [BroadcastController::class, 'index'])->name('admin.broadcast.index');
