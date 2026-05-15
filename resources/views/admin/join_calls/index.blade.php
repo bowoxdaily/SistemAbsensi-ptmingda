@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Manajemen Panggilan Join')
 
@@ -1121,7 +1121,7 @@
                 }
 
                 // Build QR URL
-                const qrUrl = `${window.location.origin}/join_call/scan/${token}`;
+                const qrUrl = `${window.location.origin}/join-call/scan/${token}`;
                 const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrUrl)}`;
 
                 console.log('QR URLs:', { qrUrl, qrImageUrl });
