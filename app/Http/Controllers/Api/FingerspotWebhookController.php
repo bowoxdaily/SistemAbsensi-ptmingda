@@ -476,10 +476,17 @@ class FingerspotWebhookController extends Controller
                 }
             }
 
+            // Aturan Khusus Weekend: jika hari Sabtu/Minggu, izinkan checkout asalkan sudah kerja minimal 6 jam
+            // Ini memfasilitasi lembur weekend yang mungkin pulangnya lebih awal dari jadwal normal
+            $isValidForCheckout = $isAfterWorkEnd;
+            if ($scanTime->isWeekend()) {
+                $isValidForCheckout = $isAfterWorkEnd || $scanTime->gte($checkInTime->copy()->addHours(6));
+            }
+
             if ($setting->scan_mode === 'first_last') {
                 // First/Last mode with work schedule rules
-                if ($isAfterWorkEnd) {
-                    // Scan is after work end time - valid for check-out
+                if ($isValidForCheckout) {
+                    // Scan is valid for check-out
                     $checkOutTimeStr = $attendance->check_out instanceof \Carbon\Carbon
                         ? $attendance->check_out->format('H:i:s')
                         : $attendance->check_out;
@@ -499,7 +506,7 @@ class FingerspotWebhookController extends Controller
                         }
                         $attendance->update($updateData);
 
-                        $log->markAsSuccess($attendance->id, 'Check-out updated (after work end)');
+                        $log->markAsSuccess($attendance->id, 'Check-out updated (after work end or weekend overtime)');
 
                         DB::commit();
                         return [
@@ -527,13 +534,13 @@ class FingerspotWebhookController extends Controller
                     DB::commit();
                     return [
                         'status' => 'skipped',
-                        'message' => 'Scan during work hours (before ' . ($workEndTime ? $workEndTime->format('H:i') : 'work end') . ')',
+                        'message' => 'Scan during work hours (before ' . ($workEndTime ? $workEndTime->format('H:i') : 'work end') . ' or < 6 hours on weekend)',
                         'attendance_id' => $attendance->id,
                     ];
                 }
             } else {
                 // "all" mode - log all scans, but still respect work schedule for check-out
-                if ($isAfterWorkEnd && $scanTime->gt($checkInTime)) {
+                if ($isValidForCheckout && $scanTime->gt($checkInTime)) {
                     $updateData = ['check_out' => $scanTime->format('H:i:s')];
                     if ($photoUrl) {
                         // Get photo URL directly (no download - using Fingerspot S3 URL)
@@ -548,7 +555,7 @@ class FingerspotWebhookController extends Controller
                     }
                     $attendance->update($updateData);
 
-                    $log->markAsSuccess($attendance->id, 'Check-out updated (all mode, after work end)');
+                    $log->markAsSuccess($attendance->id, 'Check-out updated (all mode, after work end or weekend overtime)');
 
                     DB::commit();
                     return [
