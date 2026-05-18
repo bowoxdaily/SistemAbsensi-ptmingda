@@ -107,7 +107,7 @@ class KaryawanController extends Controller
             'desa' => 'nullable|string|max:100',
             'postal_code' => 'required|string|max:10',
             'phone' => 'required|string|max:20',
-            'email' => 'required|email|max:100|unique:employees,email',
+            'email' => 'required|email|max:100|unique:employees,email|unique:users,email',
             'emergency_contact_name' => 'required|string|max:100',
             'emergency_contact_phone' => 'required|string|max:20',
             'status' => 'required|in:active,inactive,resign,mangkir,gagal_probation,pending',
@@ -244,11 +244,30 @@ class KaryawanController extends Controller
             'province' => 'required|string|max:50',
             'postal_code' => 'required|string|max:10',
             'phone' => 'required|string|max:20',
-            'email' => 'required|email|max:100|unique:employees,email,' . $id,
+            'email' => 'required|email|max:100|unique:employees,email,' . $id . '|unique:users,email,' . ($karyawan->user_id ?? 'NULL'),
             'emergency_contact_name' => 'required|string|max:100',
             'emergency_contact_phone' => 'required|string|max:20',
             'status' => 'required|in:active,inactive,resign,mangkir,gagal_probation,pending',
+        ], [
+            'employee_code.required' => 'Kode karyawan wajib diisi',
+            'employee_code.unique' => 'Kode karyawan sudah ada',
+            'name.required' => 'Nama karyawan wajib diisi',
+            'gender.required' => 'Jenis kelamin wajib dipilih',
+            'birth_place.required' => 'Tempat lahir wajib diisi',
+            'birth_date.required' => 'Tanggal lahir wajib diisi',
+            'marital_status.required' => 'Status perkawinan wajib dipilih',
+            'department_id.required' => 'Departemen wajib dipilih',
+            'position_id.required' => 'Posisi wajib dipilih',
+            'join_date.required' => 'Tanggal bergabung wajib diisi',
+            'employment_status.required' => 'Status kerja wajib dipilih',
+            'serikat.required' => 'Status serikat wajib dipilih',
+            'work_schedule_id.required' => 'Jadwal kerja wajib dipilih',
+            'work_schedule_id.exists' => 'Jadwal kerja tidak valid',
+            'email.required' => 'Email wajib diisi',
+            'email.unique' => 'Email sudah terdaftar',
+            'phone.required' => 'Nomor HP wajib diisi',
         ]);
+
 
         if ($validator->fails()) {
             return response()->json([
