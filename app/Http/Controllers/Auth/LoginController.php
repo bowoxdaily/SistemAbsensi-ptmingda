@@ -75,13 +75,9 @@ class LoginController extends Controller
         }
 
         if (!$user) {
-            $user = User::create([
-                'name' => $googleUser->name ?: 'User',
-                'email' => $googleUser->email,
-                'google_id' => $googleUser->id,
-                'profile_photo' => $googleUser->avatar,
-                'password' => Str::random(32),
-                'email_verified_at' => now(),
+            // User tidak ditemukan di database, tolak akses
+            return redirect()->route('login')->withErrors([
+                'email' => 'Email Anda (' . $googleUser->email . ') belum terdaftar di sistem. Silakan hubungi admin untuk didaftarkan.',
             ]);
         } else {
             $updates = ['google_id' => $googleUser->id];
