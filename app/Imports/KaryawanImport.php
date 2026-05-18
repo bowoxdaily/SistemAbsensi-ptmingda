@@ -18,6 +18,7 @@ use Maatwebsite\Excel\Concerns\SkipsErrors;
 use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\SkipsFailures;
 use Maatwebsite\Excel\Concerns\Importable;
+use App\Jobs\SendWelcomeNotificationJob;
 
 class KaryawanImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, SkipsOnFailure
 {
@@ -27,6 +28,8 @@ class KaryawanImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
     protected $subDepartmentCache = [];
     protected $positionCache = [];
     protected $workScheduleCache = [];
+    protected $importedCount = 0;
+
 
     public function __construct()
     {
@@ -171,6 +174,14 @@ class KaryawanImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
             ]);
 
             DB::commit();
+            
+            // Dispatch welcome notification job with delay
+            $this->importedCount++;
+            // Delay by 1 minute for each successfully imported user
+            $delayMinutes = $this->importedCount;
+            SendWelcomeNotificationJob::dispatch($karyawan, 'password123')
+                ->delay(now()->addMinutes($delayMinutes));
+
             return $karyawan;
         } catch (\Exception $e) {
             DB::rollBack();

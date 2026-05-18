@@ -270,6 +270,34 @@
                                         </div>
                                     </div>
 
+                                    <!-- Welcome -->
+                                    <div class="card mb-3 border-info">
+                                        <div class="card-body">
+                                            <h6 class="card-title">
+                                                <i class='bx bx-user-plus me-1 text-info'></i>
+                                                Notifikasi Karyawan Baru
+                                            </h6>
+                                            <div class="row">
+                                                <div class="col-md-6 mb-2">
+                                                    <label class="form-label" for="welcome_api_key">API Key</label>
+                                                    <input type="text" class="form-control" id="welcome_api_key" name="welcome_api_key"
+                                                        value="{{ old('welcome_api_key', $setting->welcome_api_key) }}"
+                                                        placeholder="Kosongkan untuk gunakan default">
+                                                </div>
+                                                <div class="col-md-6 mb-2">
+                                                    <label class="form-label" for="welcome_sender">Nomor Pengirim</label>
+                                                    <input type="text" class="form-control" id="welcome_sender" name="welcome_sender"
+                                                        value="{{ old('welcome_sender', $setting->welcome_sender) }}"
+                                                        placeholder="628xxx (kosongkan untuk default)">
+                                                </div>
+                                            </div>
+                                            <small class="text-muted">
+                                                <i class='bx bx-info-circle'></i>
+                                                Digunakan saat mengirim notifikasi selamat datang ke karyawan baru yang terdaftar
+                                            </small>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
 
@@ -455,6 +483,16 @@
                                         sehingga dapat segera klarifikasi ke HRD sebelum tutup buku penggajian.
                                     </small>
                                 </div>
+
+                                <h6 class="mt-3 mb-2">Notifikasi Karyawan Baru</h6>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="notify_welcome"
+                                        name="notify_welcome"
+                                        {{ $setting->notify_welcome ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="notify_welcome">
+                                        Kirim notifikasi selamat datang ke karyawan baru
+                                    </label>
+                                </div>
                             </div>
 
                             <div class="mt-4">
@@ -528,6 +566,10 @@
 
                             @if ($setting->notify_alpha)
                                 <input type="hidden" name="notify_alpha" value="1">
+                            @endif
+
+                            @if ($setting->notify_welcome)
+                                <input type="hidden" name="notify_welcome" value="1">
                             @endif
 
                             <h5 class="mb-3">Template Absensi</h5>
@@ -647,6 +689,21 @@
                                     <strong>Variabel tersedia:</strong> {employee_name}, {employee_code}, {department}, {date}, {total_alpha}
                                 </div>
                                 @error('alpha_template')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <h5 class="mb-3 mt-4">Template Karyawan Baru</h5>
+
+                            <!-- Welcome Template -->
+                            <div class="mb-4">
+                                <label class="form-label" for="welcome_template">Template Selamat Datang (ke Karyawan Baru)</label>
+                                <textarea class="form-control @error('welcome_template') is-invalid @enderror" id="welcome_template"
+                                    name="welcome_template" rows="8">{{ old('welcome_template', $setting->welcome_template ?? \App\Models\WhatsAppSetting::getDefaultWelcomeTemplate()) }}</textarea>
+                                <div class="form-text">
+                                    <strong>Variabel tersedia:</strong> {employee_name}, {employee_code}, {email}, {password}
+                                </div>
+                                @error('welcome_template')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
@@ -830,6 +887,14 @@
                             <li><code>{department}</code> - Departemen</li>
                             <li><code>{date}</code> - Tanggal alpha</li>
                             <li><code>{total_alpha}</code> - Total alpha bulan ini</li>
+                        </ul>
+
+                        <h6 class="small fw-bold mt-3">Karyawan Baru (Welcome)</h6>
+                        <ul class="small ps-3">
+                            <li><code>{employee_name}</code> - Nama karyawan</li>
+                            <li><code>{employee_code}</code> - NIP / Kode karyawan</li>
+                            <li><code>{email}</code> - Email karyawan</li>
+                            <li><code>{password}</code> - Password default sementara</li>
                         </ul>
                     </div>
                 </div>

@@ -62,6 +62,7 @@ class WhatsAppSettingController extends Controller
             'alpha_api_key'          => 'nullable|string|max:255',
             'interview_api_key'      => 'nullable|string|max:255',
             'join_call_api_key'      => 'nullable|string|max:255',
+            'welcome_api_key'        => 'nullable|string|max:255',
             'checkin_sender'         => 'nullable|string|max:50',
             'checkout_sender'        => 'nullable|string|max:50',
             'leave_sender'           => 'nullable|string|max:50',
@@ -70,6 +71,7 @@ class WhatsAppSettingController extends Controller
             'alpha_sender'           => 'nullable|string|max:50',
             'interview_sender'       => 'nullable|string|max:50',
             'join_call_sender'       => 'nullable|string|max:50',
+            'welcome_sender'         => 'nullable|string|max:50',
             'sp_number_format' => 'nullable|string|max:100',
             'sp_department_code' => 'nullable|string|max:10',
             'sp_counter_width' => 'nullable|integer|min:1|max:10',
@@ -81,6 +83,7 @@ class WhatsAppSettingController extends Controller
             'warning_letter_template' => 'nullable|string',
             'payroll_template' => 'nullable|string',
             'alpha_template' => 'nullable|string',
+            'welcome_template' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -126,6 +129,7 @@ class WhatsAppSettingController extends Controller
                 $setting->alpha_api_key          = $request->input('alpha_api_key');
                 $setting->interview_api_key      = $request->input('interview_api_key');
                 $setting->join_call_api_key      = $request->input('join_call_api_key');
+                $setting->welcome_api_key        = $request->input('welcome_api_key');
 
                 // Custom senders
                 $setting->checkin_sender         = $request->input('checkin_sender');
@@ -136,6 +140,7 @@ class WhatsAppSettingController extends Controller
                 $setting->alpha_sender           = $request->input('alpha_sender');
                 $setting->interview_sender       = $request->input('interview_sender');
                 $setting->join_call_sender       = $request->input('join_call_sender');
+                $setting->welcome_sender         = $request->input('welcome_sender');
 
                 $setting->is_enabled = $request->has('is_enabled') ? 1 : 0;
                 $setting->notify_checkin = $request->has('notify_checkin') ? 1 : 0;
@@ -148,6 +153,7 @@ class WhatsAppSettingController extends Controller
                 $setting->notify_warning_letter = $request->has('notify_warning_letter') ? 1 : 0;
                 $setting->notify_payroll = $request->has('notify_payroll') ? 1 : 0;
                 $setting->notify_alpha = $request->has('notify_alpha') ? 1 : 0;
+                $setting->notify_welcome = $request->has('notify_welcome') ? 1 : 0;
 
                 // SP Number Format Settings
                 $setting->sp_number_format = $request->input('sp_number_format') ?: '{sp_type}/{dept}/{counter}/{year}';
@@ -174,6 +180,7 @@ class WhatsAppSettingController extends Controller
                 $setting->notify_warning_letter = $request->input('notify_warning_letter', 0) ? 1 : 0;
                 $setting->notify_payroll = $request->input('notify_payroll', 0) ? 1 : 0;
                 $setting->notify_alpha = $request->input('notify_alpha', 0) ? 1 : 0;
+                $setting->notify_welcome = $request->input('notify_welcome', 0) ? 1 : 0;
 
                 Log::info('Template Form Processing - Not updating API Key');
 
@@ -209,6 +216,11 @@ class WhatsAppSettingController extends Controller
                 // Update alpha template
                 if ($request->has('alpha_template')) {
                     $setting->alpha_template = $request->alpha_template ?: WhatsAppSetting::getDefaultAlphaTemplate();
+                }
+
+                // Update welcome template
+                if ($request->has('welcome_template')) {
+                    $setting->welcome_template = $request->welcome_template ?: WhatsAppSetting::getDefaultWelcomeTemplate();
                 }
             }
 
@@ -329,6 +341,7 @@ class WhatsAppSettingController extends Controller
                     'warning_letter_template' => WhatsAppSetting::getDefaultWarningLetterTemplate(),
                     'payroll_template' => WhatsAppSetting::getDefaultPayrollTemplate(),
                     'alpha_template' => WhatsAppSetting::getDefaultAlphaTemplate(),
+                    'welcome_template' => WhatsAppSetting::getDefaultWelcomeTemplate(),
                 ]);
             }
 

@@ -52,6 +52,10 @@ class WhatsAppSetting extends Model
         'warning_letter_template',
         'payroll_template',
         'alpha_template',
+        'welcome_template',
+        'welcome_api_key',
+        'welcome_sender',
+        'notify_welcome',
         'sp_number_format',
         'sp_department_code',
         'sp_counter_width',
@@ -69,6 +73,7 @@ class WhatsAppSetting extends Model
         'notify_warning_letter' => 'boolean',
         'notify_payroll' => 'boolean',
         'notify_alpha' => 'boolean',
+        'notify_welcome' => 'boolean',
     ];
 
     /**
@@ -221,5 +226,23 @@ class WhatsAppSetting extends Model
             "❗ Status Alpha akan mempengaruhi perhitungan gaji Anda.\n\n" .
             "Jika Anda merasa ini adalah kesalahan, segera hubungi HRD untuk klarifikasi dan perbaikan data sebelum tutup buku penggajian.\n\n" .
             "_HRD PT Mingda Indonesia Furniture_";
+    }
+
+    /**
+     * Get default welcome template (notifikasi ke karyawan baru)
+     */
+    public static function getDefaultWelcomeTemplate()
+    {
+        return "🎉 *SELAMAT DATANG DI PT MINGDA INDONESIA FURNITURE* 🎉\n\n" .
+            "Halo *{employee_name}*,\n\n" .
+            "Selamat! Data Anda telah berhasil didaftarkan ke dalam Sistem HRIS kami.\n\n" .
+            "Berikut adalah informasi akun Anda:\n" .
+            "👤 Nama: {employee_name}\n" .
+            "🆔 NIK/Kode Karyawan: {employee_code}\n" .
+            "📧 Email: {email}\n" .
+            "🔑 Password: *{password}*\n\n" .
+            "Segera login ke aplikasi atau website kami dan *wajib segera mengganti password* Anda demi keamanan data.\n\n" .
+            "Jika ada kendala, silakan hubungi HRD.\n\n" .
+            "_Pesan ini dikirim otomatis oleh sistem_";
     }
 }

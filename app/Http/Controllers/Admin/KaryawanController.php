@@ -159,6 +159,14 @@ class KaryawanController extends Controller
 
             DB::commit();
 
+            // Send WhatsApp welcome notification
+            try {
+                $waService = app(\App\Services\WhatsAppService::class);
+                $waService->sendWelcomeNotification($karyawan, 'password123');
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to send welcome WA: ' . $e->getMessage());
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Karyawan berhasil ditambahkan',

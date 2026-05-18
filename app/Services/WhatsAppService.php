@@ -1027,4 +1027,66 @@ class WhatsAppService
             "Diterbitkan oleh: {issued_by}\n" .
             "HRD PT Mingda Indonesia Furniture";
     }
+
+    /**
+     * Send welcome notification to newly registered employee
+     */
+    public function sendWelcomeNotification($employee, $password = 'password123')
+    {
+        if (!$this->setting || !$this->setting->is_enabled) {
+            Log::info('WhatsApp notification is disabled. Welcome message not sent.');
+            return false;
+        }
+
+        if (isset($this->setting->notify_welcome) && !$this->setting->notify_welcome) {
+            Log::info('Welcome notification is disabled in settings.');
+            return false;
+        }
+
+        if (!$employee || !$employee->phone) {
+            Log::warning('Employee phone number not found for welcome notification', [
+                'employee_id' => $employee->id ?? 'unknown',
+            ]);
+            return false;
+        }
+
+        // Get template from setting or fallback to default
+        $template = $this->setting->welcome_template ?: WhatsAppSetting::getDefaultWelcomeTemplate();
+
+        $message = str_replace(
+            [
+                '{employee_name}',
+                '{employee_code}',
+                '{email}',
+                '{password}',
+            ],
+            [
+                $employee->name,
+                $employee->employee_code,
+                $employee->email,
+                $password,
+            ],
+            $template
+        );
+
+        // Get custom sender and API key
+        $sender = $this->getSenderFor('welcome');
+        $apiKey = $this->getApiKeyFor('welcome');
+
+        // Send to employee
+        $result = $this->send($employee->phone, $message, null, $sender, $apiKey);
+
+        if ($result) {
+            Log::info('Welcome notification sent to employee', [
+                'employee_id' => $employee->id,
+                'employee_name' => $employee->name,
+            ]);
+        } else {
+            Log::warning('Failed to send welcome notification', [
+                'employee_id' => $employee->id,
+            ]);
+        }
+
+        return $result;
+    }
 }
