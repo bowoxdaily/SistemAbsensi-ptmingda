@@ -731,7 +731,9 @@ class FingerspotWebhookController extends Controller
     public function logs(Request $request)
     {
         try {
-        $perPage  = min((int) $request->get('per_page', 20), 200); // cap at 200
+        $perPageRaw = $request->get('per_page', 20);
+        $showAll  = ($perPageRaw === 'all');
+        $perPage  = $showAll ? 20 : min((int) $perPageRaw, 500); // cap at 500
         $status   = $request->get('status');
         $pin      = $request->get('pin');
         $dateFrom = $request->get('date_from');
@@ -763,6 +765,24 @@ class FingerspotWebhookController extends Controller
         if ($dateTo) {
             // Use <= 'YYYY-MM-DD 23:59:59' so MySQL can use the scan_time index
             $query->where('scan_time', '<=', $dateTo . ' 23:59:59');
+        }
+
+        if ($showAll) {
+            // Return all records without pagination (wrapped in paginator-like structure)
+            $allLogs = $query->get();
+            $total   = $allLogs->count();
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'current_page' => 1,
+                    'data'         => $allLogs,
+                    'from'         => $total > 0 ? 1 : 0,
+                    'last_page'    => 1,
+                    'per_page'     => $total,
+                    'to'           => $total,
+                    'total'        => $total,
+                ],
+            ]);
         }
 
         $logs = $query->paginate($perPage);

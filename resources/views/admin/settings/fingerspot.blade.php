@@ -58,10 +58,11 @@
                             <span class="badge bg-primary d-none" id="selected-count-badge">0 dipilih</span>
                         </div>
                         <div class="d-flex gap-2 flex-wrap align-items-center">
-                            <select class="form-select form-select-sm" id="log-per-page" style="width:75px" title="Per halaman">
+                            <select class="form-select form-select-sm" id="log-per-page" style="width:80px" title="Per halaman">
                                 <option value="20">20</option>
                                 <option value="50">50</option>
                                 <option value="100">100</option>
+                                <option value="all">All</option>
                             </select>
                             <select class="form-select form-select-sm d-inline-block w-auto" id="log-status-filter">
                                 <option value="">Semua Status</option>
