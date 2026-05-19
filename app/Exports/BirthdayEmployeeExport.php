@@ -21,7 +21,7 @@ class BirthdayEmployeeExport implements FromCollection, WithHeadings, WithMappin
         $daysInSelectedMonth = Carbon::create($this->year, $this->month, 1)->daysInMonth;
 
         return Employee::query()
-            ->with(['department:id,name', 'position:id,name'])
+            ->with(['subDepartment:id,name', 'position:id,name'])
             ->where('status', 'active')
             ->whereNotNull('birth_date')
             ->whereMonth('birth_date', $this->month)
@@ -36,7 +36,7 @@ class BirthdayEmployeeExport implements FromCollection, WithHeadings, WithMappin
                 return [
                     'employee_code' => $employee->employee_code,
                     'name' => $employee->name,
-                    'department' => optional($employee->department)->name,
+                    'sub_department' => optional($employee->subDepartment)->name,
                     'position' => optional($employee->position)->name,
                     'birth_date' => $birthDate->format('Y-m-d'),
                     'birthday_this_month' => $birthdayThisMonth->format('Y-m-d'),
@@ -52,7 +52,7 @@ class BirthdayEmployeeExport implements FromCollection, WithHeadings, WithMappin
         return [
             'Kode Karyawan',
             'Nama Karyawan',
-            'Departemen',
+            'Sub Departemen',
             'Jabatan',
             'Tanggal Lahir',
             'Tanggal Ulang Tahun (Bulan Terpilih)',
@@ -67,7 +67,7 @@ class BirthdayEmployeeExport implements FromCollection, WithHeadings, WithMappin
         return [
             $row['employee_code'] ?? '-',
             $row['name'] ?? '-',
-            $row['department'] ?? '-',
+            $row['sub_department'] ?? '-',
             $row['position'] ?? '-',
             $row['birth_date'] ?? '-',
             $row['birthday_this_month'] ?? '-',

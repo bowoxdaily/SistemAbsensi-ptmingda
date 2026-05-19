@@ -34,7 +34,7 @@ class EmployeeCalendarController extends Controller
         $daysInSelectedMonth = $startDate->daysInMonth;
 
         $birthdayEvents = Employee::query()
-            ->with(['department:id,name'])
+            ->with(['subDepartment:id,name'])
             ->where('status', 'active')
             ->whereNotNull('birth_date')
             ->whereMonth('birth_date', $month)
@@ -51,7 +51,7 @@ class EmployeeCalendarController extends Controller
                     'employee_id' => $employee->id,
                     'employee_name' => $employee->name,
                     'employee_code' => $employee->employee_code,
-                    'department' => optional($employee->department)->name,
+                    'sub_department' => optional($employee->subDepartment)->name,
                     'age' => max(0, $year - (int) $originalBirthDate->year),
                 ];
             })

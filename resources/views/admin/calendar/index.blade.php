@@ -177,7 +177,7 @@
                                 <th>Tanggal</th>
                                 <th>Nama Karyawan</th>
                                 <th>NIK/Kode</th>
-                                <th>Departemen</th>
+                                <th>Sub Departemen</th>
                                 <th>Usia</th>
                             </tr>
                         </thead>
@@ -298,7 +298,7 @@
                         <td>${escapeHtml(dateLabel)}</td>
                         <td>${escapeHtml(item.employee_name)}</td>
                         <td>${escapeHtml(item.employee_code || '-')}</td>
-                        <td>${escapeHtml(item.department || '-')}</td>
+                        <td>${escapeHtml(item.sub_department || '-')}</td>
                         <td>${escapeHtml(item.age)} tahun</td>
                     </tr>
                 `;
