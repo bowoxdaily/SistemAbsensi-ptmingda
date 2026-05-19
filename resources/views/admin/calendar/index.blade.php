@@ -188,6 +188,10 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="d-flex justify-content-between align-items-center mt-3" id="paginationContainer" style="display: none !important;">
+                    <span id="paginationInfo" class="text-muted"></span>
+                    <ul class="pagination pagination-sm mb-0" id="paginationNav"></ul>
+                </div>
             </div>
         </div>
     </div>
@@ -200,6 +204,9 @@
         const state = {
             year: new Date().getFullYear(),
             month: new Date().getMonth() + 1,
+            currentPage: 1,
+            itemsPerPage: 25,
+            currentEvents: []
         };
 
         const weekdayLabels = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
@@ -282,15 +289,21 @@
             container.innerHTML = html;
         }
 
-        function renderBirthdayList(events) {
+        function renderBirthdayList() {
             const body = document.getElementById('birthdayListBody');
+            const events = state.currentEvents;
 
             if (!events.length) {
                 body.innerHTML = '<tr><td colspan="5" class="birth-list-empty">Tidak ada ulang tahun di bulan ini.</td></tr>';
+                document.getElementById('paginationContainer').style.setProperty('display', 'none', 'important');
                 return;
             }
 
-            const rows = events.map((item) => {
+            const startIndex = (state.currentPage - 1) * state.itemsPerPage;
+            const endIndex = startIndex + state.itemsPerPage;
+            const paginatedEvents = events.slice(startIndex, endIndex);
+
+            const rows = paginatedEvents.map((item) => {
                 const dateLabel = item.date.split('-').reverse().join('-');
 
                 return `
@@ -305,6 +318,54 @@
             }).join('');
 
             body.innerHTML = rows;
+            renderPagination(events.length);
+        }
+
+        function renderPagination(totalItems) {
+            const container = document.getElementById('paginationContainer');
+            const info = document.getElementById('paginationInfo');
+            const nav = document.getElementById('paginationNav');
+            
+            const totalPages = Math.ceil(totalItems / state.itemsPerPage);
+            
+            if (totalPages <= 1) {
+                container.style.setProperty('display', 'none', 'important');
+                return;
+            }
+            
+            container.style.setProperty('display', 'flex', 'important');
+            
+            const startItem = (state.currentPage - 1) * state.itemsPerPage + 1;
+            const endItem = Math.min(state.currentPage * state.itemsPerPage, totalItems);
+            info.innerHTML = `Menampilkan ${startItem} sampai ${endItem} dari ${totalItems} data`;
+            
+            let html = '';
+            
+            html += `
+                <li class="page-item ${state.currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0);" data-page="${state.currentPage - 1}">
+                        <i class='bx bx-chevron-left'></i>
+                    </a>
+                </li>
+            `;
+            
+            for (let i = 1; i <= totalPages; i++) {
+                html += `
+                    <li class="page-item ${state.currentPage === i ? 'active' : ''}">
+                        <a class="page-link" href="javascript:void(0);" data-page="${i}">${i}</a>
+                    </li>
+                `;
+            }
+            
+            html += `
+                <li class="page-item ${state.currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0);" data-page="${state.currentPage + 1}">
+                        <i class='bx bx-chevron-right'></i>
+                    </a>
+                </li>
+            `;
+            
+            nav.innerHTML = html;
         }
 
         function updateTitles() {
@@ -331,10 +392,11 @@
                 },
                 success: function (response) {
                     const data = response?.data || {};
-                    const birthdayEvents = data.birthday_events || [];
+                    state.currentEvents = data.birthday_events || [];
+                    state.currentPage = 1;
 
-                    renderCalendar('birthdayCalendar', birthdayEvents, 'birthday');
-                    renderBirthdayList(birthdayEvents);
+                    renderCalendar('birthdayCalendar', state.currentEvents, 'birthday');
+                    renderBirthdayList();
                 },
                 error: function (xhr) {
                     const message = xhr?.responseJSON?.message || 'Gagal memuat data kalender';
@@ -371,6 +433,18 @@
 
             document.getElementById('btnNextMonth').addEventListener('click', function () {
                 moveMonth(1);
+            });
+
+            document.getElementById('paginationNav').addEventListener('click', function(e) {
+                const link = e.target.closest('.page-link');
+                if (link && link.dataset.page) {
+                    const page = parseInt(link.dataset.page, 10);
+                    const totalPages = Math.ceil(state.currentEvents.length / state.itemsPerPage);
+                    if (!isNaN(page) && page >= 1 && page <= totalPages && page !== state.currentPage) {
+                        state.currentPage = page;
+                        renderBirthdayList();
+                    }
+                }
             });
         });
     })();
