@@ -1250,10 +1250,21 @@ class AttendanceController extends Controller
         $subDepartment = $request->get('sub_department');
         $search = $request->get('search');
 
-        return Excel::download(
-            new \App\Exports\AttendanceExport($dateFrom, $dateTo, $status, $department, $search, $subDepartment),
-            'absensi_' . $dateFrom . '_' . $dateTo . '.xlsx'
-        );
+        ini_set('memory_limit', '512M');
+        set_time_limit(300);
+
+        try {
+            return Excel::download(
+                new \App\Exports\AttendanceExport($dateFrom, $dateTo, $status, $department, $search, $subDepartment),
+                'absensi_' . $dateFrom . '_' . $dateTo . '.xlsx'
+            );
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()
+                ->back()
+                ->with('error', 'Gagal export data absensi. Coba perkecil rentang tanggal atau hubungi admin.');
+        }
     }
 
     /**

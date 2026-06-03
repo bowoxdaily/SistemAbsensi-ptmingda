@@ -4,15 +4,18 @@ namespace App\Exports;
 
 use App\Models\Attendance;
 use App\Models\Karyawans;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use Carbon\Carbon;
 
-class AttendanceExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithTitle
+class AttendanceExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithTitle, WithEvents
 {
     protected $dateFrom;
     protected $dateTo;
@@ -21,9 +24,8 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
     protected $search;
     protected $subDepartment;
     protected $rowNumber = 0;
-    protected $attendanceData = [];
     protected $totalHadirByEmployee = [];
-    protected $weekendRows = []; // Track weekend placeholder rows
+    protected $weekendRows = [];
 
     public function __construct($dateFrom, $dateTo, $status = null, $department = null, $search = null, $subDepartment = null)
     {
@@ -40,9 +42,38 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
      */
     public function collection()
     {
-        $query = Attendance::with(['employee.department', 'employee.subDepartment', 'employee.position', 'employee.workSchedule']);
+        $this->totalHadirByEmployee = $this->calculateTotalHadirByEmployee();
 
-        // Apply filters
+        $query = Attendance::with([
+            'employee.department',
+            'employee.subDepartment',
+            'employee.position',
+            'employee.workSchedule',
+        ]);
+
+        $this->applyFilters($query);
+        $query->whereBetween('attendances.attendance_date', [$this->dateFrom, $this->dateTo]);
+
+        $data = $query
+            ->orderBy('attendance_date')
+            ->orderBy('employee_id')
+            ->get();
+
+        $weekendPlaceholders = $this->generateWeekendPlaceholders($this->dateFrom, $this->dateTo, $data);
+
+        return $data
+            ->concat($weekendPlaceholders)
+            ->sortBy(function ($attendance) {
+                $employeeCode = $attendance->employee->employee_code ?? '-';
+                $date = $attendance->attendance_date ?? null;
+
+                return [$employeeCode, $date];
+            })
+            ->values();
+    }
+
+    private function applyFilters(Builder $query): void
+    {
         if ($this->search) {
             $query->whereHas('employee', function ($q) {
                 $q->where('name', 'like', "%{$this->search}%")
@@ -51,7 +82,7 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
         }
 
         if ($this->status) {
-            $query->where('status', $this->status);
+            $query->where('attendances.status', $this->status);
         }
 
         if ($this->department) {
@@ -65,47 +96,22 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
                 $q->where('sub_department_id', $this->subDepartment);
             });
         }
+    }
 
-        $query->whereBetween('attendance_date', [$this->dateFrom, $this->dateTo]);
+    private function calculateTotalHadirByEmployee(): array
+    {
+        $query = Attendance::query()
+            ->whereBetween('attendances.attendance_date', [$this->dateFrom, $this->dateTo])
+            ->whereRaw('LOWER(attendances.status) = ?', ['hadir']);
 
-        // Get all attendance data
-        $data = $query->get();
+        $this->applyFilters($query);
 
-        // Generate weekend placeholders
-        $weekendPlaceholders = $this->generateWeekendPlaceholders($this->dateFrom, $this->dateTo, $data);
-
-        // Combine attendance data with weekend placeholders
-        $combinedData = $data->concat($weekendPlaceholders);
-
-        // Sort by employee code and date
-        $sortedData = $combinedData->sortBy(function ($attendance) {
-            $employeeCode = isset($attendance->employee) ? $attendance->employee->employee_code : '-';
-            $date = isset($attendance->attendance_date) ? $attendance->attendance_date : null;
-
-            return [
-                $employeeCode,  // Sort by NIP first
-                $date           // Then by date
-            ];
-        })->values();
-
-        // Calculate total hadir per employee (based on status = 'Hadir')
-        $this->totalHadirByEmployee = $sortedData
-            ->filter(function ($attendance) {
-                // Skip weekend placeholders
-                if (isset($attendance->is_weekend_placeholder) && $attendance->is_weekend_placeholder) {
-                    return false;
-                }
-                return isset($attendance->status) && strtoupper($attendance->status) === 'HADIR';
-            })
-            ->groupBy(function ($attendance) {
-                return $attendance->employee->employee_code ?? '-';
-            })
-            ->map(function ($group) {
-                return count($group);
-            })
+        return $query
+            ->join('employees', 'attendances.employee_id', '=', 'employees.id')
+            ->groupBy('employees.employee_code')
+            ->selectRaw('employees.employee_code, COUNT(*) as total')
+            ->pluck('total', 'employee_code')
             ->toArray();
-
-        return $sortedData;
     }
 
     /**
@@ -115,10 +121,11 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
     {
         $placeholders = collect();
 
-        // Get unique employees from existing attendances
-        $employees = $existingAttendances->pluck('employee')->unique('id');
+        $employees = $existingAttendances
+            ->pluck('employee')
+            ->filter()
+            ->unique('id');
 
-        // If no employees found from data, try to get from search filter
         if ($employees->isEmpty() && $this->search) {
             $employeeQuery = Karyawans::with(['department', 'subDepartment', 'position', 'workSchedule'])
                 ->where(function ($q) {
@@ -133,38 +140,39 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
             $employees = $employeeQuery->get();
         }
 
-        // Generate dates between dateFrom and dateTo
-        $start = Carbon::parse($dateFrom);
-        $end = Carbon::parse($dateTo);
+        if ($employees->isEmpty()) {
+            return $placeholders;
+        }
 
-        // Build a map of existing attendance dates per employee for quick lookup
-        $existingDates = $existingAttendances->groupBy('employee_id')->map(function ($items) {
-            return $items->pluck('attendance_date')->map(function ($date) {
-                return Carbon::parse($date)->format('Y-m-d');
-            });
-        });
+        $start = Carbon::parse($dateFrom)->startOfDay();
+        $end = Carbon::parse($dateTo)->startOfDay();
 
-        // Generate placeholders for weekends (Saturday & Sunday) without attendance
+        $existingDates = [];
+        foreach ($existingAttendances as $attendance) {
+            if (!$attendance->employee_id) {
+                continue;
+            }
+
+            $existingDates[$attendance->employee_id][] = Carbon::parse($attendance->attendance_date)->format('Y-m-d');
+        }
+
         foreach ($employees as $employee) {
             $current = $start->copy();
-            while ($current->lte($end)) {
-                // Check if it's Saturday (6) or Sunday (0)
-                if ($current->dayOfWeek === 6 || $current->dayOfWeek === 0) {
-                    $dateStr = $current->format('Y-m-d');
 
-                    // Check if this employee has attendance on this date
-                    $hasAttendance = isset($existingDates[$employee->id]) &&
-                                    $existingDates[$employee->id]->contains($dateStr);
+            while ($current->lte($end)) {
+                if ($current->dayOfWeek === Carbon::SATURDAY || $current->dayOfWeek === Carbon::SUNDAY) {
+                    $dateStr = $current->format('Y-m-d');
+                    $hasAttendance = isset($existingDates[$employee->id])
+                        && in_array($dateStr, $existingDates[$employee->id], true);
 
                     if (!$hasAttendance) {
-                        // Create placeholder object
                         $placeholder = new \stdClass();
                         $placeholder->is_weekend_placeholder = true;
-                        $placeholder->weekend_day = $current->dayOfWeek === 6 ? 'Sabtu' : 'Minggu';
+                        $placeholder->weekend_day = $current->dayOfWeek === Carbon::SATURDAY ? 'Sabtu' : 'Minggu';
                         $placeholder->id = null;
                         $placeholder->employee_id = $employee->id;
                         $placeholder->employee = $employee;
-                        $placeholder->attendance_date = Carbon::parse($dateStr);
+                        $placeholder->attendance_date = $current->copy();
                         $placeholder->check_in = null;
                         $placeholder->check_out = null;
                         $placeholder->status = null;
@@ -175,6 +183,7 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
                         $placeholders->push($placeholder);
                     }
                 }
+
                 $current->addDay();
             }
         }
@@ -189,21 +198,20 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
     {
         $this->rowNumber++;
 
-        // Handle weekend placeholder
-        if (isset($attendance->is_weekend_placeholder) && $attendance->is_weekend_placeholder) {
-            // Track this row number for styling
-            $this->weekendRows[] = $this->rowNumber + 1; // +1 because Excel rows start at 1, plus 1 for header
+        $employee = $attendance->employee ?? null;
+        $employeeCode = $employee->employee_code ?? '-';
+        $totalHadir = $this->totalHadirByEmployee[$employeeCode] ?? 0;
 
-            $employeeCode = $attendance->employee->employee_code ?? '-';
-            $totalHadir = $this->totalHadirByEmployee[$employeeCode] ?? 0;
+        if (isset($attendance->is_weekend_placeholder) && $attendance->is_weekend_placeholder) {
+            $this->weekendRows[] = $this->rowNumber + 1;
 
             return [
                 $this->rowNumber,
                 $employeeCode,
-                $attendance->employee->name ?? '-',
-                $attendance->employee->department->name ?? '-',
-                $attendance->employee->subDepartment->name ?? '-',
-                $attendance->employee->position->name ?? '-',
+                $employee->name ?? '-',
+                $employee->department->name ?? '-',
+                $employee->subDepartment->name ?? '-',
+                $employee->position->name ?? '-',
                 Carbon::parse($attendance->attendance_date)->locale('id')->translatedFormat('l, d F Y'),
                 '-',
                 '-',
@@ -216,37 +224,44 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
             ];
         }
 
-        // Handle normal attendance
-        $employeeCode = $attendance->employee->employee_code ?? '-';
-        $totalHadir = $this->totalHadirByEmployee[$employeeCode] ?? 0;
-
         return [
             $this->rowNumber,
             $employeeCode,
-            $attendance->employee->name ?? '-',
-            $attendance->employee->department->name ?? '-',
-            $attendance->employee->subDepartment->name ?? '-',
-            $attendance->employee->position->name ?? '-',
+            $employee->name ?? '-',
+            $employee->department->name ?? '-',
+            $employee->subDepartment->name ?? '-',
+            $employee->position->name ?? '-',
             Carbon::parse($attendance->attendance_date)->locale('id')->translatedFormat('l, d F Y'),
             $attendance->check_in ? Carbon::parse($attendance->check_in)->format('H:i') : '-',
             $attendance->check_out ? Carbon::parse($attendance->check_out)->format('H:i') : '-',
-            $attendance->employee->workSchedule ? (
-                // WorkSchedule times are already Carbon objects (datetime:H:i:s cast)
-                (($startTime = $attendance->employee->workSchedule->start_time) instanceof \Carbon\Carbon 
-                    ? $startTime->format('H:i') 
-                    : (preg_match('/(\d{1,2}):(\d{2})/', (string) $startTime, $m) ? $m[1].':'.$m[2] : '08:00')
-                ) . ' - ' .
-                (($endTime = $attendance->employee->workSchedule->end_time) instanceof \Carbon\Carbon 
-                    ? $endTime->format('H:i') 
-                    : (preg_match('/(\d{1,2}):(\d{2})/', (string) $endTime, $m) ? $m[1].':'.$m[2] : '17:00')
-                )
-            ) : '-',
-            strtoupper($attendance->status),
+            $this->formatWorkSchedule($employee),
+            strtoupper((string) ($attendance->status ?? '-')),
             $attendance->late_minutes > 0 ? $attendance->late_minutes . ' menit' : '-',
             $attendance->overtime_minutes > 0 ? $attendance->overtime_minutes . ' menit' : '-',
             $totalHadir,
             $attendance->notes ?? '-',
         ];
+    }
+
+    private function formatWorkSchedule($employee): string
+    {
+        if (!$employee || !$employee->workSchedule) {
+            return '-';
+        }
+
+        $schedule = $employee->workSchedule;
+        $startTime = $schedule->start_time;
+        $endTime = $schedule->end_time;
+
+        $startFormatted = $startTime instanceof Carbon
+            ? $startTime->format('H:i')
+            : (preg_match('/(\d{1,2}):(\d{2})/', (string) $startTime, $startMatch) ? $startMatch[1] . ':' . $startMatch[2] : '08:00');
+
+        $endFormatted = $endTime instanceof Carbon
+            ? $endTime->format('H:i')
+            : (preg_match('/(\d{1,2}):(\d{2})/', (string) $endTime, $endMatch) ? $endMatch[1] . ':' . $endMatch[2] : '17:00');
+
+        return $startFormatted . ' - ' . $endFormatted;
     }
 
     /**
@@ -274,12 +289,11 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
     }
 
     /**
-     * Style the worksheet
+     * Style the worksheet header only — weekend rows styled via AfterSheet
      */
     public function styles(Worksheet $sheet)
     {
-        $styles = [
-            // Style the first row as header
+        return [
             1 => [
                 'font' => [
                     'bold' => true,
@@ -287,28 +301,39 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
                 ],
                 'fill' => [
                     'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => '4CAF50']
+                    'startColor' => ['rgb' => '4CAF50'],
                 ],
                 'alignment' => [
                     'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
                 ],
             ],
         ];
+    }
 
-        // Apply grey background to weekend placeholder rows
-        foreach ($this->weekendRows as $rowNumber) {
-            $styles[$rowNumber] = [
-                'fill' => [
-                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => 'E0E0E0'] // Light grey
-                ],
-                'font' => [
-                    'color' => ['rgb' => '757575'], // Grey text
-                ],
-            ];
-        }
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                if (empty($this->weekendRows)) {
+                    return;
+                }
 
-        return $styles;
+                $sheet = $event->sheet->getDelegate();
+                $weekendStyle = [
+                    'fill' => [
+                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => 'E0E0E0'],
+                    ],
+                    'font' => [
+                        'color' => ['rgb' => '757575'],
+                    ],
+                ];
+
+                foreach ($this->weekendRows as $rowNumber) {
+                    $sheet->getStyle('A' . $rowNumber . ':O' . $rowNumber)->applyFromArray($weekendStyle);
+                }
+            },
+        ];
     }
 
     /**
