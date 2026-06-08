@@ -178,6 +178,7 @@ class KaryawanImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
             // Dispatch welcome notification job with delay
             $this->importedCount++;
             // Delay by 1 minute for each successfully imported user
+            // This prevents WhatsApp API rate limiting when importing bulk employees
             $delayMinutes = $this->importedCount;
             SendWelcomeNotificationJob::dispatch($karyawan, 'password123')
                 ->delay(now()->addMinutes($delayMinutes));
