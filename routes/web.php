@@ -111,6 +111,11 @@ Route::middleware(['auth'])->group(function () {
         // Pengumuman In-App (View only - API handles POST/PUT/DELETE)
         Route::get('/admin/announcements', [AnnouncementController::class, 'index'])->name('admin.announcements.index');
 
+        // One Point Lesson (OPL) - Admin UI
+        Route::get('/admin/opls', [\App\Http\Controllers\Admin\OPLController::class, 'index'])->name('admin.opls.index');
+        Route::get('/admin/opls/create', function(){ return view('admin.opls.create'); })->name('admin.opls.create');
+        Route::get('/admin/opls/{id}/edit', function($id){ return view('admin.opls.edit'); })->name('admin.opls.edit');
+
         // Status Karyawan Report
         Route::get('/admin/karyawan/status-report', [KaryawanController::class, 'statusReportPage'])->name('admin.karyawan.status-report');
         Route::get('/admin/karyawan/status-report/export', [KaryawanController::class, 'statusReportExport'])->name('admin.karyawan.status-report.export');
@@ -157,6 +162,12 @@ Route::middleware(['auth'])->group(function () {
     // Employee Routes (View only - API handles POST/PUT/DELETE)
     Route::get('/employee/attendance', [\App\Http\Controllers\Employee\AttendanceController::class, 'index'])->name('employee.attendance.index');
     Route::get('/employee/attendance/history', [\App\Http\Controllers\Employee\AttendanceController::class, 'historyPage'])->name('employee.attendance.history');
+
+    // One Point Lesson (Employee view)
+    Route::get('/employee/opls', [\App\Http\Controllers\Employee\OplController::class, 'index'])->name('employee.opls.index');
+    // OPL popups for dashboard (session-authenticated)
+    Route::get('/employee/opls/popups', [\App\Http\Controllers\Employee\OplController::class, 'getPopups'])->name('employee.opls.popups');
+    Route::post('/employee/opls/{id}/mark-read', [\App\Http\Controllers\Employee\OplController::class, 'markRead']);
 
     // Employee Leave (View only - API handles POST/DELETE)
     Route::get('/employee/leave', [\App\Http\Controllers\Employee\LeaveController::class, 'index'])->name('employee.leave.index');

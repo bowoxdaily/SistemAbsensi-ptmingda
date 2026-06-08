@@ -140,6 +140,14 @@
                 </a>
             </li>
 
+            <!-- One Point Lesson (OPL) -->
+            <li class="menu-item {{ request()->routeIs('admin.opls.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.opls.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-book-open"></i>
+                    <div data-i18n="OPL">One Point Lesson</div>
+                </a>
+            </li>
+
             <!-- Pengumuman In-App -->
             <li class="menu-item {{ request()->routeIs('admin.announcements.*') ? 'active' : '' }}">
                 <a href="{{ route('admin.announcements.index') }}" class="menu-link">
@@ -497,12 +505,21 @@
                         <div data-i18n="Profile">Profil Saya</div>
                     </a>
                 @else
-                    <a href="{{ route('employee.profile.index') }}" class="menu-link">
-                        <i class="menu-icon tf-icons bx bx-user"></i>
-                        <div data-i18n="Profile">Profil Saya</div>
+                    <a href="{{ route('employee.opls.index') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-book-open"></i>
+                        <div data-i18n="OPL">One Point Lesson</div>
                     </a>
                 @endif
             </li>
+
+            @if (Auth::user()->role != 'admin')
+            <li class="menu-item {{ request()->routeIs('employee.profile.*', 'admin.profile.*') ? 'active' : '' }}">
+                <a href="{{ route('employee.profile.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-user"></i>
+                    <div data-i18n="Profile">Profil Saya</div>
+                </a>
+            </li>
+            @endif
 
         @endif
     </ul>

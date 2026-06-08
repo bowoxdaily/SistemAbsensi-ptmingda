@@ -174,6 +174,28 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('admin/attendance')->group(f
     Route::post('/bulk-delete', [AttendanceController::class, 'bulkDelete']);
 });
 
+// OPL Admin API
+Route::middleware(['web', 'auth', 'admin'])->prefix('admin/opls')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Admin\OPLController::class, 'list']);
+    Route::post('/', [\App\Http\Controllers\Admin\OPLController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Admin\OPLController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Admin\OPLController::class, 'update']);
+    Route::post('/{id}/toggle-active', [\App\Http\Controllers\Admin\OPLController::class, 'toggleActive']);
+    Route::delete('/{id}', [\App\Http\Controllers\Admin\OPLController::class, 'destroy']);
+});
+
+// Employee OPL API (web)
+Route::middleware(['web', 'auth'])->prefix('employee/opls')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Employee\OplController::class, 'list']);
+    Route::get('/popups', [\App\Http\Controllers\Employee\OplController::class, 'getPopups']);
+});
+
+// Mobile endpoints for OPL popups
+Route::middleware('auth:sanctum')->prefix('mobile/v1')->group(function () {
+    Route::get('/opls', [\App\Http\Controllers\Employee\OplController::class, 'list']);
+    Route::get('/opls/popups', [\App\Http\Controllers\Employee\OplController::class, 'getPopups']);
+});
+
 // Attendance Edit Requests – submit & read (admin & manager)
 Route::middleware(['web', 'auth', 'admin'])->prefix('admin/attendance-edit-requests')->group(function () {
     Route::get('/', [AttendanceEditRequestController::class, 'list']);

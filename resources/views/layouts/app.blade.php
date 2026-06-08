@@ -180,6 +180,7 @@
     <!-- Main JS -->
     <script src="{{ asset('sneat-1.0.0/assets/js/main.js') }}" defer></script>
 
+    @include('layouts.partials.opls_modal')
     @stack('scripts')
 </body>
 
