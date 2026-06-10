@@ -26,10 +26,12 @@ Route::get('/user', function (Request $request) {
 // ─── External API Authentication ─────────────────────────────────────────────
 // Use these endpoints to get/revoke a Bearer token for external app access.
 // POST /api/auth/login        → { email, password } → returns { token }
+// POST /api/auth/google       → { google_token } → returns { token }
 // POST /api/auth/logout       → revoke current token
 // POST /api/auth/logout-all   → revoke all tokens of current user
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+    Route::post('/google', [AuthController::class, 'googleLogin'])->middleware('throttle:10,1');
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::post('/logout-all', [AuthController::class, 'logoutAll']);

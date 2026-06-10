@@ -141,6 +141,48 @@ Menghapus (revoke) token yang sedang digunakan.
   }
   ```
 
+### 1.3 Login dengan Google (Mobile)
+Digunakan untuk aplikasi mobile yang memakai Google Sign-In.
+
+**URL**: `/auth/google`
+**Method**: `POST`
+
+**Alur**:
+1. Aplikasi mobile login ke Google menggunakan Google Sign-In.
+2. Mobile mengirim `google_token` ke backend.
+3. Backend memverifikasi token Google, mencocokkan user berdasarkan email, lalu membuat Sanctum Bearer token.
+4. Token hasil login dipakai untuk akses endpoint `/mobile/v1/*`.
+
+**Catatan penting**:
+- Endpoint ini menggunakan token Google yang diterima dari aplikasi mobile.
+- Response dibuat sama seperti login biasa agar langsung bisa dipakai sebagai Bearer token.
+
+**Contoh request**:
+```json
+{
+  "google_token": "ya29.a0AfH6SM...",
+  "token_name": "mobile-google"
+}
+```
+
+**Contoh response sukses**:
+```json
+{
+  "success": true,
+  "message": "Login dengan Google berhasil",
+  "data": {
+    "token": "1|abcdef123456...",
+    "token_type": "Bearer",
+    "user": {
+      "id": 1,
+      "name": "Nama Karyawan",
+      "email": "karyawan@email.com",
+      "role": "karyawan"
+    }
+  }
+}
+```
+
 ---
 
 ## 2. Profil Karyawan
