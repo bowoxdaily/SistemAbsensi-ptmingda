@@ -17,6 +17,7 @@ class HolidayController extends Controller
     {
         $year = $request->get('year', date('Y'));
         $month = $request->get('month');
+        $perPage = max((int) $request->get('per_page', 5), 1);
 
         $query = Holiday::orderBy('date', 'asc');
 
@@ -28,23 +29,25 @@ class HolidayController extends Controller
             $query->whereYear('date', $year);
         }
 
-        $holidays = $query->get();
+        $holidays = $query->paginate($perPage);
+
+        $holidays->getCollection()->transform(function ($holiday) {
+            return [
+                'id' => $holiday->id,
+                'date' => $holiday->date->format('Y-m-d'),
+                'name' => $holiday->name,
+                'type' => $holiday->type,
+                'type_label' => $holiday->type_label,
+                'description' => $holiday->description,
+                'is_active' => $holiday->is_active,
+                'date_formatted' => $holiday->date->translatedFormat('d F Y'),
+                'day_name' => $holiday->date->translatedFormat('l'),
+            ];
+        });
 
         return response()->json([
             'success' => true,
-            'data' => $holidays->map(function ($holiday) {
-                return [
-                    'id' => $holiday->id,
-                    'date' => $holiday->date->format('Y-m-d'),
-                    'name' => $holiday->name,
-                    'type' => $holiday->type,
-                    'type_label' => $holiday->type_label,
-                    'description' => $holiday->description,
-                    'is_active' => $holiday->is_active,
-                    'date_formatted' => $holiday->date->translatedFormat('d F Y'),
-                    'day_name' => $holiday->date->translatedFormat('l'),
-                ];
-            })
+            'data' => $holidays
         ]);
     }
 

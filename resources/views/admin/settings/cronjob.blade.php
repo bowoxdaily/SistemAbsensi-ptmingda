@@ -102,6 +102,13 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mt-3">
+                            <small class="text-muted" id="holidayPaginationInfo">Menampilkan 0 data</small>
+                            <nav aria-label="Pagination hari libur">
+                                <ul class="pagination pagination-sm mb-0" id="holidayPaginationLinks"></ul>
+                            </nav>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -977,19 +984,25 @@
             // HOLIDAY MANAGEMENT FUNCTIONS
             // ============================================
 
-            function loadHolidays() {
+            let currentHolidayPage = 1;
+
+            function loadHolidays(page = 1) {
+                currentHolidayPage = page;
                 const year = $('#holidayYear').val();
                 const month = $('#holidayMonth').val();
 
                 $.ajax({
                     url: '/api/settings/holidays',
                     method: 'GET',
-                    data: { year, month },
+                    data: { year, month, page, per_page: 5 },
                     headers: {
                         'Accept': 'application/json'
                     },
                     success: function(response) {
-                        renderHolidaysTable(response.data);
+                        const paginatedData = response.data || {};
+                        const holidays = paginatedData.data || [];
+                        renderHolidaysTable(holidays);
+                        renderHolidayPagination(paginatedData);
                     },
                     error: function(xhr) {
                         toastr.error('Gagal memuat data hari libur', 'Error!');
@@ -1051,6 +1064,36 @@
                 });
             }
 
+            function renderHolidayPagination(data) {
+                const info = data.total
+                    ? `Menampilkan ${data.from || 0} - ${data.to || 0} dari ${data.total} data`
+                    : 'Tidak ada data hari libur';
+                $('#holidayPaginationInfo').text(info);
+
+                let links = '';
+                if (data.last_page > 1) {
+                    links += `<li class="page-item ${data.current_page === 1 ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="loadHolidays(${data.current_page - 1}); return false;">&lsaquo;</a>
+                    </li>`;
+
+                    for (let i = 1; i <= data.last_page; i++) {
+                        if (i === 1 || i === data.last_page || Math.abs(i - data.current_page) <= 2) {
+                            links += `<li class="page-item ${i === data.current_page ? 'active' : ''}">
+                                <a class="page-link" href="#" onclick="loadHolidays(${i}); return false;">${i}</a>
+                            </li>`;
+                        } else if (Math.abs(i - data.current_page) === 3) {
+                            links += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                        }
+                    }
+
+                    links += `<li class="page-item ${data.current_page === data.last_page ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="loadHolidays(${data.current_page + 1}); return false;">&rsaquo;</a>
+                    </li>`;
+                }
+
+                $('#holidayPaginationLinks').html(links);
+            }
+
             function showAddHolidayModal() {
                 $('#holidayModalTitle').text('Tambah Hari Libur');
                 $('#holidayForm')[0].reset();
@@ -1109,7 +1152,7 @@
                     success: function(response) {
                         toastr.success(response.message, 'Berhasil!');
                         bootstrap.Modal.getInstance(document.getElementById('holidayModal')).hide();
-                        loadHolidays();
+                        loadHolidays(currentHolidayPage);
                     },
                     error: function(xhr) {
                         if (xhr.responseJSON?.errors) {
@@ -1134,7 +1177,7 @@
                     },
                     success: function(response) {
                         toastr.success(response.message, 'Berhasil!');
-                        loadHolidays();
+                        loadHolidays(currentHolidayPage);
                     },
                     error: function(xhr) {
                         toastr.error(xhr.responseJSON?.message || 'Gagal mengubah status', 'Error!');
@@ -1165,7 +1208,7 @@
                             },
                             success: function(response) {
                                 toastr.success(response.message, 'Berhasil!');
-                                loadHolidays();
+                                loadHolidays(currentHolidayPage);
                             },
                             error: function(xhr) {
                                 toastr.error(xhr.responseJSON?.message || 'Gagal menghapus data', 'Error!');
@@ -1214,7 +1257,7 @@
                                     title: 'Berhasil!',
                                     text: response.message
                                 });
-                                loadHolidays();
+                                loadHolidays(currentHolidayPage);
                             },
                             error: function(xhr) {
                                 Swal.fire({
