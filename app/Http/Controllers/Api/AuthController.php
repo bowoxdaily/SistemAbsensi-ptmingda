@@ -13,6 +13,25 @@ use Laravel\Sanctum\PersonalAccessToken;
 class AuthController extends Controller
 {
     /**
+     * Determine whether the related employee is allowed to login.
+     */
+    private function hasActiveEmployeeStatus($user): bool
+    {
+        if (!$user instanceof User) {
+            return false;
+        }
+
+        $employee = $user->employee;
+
+        // Admin/manager may not have an employee record; only enforce when relation exists.
+        if (!$employee) {
+            return true;
+        }
+
+        return $employee->status === 'active';
+    }
+
+    /**
      * Login and issue a Sanctum API token.
      *
      * POST /api/auth/login
@@ -44,6 +63,16 @@ class AuthController extends Controller
         }
 
         $user      = Auth::user();
+
+        if (!$this->hasActiveEmployeeStatus($user)) {
+            Auth::logout();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Status karyawan tidak aktif. Silakan hubungi admin.',
+            ], 403);
+        }
+
         $tokenName = $request->input('token_name', 'api-token');
         $token     = $user->createToken($tokenName)->plainTextToken;
 
@@ -124,6 +153,13 @@ class AuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Akun Anda tidak aktif. Silakan hubungi admin.',
+            ], 403);
+        }
+
+        if (!$this->hasActiveEmployeeStatus($user)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Status karyawan tidak aktif. Silakan hubungi admin.',
             ], 403);
         }
 

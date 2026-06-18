@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\WorkSchedule;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
@@ -29,6 +30,7 @@ class KaryawanImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
     protected $positionCache = [];
     protected $workScheduleCache = [];
     protected $importedCount = 0;
+    protected $cumulativeDelaySeconds = 0;
 
 
     public function __construct()
@@ -131,8 +133,8 @@ class KaryawanImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
                 'password' => Hash::make('password123'),
             ]);
 
-            // Create employee
-            $karyawan = new Karyawans([
+            // Create employee and persist first so queued job gets a valid model id.
+            $karyawan = Karyawans::create([
                 'employee_code' => $row['kode_karyawan'],
                 'nik' => $row['nik'] ?? null,
                 'name' => $row['nama_lengkap'],
@@ -174,14 +176,22 @@ class KaryawanImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
             ]);
 
             DB::commit();
-            
+
             // Dispatch welcome notification job with delay
             $this->importedCount++;
-            // Delay by 1 minute for each successfully imported user
-            // This prevents WhatsApp API rate limiting when importing bulk employees
-            $delayMinutes = $this->importedCount;
+            // Randomized interval between 30-60 seconds to reduce provider rate-limit risk.
+            $intervalSeconds = random_int(30, 60);
+            $this->cumulativeDelaySeconds += $intervalSeconds;
+
             SendWelcomeNotificationJob::dispatch($karyawan, 'password123')
-                ->delay(now()->addMinutes($delayMinutes));
+                ->delay(now()->addSeconds($this->cumulativeDelaySeconds));
+
+            Log::info('Welcome notification job queued from import', [
+                'employee_id' => $karyawan->id,
+                'employee_code' => $karyawan->employee_code,
+                'delay_interval_seconds' => $intervalSeconds,
+                'delay_total_seconds' => $this->cumulativeDelaySeconds,
+            ]);
 
             return $karyawan;
         } catch (\Exception $e) {

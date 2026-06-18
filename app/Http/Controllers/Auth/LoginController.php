@@ -13,6 +13,25 @@ use Laravel\Socialite\Facades\Socialite;
 class LoginController extends Controller
 {
     /**
+     * Determine whether the related employee is allowed to login.
+     */
+    private function hasActiveEmployeeStatus($user): bool
+    {
+        if (!$user instanceof User) {
+            return false;
+        }
+
+        $employee = $user->employee;
+
+        // Admin/manager may not have an employee record; only enforce when relation exists.
+        if (!$employee) {
+            return true;
+        }
+
+        return $employee->status === 'active';
+    }
+
+    /**
      * Show the login form
      */
     public function showLoginForm()
@@ -31,6 +50,16 @@ class LoginController extends Controller
         ]);
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            $user = Auth::user();
+
+            if (!$this->hasActiveEmployeeStatus($user)) {
+                Auth::logout();
+
+                throw ValidationException::withMessages([
+                    'email' => 'Status karyawan Anda tidak aktif. Silakan hubungi admin.',
+                ]);
+            }
+
             $request->session()->regenerate();
 
             return redirect()->intended(route('dashboard'));
@@ -102,6 +131,12 @@ class LoginController extends Controller
         if ($user->status !== 'aktif') {
             return redirect()->route('login')->withErrors([
                 'email' => 'Akun Anda tidak aktif. Silakan hubungi admin.',
+            ]);
+        }
+
+        if (!$this->hasActiveEmployeeStatus($user)) {
+            return redirect()->route('login')->withErrors([
+                'email' => 'Status karyawan Anda tidak aktif. Silakan hubungi admin.',
             ]);
         }
 
