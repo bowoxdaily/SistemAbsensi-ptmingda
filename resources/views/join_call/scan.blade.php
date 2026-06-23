@@ -203,8 +203,8 @@
             </div>
             
             <div class="info-row">
-                <div class="info-label">Posisi</div>
-                <div class="info-value">{{ $joinCall->position->name }}</div>
+                <div class="info-label">Departemen</div>
+                <div class="info-value">{{ $joinCall->department->name ?? '-' }}</div>
             </div>
             
             <div class="info-row">

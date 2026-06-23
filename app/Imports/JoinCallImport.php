@@ -3,7 +3,7 @@
 namespace App\Imports;
 
 use App\Models\JoinCall;
-use App\Models\Position;
+use App\Models\Department;
 use App\Models\JoinMessageTemplate;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\ToModel;
@@ -19,15 +19,15 @@ class JoinCallImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
 {
     use Importable, SkipsErrors, SkipsFailures;
 
-    protected $positionCache = [];
+    protected $departmentCache = [];
     protected $templateCache = [];
 
     public function __construct()
     {
-        // Cache positions to avoid repeated queries (case-insensitive)
-        $positions = Position::where('status', 'active')->get();
-        foreach ($positions as $position) {
-            $this->positionCache[strtolower(trim($position->name))] = $position->id;
+        // Cache departments to avoid repeated queries (case-insensitive)
+        $departments = Department::query()->get();
+        foreach ($departments as $department) {
+            $this->departmentCache[strtolower(trim($department->name))] = $department->id;
         }
 
         // Cache message templates (case-insensitive)
@@ -51,14 +51,14 @@ class JoinCallImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
         // Skip empty rows - check multiple fields
         $isEmpty = empty(trim($row['nama_kandidat'] ?? '')) 
                 && empty(trim($row['no_hp'] ?? ''))
-                && empty(trim($row['posisi'] ?? ''));
+            && empty(trim($row['departemen'] ?? ($row['posisi'] ?? '')));
         
         if ($isEmpty) {
             return null;
         }
 
         // Also skip if only nama filled but no other required fields
-        if (!empty($row['nama_kandidat']) && empty($row['no_hp']) && empty($row['posisi'])) {
+        if (!empty($row['nama_kandidat']) && empty($row['no_hp']) && empty($row['departemen'] ?? ($row['posisi'] ?? ''))) {
             return null;
         }
 
@@ -69,8 +69,8 @@ class JoinCallImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
         if (empty(trim($row['no_hp'] ?? ''))) {
             throw new \Exception("No. HP wajib diisi");
         }
-        if (empty(trim($row['posisi'] ?? ''))) {
-            throw new \Exception("Posisi wajib diisi");
+        if (empty(trim($row['departemen'] ?? ($row['posisi'] ?? '')))) {
+            throw new \Exception("Departemen wajib diisi");
         }
         if (empty($row['tanggal_join'])) {
             throw new \Exception("Tanggal Join wajib diisi");
@@ -79,12 +79,13 @@ class JoinCallImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
             throw new \Exception("Waktu Join wajib diisi");
         }
 
-        // Get position ID (case-insensitive lookup)
-        $positionName = strtolower(trim($row['posisi']));
-        $positionId = $this->positionCache[$positionName] ?? null;
-        if (!$positionId) {
-            $availablePositions = implode(', ', array_keys($this->positionCache));
-            throw new \Exception("Posisi '{$row['posisi']}' tidak ditemukan. Posisi yang tersedia: {$availablePositions}");
+        // Get department ID (case-insensitive lookup)
+        $departmentRaw = $row['departemen'] ?? ($row['posisi'] ?? '');
+        $departmentName = strtolower(trim($departmentRaw));
+        $departmentId = $this->departmentCache[$departmentName] ?? null;
+        if (!$departmentId) {
+            $availableDepartments = implode(', ', array_keys($this->departmentCache));
+            throw new \Exception("Departemen '{$departmentRaw}' tidak ditemukan. Departemen yang tersedia: {$availableDepartments}");
         }
 
         // Parse date
@@ -123,7 +124,7 @@ class JoinCallImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
             'candidate_name' => $row['nama_kandidat'],
             'phone' => $this->formatPhone($row['no_hp']),
             'email' => !empty($row['email']) ? $row['email'] : null,
-            'position_id' => $positionId,
+            'department_id' => $departmentId,
             'join_call_date' => $joinDate,
             'join_call_time' => $joinTime,
             'location' => !empty($row['lokasi']) ? $row['lokasi'] : 'Kantor PT Mingda',
@@ -142,6 +143,7 @@ class JoinCallImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
             'nama_kandidat' => 'nullable|string|max:255',
             'no_hp' => 'nullable|string',
             'email' => 'nullable|email',
+            'departemen' => 'nullable|string',
             'posisi' => 'nullable|string',
             'tanggal_join' => 'nullable',
             'waktu_join' => 'nullable',
@@ -160,7 +162,7 @@ class JoinCallImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
             'nama_kandidat.required' => 'Nama Kandidat wajib diisi',
             'no_hp.required' => 'No. HP wajib diisi',
             'email.email' => 'Format email tidak valid',
-            'posisi.required' => 'Posisi wajib diisi',
+            'departemen.required' => 'Departemen wajib diisi',
             'tanggal_join.required' => 'Tanggal Join wajib diisi',
             'waktu_join.required' => 'Waktu Join wajib diisi',
         ];

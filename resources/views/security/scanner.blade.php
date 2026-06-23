@@ -74,7 +74,7 @@
                                     <div class="col-6"><strong>Nama:</strong></div>
                                     <div class="col-6" id="infoName"></div>
                                     
-                                    <div class="col-6"><strong>Posisi:</strong></div>
+                                    <div class="col-6"><strong>Posisi/Departemen:</strong></div>
                                     <div class="col-6" id="infoPosition"></div>
                                     
                                     <div class="col-6"><strong>No. HP:</strong></div>
@@ -155,7 +155,7 @@
                                 <div class="flex-grow-1 ms-2">
                                     <h6 class="mb-0 small">{{ $joinCall->candidate_name }}</h6>
                                     <small class="text-muted">
-                                        <i class='bx bx-briefcase'></i> {{ $joinCall->position->name }}<br>
+                                        <i class='bx bx-building-house'></i> {{ $joinCall->department->name ?? '-' }}<br>
                                         <i class='bx bx-time'></i> {{ $joinCall->join_call_time->format('H:i') }}
                                         @if($joinCall->isCheckedIn())
                                             &nbsp;<i class='bx bx-check-circle text-success'></i> {{ $joinCall->checked_in_at->format('H:i') }}
@@ -364,6 +364,8 @@
             const timeLabel = data.label || 'Waktu';
             const typeLabel = data.type === 'join_call' ? 'Panggilan Join' : 'Interview';
             const typeBadgeColor = data.type === 'join_call' ? '#696cff' : '#28a745';
+            const roleLabel = data.role_label || 'Posisi';
+            const roleValue = data.role_value || data.position || '-';
             
             // Parse time safely
             let eventTime = String(data.event_time || '');
@@ -384,8 +386,8 @@
                                 <td>${data.candidate_name}</td>
                             </tr>
                             <tr>
-                                <td><strong>Posisi:</strong></td>
-                                <td>${data.position}</td>
+                                <td><strong>${roleLabel}:</strong></td>
+                                <td>${roleValue}</td>
                             </tr>
                             <tr>
                                 <td><strong>No. HP:</strong></td>
@@ -473,7 +475,7 @@
                                 <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
                                     <div>
                                         <strong>${item.candidate_name}</strong>
-                                        <br><small class="text-muted">${item.position}</small>
+                                        <br><small class="text-muted">${item.role_value || item.position || '-'}</small>
                                         <br><span class="badge ${badgeColor} badge-sm" style="font-size:10px;">${item.type_label}</span>
                                     </div>
                                     <div class="text-end">

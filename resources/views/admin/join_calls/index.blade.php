@@ -119,12 +119,12 @@
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Posisi</label>
-                            <select class="form-select" name="position_id">
-                                <option value="">Semua Posisi</option>
-                                @foreach ($positions as $position)
-                                    <option value="{{ $position->id }}" {{ request('position_id') == $position->id ? 'selected' : '' }}>
-                                        {{ $position->name }}
+                            <label class="form-label">Departemen</label>
+                            <select class="form-select" name="department_id">
+                                <option value="">Semua Departemen</option>
+                                @foreach ($departments as $department)
+                                    <option value="{{ $department->id }}" {{ request('department_id') == $department->id ? 'selected' : '' }}>
+                                        {{ $department->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -179,7 +179,7 @@
                                 <th>Nama Kandidat</th>
                                 <th>No. HP</th>
                                 <th>Email</th>
-                                <th>Posisi</th>
+                                <th>Departemen</th>
                                 <th>Tanggal Join</th>
                                 <th>Waktu</th>
                                 <th>Status</th>
@@ -199,7 +199,7 @@
                                     <td><strong>{{ $join_call->candidate_name }}</strong></td>
                                     <td>{{ $join_call->phone }}</td>
                                     <td>{{ $join_call->email ?? '-' }}</td>
-                                    <td><span class="badge bg-label-primary">{{ $join_call->position->name }}</span></td>
+                                    <td><span class="badge bg-label-primary">{{ $join_call->department->name ?? '-' }}</span></td>
                                     <td>{{ \Carbon\Carbon::parse($join_call->join_call_date)->locale('id')->translatedFormat('d M Y') }}</td>
                                     <td>{{ \Carbon\Carbon::parse($join_call->join_call_time)->format('H:i') }} WIB</td>
                                     <td>
@@ -273,7 +273,7 @@
                                         <div>
                                             <h6 class="mb-1">{{ $join_call->candidate_name }}</h6>
                                             <small class="text-muted">
-                                                <i class='bx bx-briefcase'></i> {{ $join_call->position->name }}
+                                                <i class='bx bx-building-house'></i> {{ $join_call->department->name ?? '-' }}
                                             </small>
                                         </div>
                                     </div>
@@ -393,11 +393,11 @@
                                 <input type="email" class="form-control" id="email" name="email">
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Posisi yang Dilamar <span class="text-danger">*</span></label>
-                                <select class="form-select" id="position_id" name="position_id" required>
-                                    <option value="">Pilih Posisi</option>
-                                    @foreach ($positions as $position)
-                                        <option value="{{ $position->id }}">{{ $position->name }}</option>
+                                <label class="form-label">Departemen <span class="text-danger">*</span></label>
+                                <select class="form-select" id="department_id" name="department_id" required>
+                                    <option value="">Pilih Departemen</option>
+                                    @foreach ($departments as $department)
+                                        <option value="{{ $department->id }}">{{ $department->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -457,7 +457,7 @@
                             <div class="d-flex justify-content-between align-items-center mt-2">
                                 <small class="text-muted">
                                     <strong>Placeholder:</strong> 
-                                    <code>{nama}</code>, <code>{posisi}</code>, <code>{tanggal}</code>, 
+                                    <code>{nama}</code>, <code>{departemen}</code>, <code>{tanggal}</code>, 
                                     <code>{waktu}</code>, <code>{lokasi}</code>, <code>{catatan}</code>
                                 </small>
                                 <small class="text-muted">
@@ -563,7 +563,7 @@
                             <textarea class="form-control" id="edit_template_message" rows="10" required></textarea>
                             <small class="text-muted d-block mt-1">
                                 <strong>Gunakan placeholder:</strong> 
-                                <code>{nama}</code>, <code>{posisi}</code>, <code>{tanggal}</code>, 
+                                <code>{nama}</code>, <code>{departemen}</code>, <code>{tanggal}</code>, 
                                 <code>{waktu}</code>, <code>{lokasi}</code>, <code>{catatan}</code>
                             </small>
                             <small class="text-muted">
@@ -598,11 +598,11 @@
                             <ol class="mb-0 mt-2 ps-3">
                                 <li>Download template Excel terlebih dahulu</li>
                                 <li><strong>PENTING:</strong> Mulai isi data dari <u>BARIS KE-3</u> (baris 2 adalah contoh berwarna kuning yang akan di-skip otomatis)</li>
-                                <li><strong>Kolom WAJIB diisi:</strong> Nama Kandidat, No. HP, Posisi, Tanggal Join, Waktu Join</li>
+                                <li><strong>Kolom WAJIB diisi:</strong> Nama Kandidat, No. HP, Departemen, Tanggal Join, Waktu Join</li>
                                 <li><strong>Kolom OPSIONAL:</strong> Email, Lokasi (default: Kantor PT Mingda), Catatan, Template Notifikasi</li>
                                 <li><strong>Format Tanggal:</strong> YYYY-MM-DD atau M/D/YYYY (contoh: 2026-02-20 atau 2/15/2026). Biarkan Excel format otomatis.</li>
                                 <li><strong>Format Waktu:</strong> HH:MM atau angka jam (contoh: 09:00, 9:30, atau ketik 9 untuk 09:00). Sistem support berbagai format waktu Excel.</li>
-                                <li>Kolom Posisi dan Template Notifikasi memiliki <strong>dropdown otomatis</strong> - pilih dari list</li>
+                                <li>Kolom Departemen dan Template Notifikasi memiliki <strong>dropdown otomatis</strong> - pilih dari list</li>
                                 <li><strong>Template Notifikasi:</strong> Pilih dari dropdown untuk pakai template tersimpan. Kosongkan untuk pakai template default sistem.</li>
                                 <li>Baris kosong akan di-skip otomatis - tidak perlu dihapus</li>
                                 <li>Upload file yang sudah diisi</li>
@@ -616,7 +616,7 @@
                                     <i class='bx bx-download me-1'></i> Download Template Excel
                                 </a>
                             </div>
-                            <small class="text-muted">File contoh dengan format yang benar + dropdown (Posisi & Template Notifikasi)</small>
+                            <small class="text-muted">File contoh dengan format yang benar + dropdown (Departemen & Template Notifikasi)</small>
                         </div>
 
                         <div class="mb-3">
@@ -860,7 +860,7 @@
                     candidate_name: $('#candidate_name').val(),
                     phone: $('#phone').val(),
                     email: $('#email').val() || null,
-                    position_id: $('#position_id').val(),
+                    department_id: $('#department_id').val(),
                     join_call_date: $('#join_call_date').val(),
                     join_call_time: $('#join_call_time').val(),
                     location: $('#location').val(),
@@ -932,7 +932,7 @@
                         $('#candidate_name').val(data.candidate_name);
                         $('#phone').val(data.phone);
                         $('#email').val(data.email);
-                        $('#position_id').val(data.position_id);
+                        $('#department_id').val(data.department_id);
                         
                         // Parse date
                         const dateStr = String(data.join_call_date);
@@ -990,7 +990,7 @@
                                         <tr><th width="40%">Nama</th><td>${data.candidate_name}</td></tr>
                                         <tr><th>No. HP</th><td>${data.phone}</td></tr>
                                         <tr><th>Email</th><td>${data.email || '-'}</td></tr>
-                                        <tr><th>Posisi</th><td>${data.position.name}</td></tr>
+                                        <tr><th>Departemen</th><td>${data.department?.name || '-'}</td></tr>
                                     </table>
                                 </div>
                                 <div class="col-md-6">
@@ -1586,8 +1586,8 @@
             $('#previewMessageBtn').on('click', function() {
                 const template = $('#custom_message_template').val();
                 const candidateName = $('#candidate_name').val() || '[Nama Kandidat]';
-                const positionId = $('#position_id').val();
-                const positionName = positionId ? $('#position_id option:selected').text() : '[Posisi]';
+                const departmentId = $('#department_id').val();
+                const departmentName = departmentId ? $('#department_id option:selected').text() : '[Departemen]';
                 const join_callDate = $('#join_call_date').val();
                 const join_callTime = $('#join_call_time').val();
                 const location = $('#location').val() || 'Kantor PT Mingda';
@@ -1614,7 +1614,7 @@
 Kepada Yth,
 *{nama}*
 
-Berdasarkan hasil seleksi berkas Anda, kami mengundang Anda untuk mengikuti sesi join_call untuk posisi *{posisi}*.
+Berdasarkan hasil seleksi berkas Anda, kami mengundang Anda untuk mengikuti sesi join_call di departemen *{departemen}*.
 
 ðŸ“… *Tanggal:* {tanggal}
 ðŸ• *Waktu:* {waktu} WIB
@@ -1631,7 +1631,9 @@ Terima kasih dan sampai jumpa di hari join_call.
 
                 // Replace placeholders
                 message = message.replace(/{nama}/g, candidateName);
-                message = message.replace(/{posisi}/g, positionName);
+                message = message.replace(/{departemen}/g, departmentName);
+                // Backward compatibility for old templates that still use {posisi}
+                message = message.replace(/{posisi}/g, departmentName);
                 message = message.replace(/{tanggal}/g, formattedDate);
                 message = message.replace(/{waktu}/g, formattedTime);
                 message = message.replace(/{lokasi}/g, location);

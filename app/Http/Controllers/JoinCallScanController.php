@@ -13,7 +13,7 @@ class JoinCallScanController extends Controller
      */
     public function scan($token)
     {
-        $joinCall = JoinCall::with('position')
+        $joinCall = JoinCall::with('department')
             ->where('qr_code_token', $token)
             ->first();
 
@@ -77,7 +77,7 @@ class JoinCallScanController extends Controller
      */
     public function getDetails($token)
     {
-        $joinCall = JoinCall::with('position')
+        $joinCall = JoinCall::with('department')
             ->where('qr_code_token', $token)
             ->first();
 
@@ -93,7 +93,7 @@ class JoinCallScanController extends Controller
             'data' => [
                 'id' => $joinCall->id,
                 'candidate_name' => $joinCall->candidate_name,
-                'position' => $joinCall->position->name,
+                'department' => $joinCall->department?->name,
                 'join_call_date' => $joinCall->join_call_date->format('d/m/Y'),
                 'join_call_time' => $joinCall->join_call_time->format('H:i'),
                 'location' => $joinCall->location,

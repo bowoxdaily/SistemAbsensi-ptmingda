@@ -92,24 +92,62 @@ class WhatsAppService
         // Use provided API key or fallback to default
         $useApiKey = $apiKey ?: $this->setting->api_key;
 
-        $response = Http::withHeaders([
-            'Authorization' => $useApiKey,
-        ])->post($url, $data);
+        $attemptSend = function ($keyToUse, $usingCustomKey) use ($url, $data, $phoneNumber, $customSender) {
+            $response = Http::withHeaders([
+                'Authorization' => $keyToUse,
+            ])->post($url, $data);
 
-        if ($response->successful()) {
-            Log::info('WhatsApp sent via Fonnte', [
+            $json = $response->json();
+            $status = is_array($json) ? (bool) ($json['status'] ?? false) : false;
+
+            if ($response->successful() && $status) {
+                Log::info('WhatsApp sent via Fonnte', [
+                    'phone' => $phoneNumber,
+                    'custom_sender' => $customSender,
+                    'using_custom_api_key' => $usingCustomKey,
+                    'response' => $json,
+                ]);
+                return [true, $json, null, $response->status()];
+            }
+
+            $errorReason = is_array($json)
+                ? ($json['reason'] ?? $json['message'] ?? 'Unknown Fonnte error')
+                : ('HTTP ' . $response->status());
+
+            Log::error('Fonnte API Error', [
                 'phone' => $phoneNumber,
-                'custom_sender' => $customSender,
-                'using_custom_api_key' => !is_null($apiKey),
-                'response' => $response->json(),
+                'using_custom_api_key' => $usingCustomKey,
+                'http_status' => $response->status(),
+                'error_reason' => $errorReason,
+                'response' => $response->body(),
             ]);
+
+            return [false, $json, $errorReason, $response->status()];
+        };
+
+        [$ok, $json, $errorReason] = $attemptSend($useApiKey, !is_null($apiKey));
+        if ($ok) {
             return true;
         }
 
-        Log::error('Fonnte API Error', [
-            'phone' => $phoneNumber,
-            'response' => $response->body(),
-        ]);
+        // If custom key fails due auth/token issues, retry once with default key.
+        if (!is_null($apiKey) && !empty($this->setting->api_key) && $this->setting->api_key !== $apiKey) {
+            $reasonLower = strtolower((string) $errorReason);
+            $shouldRetryWithDefault = str_contains($reasonLower, 'token')
+                || str_contains($reasonLower, 'auth')
+                || str_contains($reasonLower, 'unauthorized');
+
+            if ($shouldRetryWithDefault) {
+                Log::warning('Retrying Fonnte send with default API key after custom key failure', [
+                    'phone' => $phoneNumber,
+                    'failure_reason' => $errorReason,
+                ]);
+
+                [$fallbackOk] = $attemptSend($this->setting->api_key, false);
+                return $fallbackOk;
+            }
+        }
+
         return false;
     }
 
