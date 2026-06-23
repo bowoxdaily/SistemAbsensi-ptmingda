@@ -18,9 +18,8 @@ class EmployeeCareer extends Model
         'updated_by',
     ];
 
-    protected $casts = [
-        'effective_date' => 'date',
-    ];
+    // Don't cast effective_date - keep as Y-m-d string from database
+    // This prevents timezone conversion issues when returning to API
 
     public function employee(): BelongsTo
     {

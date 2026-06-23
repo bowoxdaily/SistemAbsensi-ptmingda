@@ -27,7 +27,7 @@ class JoinCall extends Model
     ];
 
     protected $casts = [
-        'join_call_date' => 'date',
+        // 'join_call_date' => 'date', // Don't cast - keep as Y-m-d string from database
         'join_call_time' => 'datetime:H:i:s',
         'wa_sent_at'     => 'datetime',
         'checked_in_at'  => 'datetime',

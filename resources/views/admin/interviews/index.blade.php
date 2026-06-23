@@ -973,7 +973,17 @@
                     method: 'GET',
                     success: function(response) {
                         const data = response.data;
-                        const date = new Date(data.interview_date).toLocaleDateString('id-ID', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
+                        
+                        // Format date from YYYY-MM-DD string (no timezone conversion)
+                        let dateStr = String(data.interview_date).split('T')[0]; // Extract YYYY-MM-DD
+                        let dateDisplay = '-';
+                        if (dateStr) {
+                            const [year, month, day] = dateStr.split('-');
+                            const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                            if (year && month && day) {
+                                dateDisplay = `${parseInt(day)} ${monthNames[parseInt(month)-1]} ${year}`;
+                            }
+                        }
                         
                         let statusBadge = '';
                         if (data.status === 'scheduled') statusBadge = '<span class="badge bg-warning">Terjadwal</span>';
@@ -996,7 +1006,7 @@
                                 <div class="col-md-6">
                                     <h6 class="mb-3">Detail Interview</h6>
                                     <table class="table table-sm">
-                                        <tr><th width="40%">Tanggal</th><td>${date}</td></tr>
+                                        <tr><th width="40%">Tanggal</th><td>${dateDisplay}</td></tr>
                                         <tr><th>Waktu</th><td>${data.interview_time.substring(0, 5)} WIB</td></tr>
                                         <tr><th>Lokasi</th><td>${data.location}</td></tr>
                                         <tr><th>Status</th><td>${statusBadge}</td></tr>

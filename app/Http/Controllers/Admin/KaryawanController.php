@@ -205,9 +205,12 @@ class KaryawanController extends Controller
             ], 404);
         }
 
+        // Convert to array (dates are already Y-m-d strings since model doesn't cast)
+        $data = $karyawan->toArray();
+
         return response()->json([
             'success' => true,
-            'data' => $karyawan
+            'data' => $data
         ]);
     }
 
@@ -408,7 +411,7 @@ class KaryawanController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Riwayat karir berhasil diperbarui',
-            'data' => $career->load(['previousPosition', 'newPosition'])
+            'data' => $career->load(['previousPosition', 'newPosition'])->toArray()
         ]);
     }
 

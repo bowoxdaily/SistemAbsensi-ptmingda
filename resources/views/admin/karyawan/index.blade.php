@@ -2133,6 +2133,8 @@
 
             // Parse Y-m-d format manually (no timezone conversion)
             const [year, month, day] = datePart.split('-');
+            
+            console.log('formatDateToDisplay:', {input: dateString, datePart, year, month, day}); // DEBUG
 
             // Return in dd-mm-yyyy format
             return `${day}-${month}-${year}`;
@@ -2381,6 +2383,8 @@
                 return;
             }
 
+            console.log('Career data from API:', careerHistories); // DEBUG
+
             const container = $('#careerHistoryContainer');
             const cardView = $('#careerHistoryCardView');
             const cardBody = $('#careerHistoryCardBody');
@@ -2488,7 +2492,13 @@
             $('#careerId').val(career.id);
             $('#careerPreviousPositionId').val(career.previous_position_id || '');
             $('#careerNewPositionId').val(career.new_position_id || '');
-            $('#careerEffectiveDate').val((career.effective_date || '').toString().split('T')[0]);
+            
+            // Extract YYYY-MM-DD from career.effective_date using regex (no timezone conversion)
+            const effectiveDateStr = (career.effective_date || '').toString();
+            const dateMatch = effectiveDateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+            const effectiveDate = dateMatch ? `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}` : '';
+            $('#careerEffectiveDate').val(effectiveDate);
+            
             $('#careerMovementType').val(career.movement_type || 'mutasi');
             $('#careerNotes').val(career.notes || '');
 

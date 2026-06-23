@@ -209,7 +209,7 @@
             
             <div class="info-row">
                 <div class="info-label">Tanggal</div>
-                <div class="info-value">{{ $joinCall->join_call_date->format('d/m/Y') }}</div>
+                <div class="info-value">{{ \Carbon\Carbon::parse($joinCall->join_call_date)->format('d/m/Y') }}</div>
             </div>
             
             <div class="info-row">

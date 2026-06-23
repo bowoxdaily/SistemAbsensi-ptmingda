@@ -114,7 +114,7 @@
                 </div>
                 <div class="info-row">
                     <div class="info-label">Tanggal</div>
-                    <div class="info-value">{{ $interview->interview_date->format('d/m/Y') }}</div>
+                    <div class="info-value">{{ \Carbon\Carbon::parse($interview->interview_date)->format('d/m/Y') }}</div>
                 </div>
                 <div class="info-row">
                     <div class="info-label">Waktu</div>

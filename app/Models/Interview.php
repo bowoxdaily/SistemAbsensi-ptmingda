@@ -26,7 +26,7 @@ class Interview extends Model
     ];
 
     protected $casts = [
-        'interview_date' => 'date',
+        // 'interview_date' => 'date', // Don't cast - keep as Y-m-d string from database
         'interview_time' => 'datetime:H:i:s',
         'wa_sent_at' => 'datetime',
         'checked_in_at' => 'datetime',
