@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Karyawans;
 use App\Models\Department;
+use App\Models\EmployeeCareer;
 use App\Models\Position;
 use App\Models\User;
 use App\Models\WorkSchedule;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -186,7 +188,15 @@ class KaryawanController extends Controller
      */
     public function show($id)
     {
-        $karyawan = Karyawans::with(['department', 'subDepartment', 'position', 'supervisor', 'workSchedule'])->find($id);
+        $isHr = in_array(optional(Auth::user())->role, ['manager', 'admin'], true);
+
+        $relations = ['department', 'subDepartment', 'position', 'supervisor', 'workSchedule', 'warningLetters'];
+        if ($isHr) {
+            $relations[] = 'careerHistories.previousPosition';
+            $relations[] = 'careerHistories.newPosition';
+        }
+
+        $karyawan = Karyawans::with($relations)->find($id);
 
         if (!$karyawan) {
             return response()->json([
@@ -285,6 +295,9 @@ class KaryawanController extends Controller
             ], 422);
         }
 
+        $previousPositionId = $karyawan->position_id;
+        $nextPositionId = (int) $request->position_id;
+
         DB::beginTransaction();
         try {
             // Normalize geographic fields to UPPERCASE before update
@@ -296,6 +309,22 @@ class KaryawanController extends Controller
                 $karyawan->user->update([
                     'name' => $request->name,
                     'email' => $request->email,
+                ]);
+            }
+
+            if ((int) $previousPositionId !== $nextPositionId) {
+                $oldPosition = Position::find($previousPositionId);
+                $newPosition = Position::find($nextPositionId);
+
+                EmployeeCareer::create([
+                    'employee_id' => $karyawan->id,
+                    'previous_position_id' => $previousPositionId,
+                    'new_position_id' => $nextPositionId,
+                    'effective_date' => now()->toDateString(),
+                    'movement_type' => $this->resolveMovementType($oldPosition, $newPosition),
+                    'notes' => 'Perubahan posisi otomatis dari edit data karyawan.',
+                    'created_by' => Auth::id(),
+                    'updated_by' => Auth::id(),
                 ]);
             }
 
@@ -313,6 +342,110 @@ class KaryawanController extends Controller
                 'message' => 'Gagal memperbarui karyawan: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Update one career history record (HR only)
+     */
+    public function updateCareerHistory(Request $request, $id, $careerId)
+    {
+        if (!in_array(optional(Auth::user())->role, ['manager', 'admin'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya admin/manager yang dapat mengubah riwayat karir.'
+            ], 403);
+        }
+
+        $karyawan = Karyawans::find($id);
+        if (!$karyawan) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Karyawan tidak ditemukan'
+            ], 404);
+        }
+
+        $career = EmployeeCareer::where('employee_id', $id)->find($careerId);
+        if (!$career) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Riwayat karir tidak ditemukan'
+            ], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'effective_date' => 'required|date',
+            'movement_type' => 'required|in:promosi,mutasi,demosi',
+            'previous_position_id' => 'nullable|exists:positions,id',
+            'new_position_id' => 'nullable|exists:positions,id',
+            'notes' => 'nullable|string|max:1000',
+        ], [
+            'effective_date.required' => 'Tanggal efektif wajib diisi',
+            'movement_type.required' => 'Jenis perpindahan wajib dipilih',
+            'movement_type.in' => 'Jenis perpindahan tidak valid',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $oldPosition = $request->previous_position_id ? Position::find($request->previous_position_id) : null;
+        $newPosition = $request->new_position_id ? Position::find($request->new_position_id) : null;
+        $resolvedMovementType = $this->resolveMovementType($oldPosition, $newPosition);
+
+        $career->update([
+            'effective_date' => $request->effective_date,
+            'movement_type' => $resolvedMovementType,
+            'previous_position_id' => $request->previous_position_id,
+            'new_position_id' => $request->new_position_id,
+            'notes' => $request->notes,
+            'updated_by' => Auth::id(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Riwayat karir berhasil diperbarui',
+            'data' => $career->load(['previousPosition', 'newPosition'])
+        ]);
+    }
+
+    /**
+     * Delete one career history record (admin/manager only)
+     */
+    public function destroyCareerHistory($id, $careerId)
+    {
+        if (!in_array(optional(Auth::user())->role, ['manager', 'admin'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya admin/manager yang dapat menghapus riwayat karir.'
+            ], 403);
+        }
+
+        $karyawan = Karyawans::find($id);
+        if (!$karyawan) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Karyawan tidak ditemukan'
+            ], 404);
+        }
+
+        $career = EmployeeCareer::where('employee_id', $id)->find($careerId);
+        if (!$career) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Riwayat karir tidak ditemukan'
+            ], 404);
+        }
+
+        $career->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Riwayat karir berhasil dihapus'
+        ]);
     }
 
     /**
@@ -693,5 +826,75 @@ class KaryawanController extends Controller
         }
 
         return $data;
+    }
+
+    /**
+     * Resolve movement type from position level comparison.
+     */
+    private function resolveMovementType(?Position $oldPosition, ?Position $newPosition): string
+    {
+        if (!$oldPosition || !$newPosition) {
+            return 'mutasi';
+        }
+
+        $oldRank = $this->getPositionRank($oldPosition);
+        $newRank = $this->getPositionRank($newPosition);
+
+        if ($oldRank !== null && $newRank !== null) {
+            if ($newRank > $oldRank) {
+                return 'promosi';
+            }
+
+            if ($newRank < $oldRank) {
+                return 'demosi';
+            }
+        }
+
+        return 'mutasi';
+    }
+
+    /**
+     * Resolve position rank from numeric level or fixed hierarchy name fallback.
+     * Hierarchy: Operator -> Staff/Pengawas -> Supervisor -> Kabag -> Assisten Manager -> Manager
+     */
+    private function getPositionRank(?Position $position): ?int
+    {
+        if (!$position) {
+            return null;
+        }
+
+        $name = strtolower(trim((string) $position->name));
+        $name = preg_replace('/\s+/', ' ', $name);
+
+        if (preg_match('/\boperator\b/', $name)) {
+            return 1;
+        }
+
+        if (preg_match('/\bstaff\b/', $name) || preg_match('/\bpengawas\b/', $name)) {
+            return 2;
+        }
+
+        if (preg_match('/\bsupervisor\b/', $name)) {
+            return 3;
+        }
+
+        if (preg_match('/\bkabag\b/', $name) || str_contains($name, 'kepala bagian')) {
+            return 4;
+        }
+
+        if (str_contains($name, 'assisten manager') || str_contains($name, 'asisten manager') || str_contains($name, 'assistant manager')) {
+            return 5;
+        }
+
+        if (preg_match('/\bmanager\b/', $name)) {
+            return 6;
+        }
+
+        // Fallback to numeric level when position name does not match custom hierarchy.
+        if (is_numeric($position->level)) {
+            return (int) $position->level;
+        }
+
+        return null;
     }
 }

@@ -159,6 +159,22 @@ class Employee extends Model
     }
 
     /**
+     * Relationship: Warning Letters (SP) for this employee
+     */
+    public function warningLetters(): HasMany
+    {
+        return $this->hasMany(WarningLetter::class, 'employee_id');
+    }
+
+    /**
+     * Relationship: Career history for this employee
+     */
+    public function careerHistories(): HasMany
+    {
+        return $this->hasMany(EmployeeCareer::class, 'employee_id')->orderByDesc('effective_date')->orderByDesc('id');
+    }
+
+    /**
      * Accessor untuk full name dengan employee code
      */
     public function getFullNameWithCodeAttribute(): string

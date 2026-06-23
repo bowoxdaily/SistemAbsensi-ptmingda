@@ -143,6 +143,12 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('karyawan')->group(function 
     Route::post('/parse-address', [KaryawanController::class, 'parseAddress']);
 });
 
+// Karyawan Career History - admin/manager only
+Route::middleware(['web', 'auth', 'admin'])->prefix('karyawan')->group(function () {
+    Route::put('/{id}/career-history/{careerId}', [KaryawanController::class, 'updateCareerHistory']);
+    Route::delete('/{id}/career-history/{careerId}', [KaryawanController::class, 'destroyCareerHistory']);
+});
+
 Route::middleware(['web', 'auth', 'admin'])->prefix('positions')->group(function () {
     Route::get('/', [PositionController::class, 'index']);
     Route::post('/', [PositionController::class, 'store']);

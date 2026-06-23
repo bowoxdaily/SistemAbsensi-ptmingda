@@ -62,11 +62,174 @@
 
         /* Mobile card fix */
         .min-w-0 { min-width: 0; }
+
+        /* Responsive Warning Letters (SP) Styling */
+        #warningLettersContainer .table {
+            font-size: 0.875rem;
+        }
+
+        /* Mobile: Card view for SP table */
+        @media (max-width: 575px) {
+            #warningLettersContainer {
+                display: none !important;
+            }
+
+            #warningLettersCardView {
+                display: block !important;
+            }
+
+            #warningLettersCardView .sp-card {
+                border: 1px solid #dee2e6;
+                border-radius: 0.375rem;
+                padding: 1rem;
+                margin-bottom: 0.75rem;
+                background-color: #f8f9fa;
+            }
+
+            #warningLettersCardView .sp-card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 0.75rem;
+                padding-bottom: 0.75rem;
+                border-bottom: 2px solid #dee2e6;
+            }
+
+            #warningLettersCardView .sp-card-title {
+                font-weight: 600;
+                font-size: 0.95rem;
+                word-break: break-word;
+                flex: 1;
+            }
+
+            #warningLettersCardView .sp-card-status {
+                margin-left: 0.5rem;
+                flex-shrink: 0;
+            }
+
+            #warningLettersCardView .sp-card-body {
+                font-size: 0.85rem;
+            }
+
+            #warningLettersCardView .sp-card-row {
+                display: flex;
+                justify-content: space-between;
+                padding: 0.5rem 0;
+                border-bottom: 1px solid #e9ecef;
+            }
+
+            #warningLettersCardView .sp-card-row:last-child {
+                border-bottom: none;
+            }
+
+            #warningLettersCardView .sp-card-label {
+                font-weight: 500;
+                color: #6c757d;
+                min-width: 100px;
+            }
+
+            #warningLettersCardView .sp-card-value {
+                text-align: right;
+                word-break: break-word;
+                margin-left: 0.5rem;
+            }
+        }
+
+        /* Desktop: Table view for SP */
+        @media (min-width: 576px) {
+            #warningLettersCardView {
+                display: none !important;
+            }
+
+            #warningLettersContainer {
+                display: block !important;
+            }
+        }
+
+        /* Mobile: No SP message */
+        #noWarningLettersMessage {
+            padding: 1rem;
+            text-align: center;
+            border: 1px dashed #dee2e6;
+            border-radius: 0.375rem;
+            background-color: #f8f9fa;
+        }
+
+        @media (max-width: 575px) {
+            #noWarningLettersMessage {
+                padding: 1.5rem 1rem;
+            }
+        }
+
+        /* Career history styles */
+        #careerHistoryContainer .table {
+            font-size: 0.875rem;
+        }
+
+        @media (max-width: 575px) {
+            #careerHistoryContainer {
+                display: none !important;
+            }
+
+            #careerHistoryCardView {
+                display: block !important;
+            }
+
+            #careerHistoryCardView .career-card {
+                border: 1px solid #dee2e6;
+                border-radius: 0.375rem;
+                padding: 0.9rem;
+                margin-bottom: 0.75rem;
+                background-color: #fff;
+            }
+
+            #careerHistoryCardView .career-card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 0.6rem;
+                padding-bottom: 0.6rem;
+                border-bottom: 1px solid #e9ecef;
+            }
+
+            #careerHistoryCardView .career-card-row {
+                display: flex;
+                justify-content: space-between;
+                gap: 0.5rem;
+                padding: 0.35rem 0;
+                font-size: 0.85rem;
+            }
+
+            #careerHistoryCardView .career-card-label {
+                color: #6c757d;
+                font-weight: 500;
+                min-width: 92px;
+            }
+
+            #careerHistoryCardView .career-card-value {
+                text-align: right;
+                word-break: break-word;
+            }
+        }
+
+        @media (min-width: 576px) {
+            #careerHistoryCardView {
+                display: none !important;
+            }
+
+            #careerHistoryContainer {
+                display: block !important;
+            }
+        }
     </style>
 @endsection
 
 @section('content')
-    @php $isViewer = Auth::user()->role === 'viewer'; @endphp
+    @php
+        $userRole = Auth::user()->role;
+        $isViewer = $userRole === 'viewer';
+        $isHr = in_array($userRole, ['manager', 'admin'], true);
+    @endphp
     <div class="container-xxl flex-grow-1 container-p-y">
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -886,6 +1049,73 @@
                                     <td id="detailBpjsKetenagakerjaan">-</td>
                                 </tr>
                             </table>
+
+                            <h6 class="text-primary mb-3 mt-4">Data Peringatan (SP) <span class="badge bg-warning text-dark" id="warningLetterBadge" style="display: none;"></span></h6>
+                            
+                            <!-- Desktop: Table View -->
+                            <div id="warningLettersContainer" style="display: none;">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered" id="warningLettersTable">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Nomor SP</th>
+                                                <th>Jenis SP</th>
+                                                <th>Tanggal Terbit</th>
+                                                <th>Pelanggaran</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="warningLettersBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Mobile: Card View -->
+                            <div id="warningLettersCardView" style="display: none;">
+                                <div id="warningLettersCardBody">
+                                </div>
+                            </div>
+
+                            <!-- Empty State -->
+                            <div id="noWarningLettersMessage">
+                                <p class="text-muted mb-0"><i class="bx bx-check-circle"></i> Tidak ada SP</p>
+                            </div>
+
+                            @if($isHr)
+                            <h6 class="text-primary mb-3 mt-4">Riwayat Karir <span class="badge bg-info text-white" id="careerHistoryBadge" style="display: none;"></span></h6>
+
+                            <!-- Desktop: Table View -->
+                            <div id="careerHistoryContainer" style="display: none;">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered" id="careerHistoryTable">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Tanggal Efektif</th>
+                                                <th>Tanggal Ubah</th>
+                                                <th>Posisi Lama</th>
+                                                <th>Posisi Baru</th>
+                                                <th>Jenis</th>
+                                                <th>Catatan</th>
+                                                <th width="70">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="careerHistoryBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Mobile: Card View -->
+                            <div id="careerHistoryCardView" style="display: none;">
+                                <div id="careerHistoryCardBody"></div>
+                            </div>
+
+                            <!-- Empty State -->
+                            <div id="noCareerHistoryMessage">
+                                <p class="text-muted mb-0"><i class="bx bx-briefcase"></i> Belum ada riwayat karir</p>
+                            </div>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -895,6 +1125,50 @@
             </div>
         </div>
     </div>
+
+    @if($isHr)
+    <div class="modal fade" id="careerEditModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form id="careerEditForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Riwayat Karir</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="careerEmployeeId">
+                        <input type="hidden" id="careerId">
+                        <input type="hidden" id="careerPreviousPositionId">
+                        <input type="hidden" id="careerNewPositionId">
+
+                        <div class="mb-3">
+                            <label for="careerEffectiveDate" class="form-label">Tanggal Efektif <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="careerEffectiveDate" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="careerMovementType" class="form-label">Jenis Perubahan <span class="text-danger">*</span></label>
+                            <select class="form-select" id="careerMovementType" required>
+                                <option value="promosi">Promosi</option>
+                                <option value="mutasi">Mutasi</option>
+                                <option value="demosi">Demosi</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="careerNotes" class="form-label">Catatan</label>
+                            <textarea class="form-control" id="careerNotes" rows="3" placeholder="Opsional"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <!-- Import Modal -->
     <div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
@@ -955,8 +1229,11 @@
 @push('scripts')
     <script>
         const isViewer = {{ $isViewer ? 'true' : 'false' }};
+        const isHr = {{ $isHr ? 'true' : 'false' }};
         let currentPage = 1;
-        let karyawanModal, detailModal, importModal;
+        let karyawanModal, detailModal, importModal, careerEditModal;
+        let activeCareerEmployeeId = null;
+        let activeCareerHistory = [];
         let masterData = {};
         let currentFilters = {
             department_id: '',
@@ -972,6 +1249,9 @@
             karyawanModal = new bootstrap.Modal(document.getElementById('karyawanModal'));
             detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
             importModal = new bootstrap.Modal(document.getElementById('importModal'));
+            if (isHr && document.getElementById('careerEditModal')) {
+                careerEditModal = new bootstrap.Modal(document.getElementById('careerEditModal'));
+            }
             loadMasterData();
             loadKaryawans();
 
@@ -1030,6 +1310,23 @@
                 e.preventDefault();
                 importKaryawan();
             });
+
+            if (isHr) {
+                $('#careerEditForm').on('submit', function(e) {
+                    e.preventDefault();
+                    saveCareerHistoryEdit();
+                });
+
+                $(document).on('click', '.btn-edit-career', function() {
+                    const careerId = $(this).data('career-id');
+                    openCareerEditModal(careerId);
+                });
+
+                $(document).on('click', '.btn-delete-career', function() {
+                    const careerId = $(this).data('career-id');
+                    deleteCareerHistory(careerId);
+                });
+            }
         });
 
         function loadMasterData() {
@@ -1980,9 +2277,360 @@
                     $('#detailBpjsKesehatan').text(k.bpjs_kesehatan || '-');
                     $('#detailBpjsKetenagakerjaan').text(k.bpjs_ketenagakerjaan || '-');
 
+                    // Data Peringatan (SP)
+                    displayWarningLetters(k.warning_letters || []);
+
+                    if (isHr) {
+                        activeCareerEmployeeId = k.id;
+                        activeCareerHistory = k.career_histories || [];
+                        displayCareerHistories(activeCareerHistory);
+                    }
+
                     detailModal.show();
                 }
             });
+        }
+
+        function displayWarningLetters(warningLetters) {
+            const container = $('#warningLettersContainer');
+            const cardView = $('#warningLettersCardView');
+            const cardBody = $('#warningLettersCardBody');
+            const badge = $('#warningLetterBadge');
+            const noMessage = $('#noWarningLettersMessage');
+            const tbody = $('#warningLettersBody');
+
+            // Clear previous data
+            tbody.empty();
+            cardBody.empty();
+            badge.hide();
+            container.hide();
+            cardView.hide();
+            noMessage.show();
+
+            if (!warningLetters || warningLetters.length === 0) {
+                noMessage.show();
+                container.hide();
+                cardView.hide();
+                badge.hide();
+                return;
+            }
+
+            // Show badge with count
+            badge.text(warningLetters.length).show();
+            noMessage.hide();
+
+            // Add warning letters to table (Desktop view)
+            warningLetters.forEach(function(sp) {
+                const spDate = formatDateToDisplay(sp.issue_date);
+                const spTypeBadge = getSpTypeBadge(sp.sp_type);
+                const statusBadge = getSpStatusBadge(sp.status);
+
+                const row = `
+                    <tr>
+                        <td><strong>${sp.sp_number || '-'}</strong></td>
+                        <td>${spTypeBadge}</td>
+                        <td>${spDate}</td>
+                        <td>${sp.violation || '-'}</td>
+                        <td>${statusBadge}</td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+
+            // Add warning letters to card view (Mobile view)
+            warningLetters.forEach(function(sp) {
+                const spDate = formatDateToDisplay(sp.issue_date);
+                const spTypeBadge = getSpTypeBadgeText(sp.sp_type);
+                const statusBadge = getSpStatusBadgeText(sp.status);
+                const statusBadgeClass = getSpStatusBadgeClass(sp.status);
+
+                const card = `
+                    <div class="sp-card">
+                        <div class="sp-card-header">
+                            <div class="sp-card-title">${sp.sp_number || 'N/A'}</div>
+                            <div class="sp-card-status">
+                                <span class="badge ${statusBadgeClass}">${statusBadge}</span>
+                            </div>
+                        </div>
+                        <div class="sp-card-body">
+                            <div class="sp-card-row">
+                                <span class="sp-card-label">Jenis:</span>
+                                <span class="sp-card-value">${spTypeBadge}</span>
+                            </div>
+                            <div class="sp-card-row">
+                                <span class="sp-card-label">Tanggal:</span>
+                                <span class="sp-card-value">${spDate}</span>
+                            </div>
+                            <div class="sp-card-row">
+                                <span class="sp-card-label">Pelanggaran:</span>
+                                <span class="sp-card-value text-start">${sp.violation || '-'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                cardBody.append(card);
+            });
+
+            // Show appropriate view
+            container.show();
+            cardView.show();
+        }
+
+        function displayCareerHistories(careerHistories) {
+            if (!isHr) {
+                return;
+            }
+
+            const container = $('#careerHistoryContainer');
+            const cardView = $('#careerHistoryCardView');
+            const cardBody = $('#careerHistoryCardBody');
+            const badge = $('#careerHistoryBadge');
+            const noMessage = $('#noCareerHistoryMessage');
+            const tbody = $('#careerHistoryBody');
+
+            tbody.empty();
+            cardBody.empty();
+            badge.hide();
+            container.hide();
+            cardView.hide();
+            noMessage.show();
+
+            if (!careerHistories || careerHistories.length === 0) {
+                return;
+            }
+
+            badge.text(careerHistories.length).show();
+            noMessage.hide();
+
+            careerHistories.forEach(function(career) {
+                const effectiveDate = formatDateToDisplay(career.effective_date);
+                const changedDate = formatDateToDisplay(career.updated_at || career.created_at);
+                const previousPosition = career.previous_position ? career.previous_position.name : '-';
+                const newPosition = career.new_position ? career.new_position.name : '-';
+                const movementType = getCareerMovementBadge(career.movement_type);
+                const movementText = getCareerMovementText(career.movement_type);
+                const notes = career.notes || '-';
+
+                const row = `
+                    <tr>
+                        <td>${effectiveDate}</td>
+                        <td>${changedDate}</td>
+                        <td>${previousPosition}</td>
+                        <td>${newPosition}</td>
+                        <td>${movementType}</td>
+                        <td>${notes}</td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-edit-career" data-career-id="${career.id}">
+                                <i class='bx bx-edit'></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete-career" data-career-id="${career.id}">
+                                <i class='bx bx-trash'></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+
+                const card = `
+                    <div class="career-card">
+                        <div class="career-card-header">
+                            <strong>${effectiveDate}</strong>
+                            <span class="badge ${getCareerMovementBadgeClass(career.movement_type)}">${movementText}</span>
+                        </div>
+                        <div class="career-card-row">
+                            <span class="career-card-label">Dari:</span>
+                            <span class="career-card-value">${previousPosition}</span>
+                        </div>
+                        <div class="career-card-row">
+                            <span class="career-card-label">Tanggal Ubah:</span>
+                            <span class="career-card-value">${changedDate}</span>
+                        </div>
+                        <div class="career-card-row">
+                            <span class="career-card-label">Ke:</span>
+                            <span class="career-card-value">${newPosition}</span>
+                        </div>
+                        <div class="career-card-row">
+                            <span class="career-card-label">Catatan:</span>
+                            <span class="career-card-value">${notes}</span>
+                        </div>
+                        <div class="career-card-row">
+                            <span class="career-card-label">Aksi:</span>
+                            <span class="career-card-value">
+                                <button type="button" class="btn btn-sm btn-outline-primary btn-edit-career" data-career-id="${career.id}">
+                                    Edit
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete-career" data-career-id="${career.id}">
+                                    Hapus
+                                </button>
+                            </span>
+                        </div>
+                    </div>
+                `;
+                cardBody.append(card);
+            });
+
+            container.show();
+            cardView.show();
+        }
+
+        function openCareerEditModal(careerId) {
+            if (!isHr) {
+                return;
+            }
+
+            const career = activeCareerHistory.find(item => String(item.id) === String(careerId));
+            if (!career) {
+                Swal.fire('Error', 'Riwayat karir tidak ditemukan.', 'error');
+                return;
+            }
+
+            $('#careerEmployeeId').val(activeCareerEmployeeId);
+            $('#careerId').val(career.id);
+            $('#careerPreviousPositionId').val(career.previous_position_id || '');
+            $('#careerNewPositionId').val(career.new_position_id || '');
+            $('#careerEffectiveDate').val((career.effective_date || '').toString().split('T')[0]);
+            $('#careerMovementType').val(career.movement_type || 'mutasi');
+            $('#careerNotes').val(career.notes || '');
+
+            careerEditModal.show();
+        }
+
+        function saveCareerHistoryEdit() {
+            const employeeId = $('#careerEmployeeId').val();
+            const careerId = $('#careerId').val();
+
+            const payload = {
+                effective_date: $('#careerEffectiveDate').val(),
+                movement_type: $('#careerMovementType').val(),
+                previous_position_id: $('#careerPreviousPositionId').val() || null,
+                new_position_id: $('#careerNewPositionId').val() || null,
+                notes: $('#careerNotes').val(),
+            };
+
+            $.ajax({
+                url: `/api/karyawan/${employeeId}/career-history/${careerId}`,
+                method: 'PUT',
+                data: payload,
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(response) {
+                    careerEditModal.hide();
+                    showAlert(response.message, 'success');
+                    showDetail(employeeId);
+                },
+                error: function(xhr) {
+                    Swal.fire('Error', xhr.responseJSON?.message || 'Gagal memperbarui riwayat karir.', 'error');
+                }
+            });
+        }
+
+        function deleteCareerHistory(careerId) {
+            const employeeId = activeCareerEmployeeId;
+
+            Swal.fire({
+                title: 'Hapus Riwayat Karir?',
+                text: 'Data riwayat karir yang dihapus tidak dapat dikembalikan.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Hapus',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (!result.isConfirmed) {
+                    return;
+                }
+
+                $.ajax({
+                    url: `/api/karyawan/${employeeId}/career-history/${careerId}`,
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        showAlert(response.message, 'success');
+                        showDetail(employeeId);
+                    },
+                    error: function(xhr) {
+                        Swal.fire('Error', xhr.responseJSON?.message || 'Gagal menghapus riwayat karir.', 'error');
+                    }
+                });
+            });
+        }
+
+        function getCareerMovementBadge(type) {
+            const badges = {
+                'promosi': '<span class="badge bg-success">Promosi</span>',
+                'mutasi': '<span class="badge bg-info text-white">Mutasi</span>',
+                'demosi': '<span class="badge bg-danger">Demosi</span>',
+            };
+            return badges[type] || '<span class="badge bg-secondary">-</span>';
+        }
+
+        function getCareerMovementText(type) {
+            const labels = {
+                'promosi': 'Promosi',
+                'mutasi': 'Mutasi',
+                'demosi': 'Demosi',
+            };
+            return labels[type] || '-';
+        }
+
+        function getCareerMovementBadgeClass(type) {
+            const classes = {
+                'promosi': 'bg-success',
+                'mutasi': 'bg-info text-white',
+                'demosi': 'bg-danger',
+            };
+            return classes[type] || 'bg-secondary';
+        }
+
+        function getSpTypeBadge(spType) {
+            const types = {
+                'ST': '<span class="badge bg-info text-white">Surat Teguran</span>',
+                'SP1': '<span class="badge bg-warning text-dark">SP 1</span>',
+                'SP2': '<span class="badge bg-warning">SP 2</span>',
+                'SP3': '<span class="badge bg-danger">SP 3</span>',
+            };
+            return types[spType] || `<span class="badge bg-secondary">${spType}</span>`;
+        }
+
+        function getSpTypeBadgeText(spType) {
+            const types = {
+                'ST': 'Surat Teguran',
+                'SP1': 'SP 1',
+                'SP2': 'SP 2',
+                'SP3': 'SP 3',
+            };
+            return types[spType] || spType;
+        }
+
+        function getSpStatusBadge(status) {
+            const statuses = {
+                'aktif': '<span class="badge bg-danger">Aktif</span>',
+                'selesai': '<span class="badge bg-success">Selesai</span>',
+                'dibatalkan': '<span class="badge bg-secondary">Dibatalkan</span>',
+            };
+            return statuses[status] || `<span class="badge bg-secondary">${status}</span>`;
+        }
+
+        function getSpStatusBadgeText(status) {
+            const statuses = {
+                'aktif': 'Aktif',
+                'selesai': 'Selesai',
+                'dibatalkan': 'Dibatalkan',
+            };
+            return statuses[status] || status;
+        }
+
+        function getSpStatusBadgeClass(status) {
+            const classes = {
+                'aktif': 'bg-danger',
+                'selesai': 'bg-success',
+                'dibatalkan': 'bg-secondary',
+            };
+            return classes[status] || 'bg-secondary';
         }
 
         function deleteKaryawan(id) {
