@@ -11,7 +11,7 @@ class JoinCall extends Model
         'candidate_name',
         'phone',
         'email',
-        'department_id',
+        'sub_department_id',
         'join_call_date',
         'join_call_time',
         'location',
@@ -91,10 +91,10 @@ class JoinCall extends Model
     }
 
     /**
-     * Relationship with Department
+     * Relationship with SubDepartment
      */
-    public function department(): BelongsTo
+    public function subDepartment(): BelongsTo
     {
-        return $this->belongsTo(Department::class);
+        return $this->belongsTo(SubDepartment::class);
     }
 }

@@ -23,7 +23,7 @@ class SecurityScannerController extends Controller
             ->get();
 
         // Get today's join calls
-        $todayJoinCalls = JoinCall::with(['department'])
+        $todayJoinCalls = JoinCall::with(['subDepartment'])
             ->whereDate('join_call_date', Carbon::today())
             ->orderBy('join_call_time', 'asc')
             ->get();
@@ -79,7 +79,7 @@ class SecurityScannerController extends Controller
         }
 
         // --- Try JoinCall ---
-        $joinCall = JoinCall::with('department')->where('qr_code_token', $token)->first();
+        $joinCall = JoinCall::with('subDepartment')->where('qr_code_token', $token)->first();
         if ($joinCall) {
             if ($joinCall->isCheckedIn()) {
                 return response()->json([
@@ -89,7 +89,7 @@ class SecurityScannerController extends Controller
                         'type'             => 'join_call',
                         'candidate_name'   => $joinCall->candidate_name,
                         'role_label'       => 'Departemen',
-                        'role_value'       => $joinCall->department?->name ?? '-',
+                        'role_value'       => $joinCall->subDepartment?->name ?? '-',
                         'event_time'       => $joinCall->join_call_time->format('H:i'),
                         'checked_in_at'    => $joinCall->checked_in_at,
                         'already_checked_in' => true
@@ -106,7 +106,7 @@ class SecurityScannerController extends Controller
                     'candidate_name' => $joinCall->candidate_name,
                     'phone'          => $joinCall->phone,
                     'role_label'     => 'Departemen',
-                    'role_value'     => $joinCall->department?->name ?? '-',
+                    'role_value'     => $joinCall->subDepartment?->name ?? '-',
                     'event_date'     => $joinCall->join_call_date->format('d/m/Y'),
                     'event_time'     => $joinCall->join_call_time->format('H:i'),
                     'location'       => $joinCall->location,
@@ -205,7 +205,7 @@ class SecurityScannerController extends Controller
                 ];
             });
 
-        $joinCalls = JoinCall::with(['department'])
+        $joinCalls = JoinCall::with(['subDepartment'])
             ->whereDate('join_call_date', Carbon::today())
             ->whereNotNull('checked_in_at')
             ->orderBy('checked_in_at', 'desc')
@@ -216,7 +216,7 @@ class SecurityScannerController extends Controller
                     'type_label'     => 'Panggilan Join',
                     'candidate_name' => $j->candidate_name,
                     'role_label'     => 'Departemen',
-                    'role_value'     => $j->department?->name ?? '-',
+                    'role_value'     => $j->subDepartment?->name ?? '-',
                     'event_time'     => $j->join_call_time->format('H:i'),
                     'checked_in_at'  => $j->checked_in_at->format('H:i:s')
                 ];

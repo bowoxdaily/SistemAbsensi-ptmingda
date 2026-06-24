@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\JoinCall;
 use App\Models\JoinMessageTemplate;
-use App\Models\Department;
+use App\Models\SubDepartment;
 use App\Models\WhatsAppSetting;
 use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
@@ -20,7 +20,7 @@ class JoinCallController extends Controller
      */
     public function index(Request $request)
     {
-        $query = JoinCall::with('department')
+        $query = JoinCall::with('subDepartment')
             ->orderBy('join_call_date', 'desc')
             ->orderBy('join_call_time', 'desc');
 
@@ -37,9 +37,9 @@ class JoinCallController extends Controller
             $query->whereDate('join_call_date', '<=', $request->date_to);
         }
 
-        // Filter by department
-        if ($request->filled('department_id')) {
-            $query->where('department_id', $request->department_id);
+        // Filter by sub department
+        if ($request->filled('sub_department_id')) {
+            $query->where('sub_department_id', $request->sub_department_id);
         }
 
         // Search
@@ -54,7 +54,7 @@ class JoinCallController extends Controller
 
         $join_calls = $query->paginate($request->input('per_page', 10));
 
-        $departments = Department::orderBy('name')->get();
+        $subDepartments = SubDepartment::orderBy('name')->get();
 
         // Statistics
         $stats = [
@@ -65,7 +65,7 @@ class JoinCallController extends Controller
             'cancelled' => JoinCall::where('status', 'cancelled')->count(),
         ];
 
-        return view('admin.join_calls.index', compact('join_calls', 'departments', 'stats'));
+        return view('admin.join_calls.index', compact('join_calls', 'subDepartments', 'stats'));
     }
 
     /**
@@ -77,7 +77,7 @@ class JoinCallController extends Controller
             'candidate_name' => 'required|string|max:100',
             'phone' => 'required|string|max:20',
             'email' => 'nullable|email|max:100',
-            'department_id' => 'required|exists:departments,id',
+            'sub_department_id' => 'required|exists:sub_departments,id',
             'join_call_date' => 'required|date',
             'join_call_time' => 'required',
             'location' => 'nullable|string|max:255',
@@ -98,7 +98,7 @@ class JoinCallController extends Controller
                 'candidate_name' => $request->candidate_name,
                 'phone' => $request->phone,
                 'email' => $request->email,
-                'department_id' => $request->department_id,
+                'sub_department_id' => $request->sub_department_id,
                 'join_call_date' => $request->join_call_date,
                 'join_call_time' => $request->join_call_time,
                 'location' => $request->location ?? 'Kantor PT Mingda',
@@ -110,7 +110,7 @@ class JoinCallController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Panggilan Join berhasil dijadwalkan',
-                'data' => $joinCall->load('department')
+                'data' => $joinCall->load('subDepartment')
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -126,7 +126,7 @@ class JoinCallController extends Controller
     public function show($id)
     {
         try {
-            $joinCall = JoinCall::with('department')->findOrFail($id);
+            $joinCall = JoinCall::with('subDepartment')->findOrFail($id);
 
             return response()->json([
                 'success' => true,
@@ -149,7 +149,7 @@ class JoinCallController extends Controller
             'candidate_name' => 'required|string|max:100',
             'phone' => 'required|string|max:20',
             'email' => 'nullable|email|max:100',
-            'department_id' => 'required|exists:departments,id',
+            'sub_department_id' => 'required|exists:sub_departments,id',
             'join_call_date' => 'required|date',
             'join_call_time' => 'required',
             'location' => 'nullable|string|max:255',
@@ -173,7 +173,7 @@ class JoinCallController extends Controller
                 'candidate_name' => $request->candidate_name,
                 'phone' => $request->phone,
                 'email' => $request->email,
-                'department_id' => $request->department_id,
+                'sub_department_id' => $request->sub_department_id,
                 'join_call_date' => $request->join_call_date,
                 'join_call_time' => $request->join_call_time,
                 'location' => $request->location ?? $joinCall->location,
@@ -185,7 +185,7 @@ class JoinCallController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Panggilan Join berhasil diupdate',
-                'data' => $joinCall->load('department')
+                'data' => $joinCall->load('subDepartment')
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -258,7 +258,7 @@ class JoinCallController extends Controller
     public function sendNotification($id)
     {
         try {
-            $joinCall = JoinCall::with('department')->findOrFail($id);
+            $joinCall = JoinCall::with('subDepartment')->findOrFail($id);
 
             $whatsapp = new WhatsAppService();
 
@@ -320,7 +320,7 @@ class JoinCallController extends Controller
         }
 
         try {
-            $joinCalls = JoinCall::with('department')->whereIn('id', $request->ids)->get();
+            $joinCalls = JoinCall::with('subDepartment')->whereIn('id', $request->ids)->get();
             $whatsapp  = new WhatsAppService();
 
             // Load custom API key & sender for join_call (once for the batch)
@@ -375,7 +375,7 @@ class JoinCallController extends Controller
     {
         $date = Carbon::parse($joinCall->join_call_date)->locale('id')->translatedFormat('l, d F Y');
         $time = Carbon::parse($joinCall->join_call_time)->format('H:i');
-        $department = $joinCall->department?->name ?? '-';
+        $department = $joinCall->subDepartment?->name ?? '-';
 
         // Use custom template if available, otherwise use default
         if ($joinCall->custom_message_template) {
@@ -383,6 +383,8 @@ class JoinCallController extends Controller
             $message = $joinCall->custom_message_template;
             $message = str_replace('{nama}', $joinCall->candidate_name, $message);
             $message = str_replace('{departemen}', $department, $message);
+            $message = str_replace('{sub_departemen}', $department, $message);
+            $message = str_replace('{sub_department}', $department, $message);
             // Backward compatibility for old templates that still use {posisi}
             $message = str_replace('{posisi}', $department, $message);
             $message = str_replace('{tanggal}', $date, $message);

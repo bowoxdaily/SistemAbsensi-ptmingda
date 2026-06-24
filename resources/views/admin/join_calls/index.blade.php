@@ -119,12 +119,12 @@
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Departemen</label>
-                            <select class="form-select" name="department_id">
-                                <option value="">Semua Departemen</option>
-                                @foreach ($departments as $department)
-                                    <option value="{{ $department->id }}" {{ request('department_id') == $department->id ? 'selected' : '' }}>
-                                        {{ $department->name }}
+                            <label class="form-label">Sub Departemen</label>
+                            <select class="form-select" name="sub_department_id">
+                                <option value="">Semua Sub Departemen</option>
+                                @foreach ($subDepartments as $subDepartment)
+                                    <option value="{{ $subDepartment->id }}" {{ request('sub_department_id') == $subDepartment->id ? 'selected' : '' }}>
+                                        {{ $subDepartment->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -199,7 +199,7 @@
                                     <td><strong>{{ $join_call->candidate_name }}</strong></td>
                                     <td>{{ $join_call->phone }}</td>
                                     <td>{{ $join_call->email ?? '-' }}</td>
-                                    <td><span class="badge bg-label-primary">{{ $join_call->department->name ?? '-' }}</span></td>
+                                    <td><span class="badge bg-label-primary">{{ $join_call->subDepartment->name ?? '-' }}</span></td>
                                     <td>{{ \Carbon\Carbon::parse($join_call->join_call_date)->locale('id')->translatedFormat('d M Y') }}</td>
                                     <td>{{ \Carbon\Carbon::parse($join_call->join_call_time)->format('H:i') }} WIB</td>
                                     <td>
@@ -273,7 +273,7 @@
                                         <div>
                                             <h6 class="mb-1">{{ $join_call->candidate_name }}</h6>
                                             <small class="text-muted">
-                                                <i class='bx bx-building-house'></i> {{ $join_call->department->name ?? '-' }}
+                                                <i class='bx bx-building-house'></i> {{ $join_call->subDepartment->name ?? '-' }}
                                             </small>
                                         </div>
                                     </div>
@@ -393,11 +393,11 @@
                                 <input type="email" class="form-control" id="email" name="email">
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Departemen <span class="text-danger">*</span></label>
-                                <select class="form-select" id="department_id" name="department_id" required>
-                                    <option value="">Pilih Departemen</option>
-                                    @foreach ($departments as $department)
-                                        <option value="{{ $department->id }}">{{ $department->name }}</option>
+                                <label class="form-label">Sub Departemen <span class="text-danger">*</span></label>
+                                <select class="form-select" id="sub_department_id" name="sub_department_id" required>
+                                    <option value="">Pilih Sub Departemen</option>
+                                    @foreach ($subDepartments as $subDepartment)
+                                        <option value="{{ $subDepartment->id }}">{{ $subDepartment->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -457,7 +457,7 @@
                             <div class="d-flex justify-content-between align-items-center mt-2">
                                 <small class="text-muted">
                                     <strong>Placeholder:</strong> 
-                                    <code>{nama}</code>, <code>{departemen}</code>, <code>{tanggal}</code>, 
+                                    <code>{nama}</code>, <code>{sub_department}</code>, <code>{tanggal}</code>, 
                                     <code>{waktu}</code>, <code>{lokasi}</code>, <code>{catatan}</code>
                                 </small>
                                 <small class="text-muted">
@@ -563,7 +563,7 @@
                             <textarea class="form-control" id="edit_template_message" rows="10" required></textarea>
                             <small class="text-muted d-block mt-1">
                                 <strong>Gunakan placeholder:</strong> 
-                                <code>{nama}</code>, <code>{departemen}</code>, <code>{tanggal}</code>, 
+                                <code>{nama}</code>, <code>{sub_department}</code>, <code>{tanggal}</code>, 
                                 <code>{waktu}</code>, <code>{lokasi}</code>, <code>{catatan}</code>
                             </small>
                             <small class="text-muted">
@@ -860,7 +860,7 @@
                     candidate_name: $('#candidate_name').val(),
                     phone: $('#phone').val(),
                     email: $('#email').val() || null,
-                    department_id: $('#department_id').val(),
+                    sub_department_id: $('#sub_department_id').val(),
                     join_call_date: $('#join_call_date').val(),
                     join_call_time: $('#join_call_time').val(),
                     location: $('#location').val(),
@@ -932,7 +932,7 @@
                         $('#candidate_name').val(data.candidate_name);
                         $('#phone').val(data.phone);
                         $('#email').val(data.email);
-                        $('#department_id').val(data.department_id);
+                        $('#sub_department_id').val(data.sub_department_id);
                         
                         // Parse date
                         const dateStr = String(data.join_call_date);
@@ -1596,8 +1596,8 @@
             $('#previewMessageBtn').on('click', function() {
                 const template = $('#custom_message_template').val();
                 const candidateName = $('#candidate_name').val() || '[Nama Kandidat]';
-                const departmentId = $('#department_id').val();
-                const departmentName = departmentId ? $('#department_id option:selected').text() : '[Departemen]';
+                const subDepartmentId = $('#sub_department_id').val();
+                const subDepartmentName = subDepartmentId ? $('#sub_department_id option:selected').text() : '[Sub Departemen]';
                 const join_callDate = $('#join_call_date').val();
                 const join_callTime = $('#join_call_time').val();
                 const location = $('#location').val() || 'Kantor PT Mingda';
@@ -1624,7 +1624,7 @@
 Kepada Yth,
 *{nama}*
 
-Berdasarkan hasil seleksi berkas Anda, kami mengundang Anda untuk mengikuti sesi join_call di departemen *{departemen}*.
+Berdasarkan hasil seleksi berkas Anda, kami mengundang Anda untuk mengikuti sesi join_call di sub departemen *{sub_department}*.
 
 ðŸ“… *Tanggal:* {tanggal}
 ðŸ• *Waktu:* {waktu} WIB
@@ -1641,9 +1641,11 @@ Terima kasih dan sampai jumpa di hari join_call.
 
                 // Replace placeholders
                 message = message.replace(/{nama}/g, candidateName);
-                message = message.replace(/{departemen}/g, departmentName);
+                message = message.replace(/{departemen}/g, subDepartmentName);
+                message = message.replace(/{sub_departemen}/g, subDepartmentName);
+                message = message.replace(/{sub_department}/g, subDepartmentName);
                 // Backward compatibility for old templates that still use {posisi}
-                message = message.replace(/{posisi}/g, departmentName);
+                message = message.replace(/{posisi}/g, subDepartmentName);
                 message = message.replace(/{tanggal}/g, formattedDate);
                 message = message.replace(/{waktu}/g, formattedTime);
                 message = message.replace(/{lokasi}/g, location);

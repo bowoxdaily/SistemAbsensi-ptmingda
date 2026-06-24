@@ -2,7 +2,7 @@
 
 namespace App\Exports;
 
-use App\Models\Department;
+use App\Models\SubDepartment;
 use App\Models\JoinMessageTemplate;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -24,8 +24,8 @@ class JoinCallTemplateExport implements FromCollection, WithHeadings, WithStyles
 
     public function __construct()
     {
-        // Get departments
-        $this->departments = Department::query()
+        // Get sub departments
+        $this->departments = SubDepartment::query()
             ->orderBy('name')
             ->pluck('name')
             ->toArray();
@@ -47,7 +47,7 @@ class JoinCallTemplateExport implements FromCollection, WithHeadings, WithStyles
             'John Doe',                    // Nama Kandidat
             '08123456789',                 // No. HP
             'johndoe@example.com',         // Email
-            !empty($this->departments) ? $this->departments[0] : 'Human Resource',  // Departemen
+            !empty($this->departments) ? $this->departments[0] : 'Human Resource',  // Sub Departemen
             '2026-02-20',                  // Tanggal Join (YYYY-MM-DD)
             '09:00',                       // Waktu Join (HH:MM)
             'Kantor Pusat PT Mingda, Ruang Meeting Lt. 2',  // Lokasi
@@ -62,7 +62,7 @@ class JoinCallTemplateExport implements FromCollection, WithHeadings, WithStyles
                 '',  // Nama Kandidat
                 '',  // No. HP
                 '',  // Email
-                '',  // Departemen
+                '',  // Sub Departemen
                 '',  // Tanggal Join
                 '',  // Waktu Join
                 '',  // Lokasi
@@ -83,7 +83,7 @@ class JoinCallTemplateExport implements FromCollection, WithHeadings, WithStyles
             'Nama Kandidat',
             'No. HP',
             'Email',
-            'Departemen',
+            'Sub Departemen',
             'Tanggal Join',
             'Waktu Join',
             'Lokasi',
@@ -101,7 +101,7 @@ class JoinCallTemplateExport implements FromCollection, WithHeadings, WithStyles
             'A' => 25,  // Nama Kandidat
             'B' => 18,  // No. HP
             'C' => 30,  // Email
-            'D' => 20,  // Departemen
+            'D' => 20,  // Sub Departemen
             'E' => 20,  // Tanggal Join
             'F' => 18,  // Waktu Join
             'G' => 40,  // Lokasi
@@ -167,7 +167,7 @@ class JoinCallTemplateExport implements FromCollection, WithHeadings, WithStyles
                 // Auto-filter
                 $sheet->setAutoFilter('A1:I1');
 
-                // Add dropdown for Departemen column (D)
+                // Add dropdown for Sub Departemen column (D)
                 if (!empty($this->departments)) {
                     $departmentList = '"' . implode(',', $this->departments) . '"';
                     for ($row = 2; $row <= 21; $row++) {
@@ -179,9 +179,9 @@ class JoinCallTemplateExport implements FromCollection, WithHeadings, WithStyles
                         $validation->setShowErrorMessage(true);
                         $validation->setShowDropDown(true);
                         $validation->setErrorTitle('Input Error');
-                        $validation->setError('Pilih departemen dari dropdown');
-                        $validation->setPromptTitle('Departemen');
-                        $validation->setPrompt('Pilih departemen yang tersedia');
+                        $validation->setError('Pilih sub departemen dari dropdown');
+                        $validation->setPromptTitle('Sub Departemen');
+                        $validation->setPrompt('Pilih sub departemen yang tersedia');
                         $validation->setFormula1($departmentList);
                     }
                 }
@@ -220,7 +220,7 @@ class JoinCallTemplateExport implements FromCollection, WithHeadings, WithStyles
                 $sheet->setCellValue('A23', 'CATATAN PENTING:');
                 $sheet->setCellValue('A24', '1. Baris ke-2 (warna kuning) adalah CONTOH - akan diabaikan otomatis saat import');
                 $sheet->setCellValue('A25', '2. Mulai isi data dari BARIS KE-3 dan seterusnya');
-                $sheet->setCellValue('A26', '3. Kolom WAJIB diisi: Nama Kandidat, No. HP, Departemen, Tanggal Join, Waktu Join');
+                $sheet->setCellValue('A26', '3. Kolom WAJIB diisi: Nama Kandidat, No. HP, Sub Departemen, Tanggal Join, Waktu Join');
                 $sheet->setCellValue('A27', '4. Kolom OPSIONAL: Email, Lokasi (default: Kantor PT Mingda), Catatan, Template Notifikasi');
                 $sheet->setCellValue('A28', '5. Format tanggal: YYYY-MM-DD, M/D/YYYY, atau biarkan Excel auto-format (contoh: 2026-02-20, 2/15/2026)');
                 $sheet->setCellValue('A29', '6. Format waktu: HH:MM atau angka jam (contoh: 09:00, 9:30, atau 9 untuk 09:00). Biarkan Excel format otomatis.');
