@@ -21,7 +21,7 @@ class EnsureUserIsViewer
             return redirect()->route('login')->with('error', 'Silakan login terlebih dahulu.');
         }
 
-        if (!in_array(Auth::user()->role, ['admin', 'manager', 'viewer'])) {
+        if (!in_array(Auth::user()->role, ['admin', 'manager', 'viewer', 'superadmin'])) {
             abort(403, 'Anda tidak memiliki akses ke halaman ini.');
         }
 

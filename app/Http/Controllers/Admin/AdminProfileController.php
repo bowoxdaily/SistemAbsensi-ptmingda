@@ -19,7 +19,7 @@ class AdminProfileController extends Controller
     public function index()
     {
         // Security: Ensure only admin and manager can access
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager'])) {
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'superadmin'])) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -34,7 +34,7 @@ class AdminProfileController extends Controller
     public function update(Request $request)
     {
         // Security: Ensure only admin and manager can access
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager'])) {
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'superadmin'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.'
@@ -79,7 +79,7 @@ class AdminProfileController extends Controller
     public function updatePhoto(Request $request)
     {
         // Security: Ensure only admin and manager can access
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager'])) {
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'superadmin'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.'
@@ -146,7 +146,7 @@ class AdminProfileController extends Controller
     public function updatePassword(Request $request)
     {
         // Security: Ensure only admin and manager can access
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager'])) {
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'superadmin'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.'
@@ -195,3 +195,4 @@ class AdminProfileController extends Controller
         }
     }
 }
+

@@ -18,7 +18,7 @@ class LeaveController extends Controller
     public function index(Request $request)
     {
         // Security: Ensure only admin can access
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (!Auth::check() || Auth::user()->role !== 'admin' && Auth::user()->role !== 'superadmin') {
             abort(403, 'Unauthorized action.');
         }
 
@@ -62,7 +62,7 @@ class LeaveController extends Controller
     public function show($id)
     {
         // Security check
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (!Auth::check() || Auth::user()->role !== 'admin' && Auth::user()->role !== 'superadmin') {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.'
@@ -90,7 +90,7 @@ class LeaveController extends Controller
     public function approve($id)
     {
         // Security check
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (!Auth::check() || Auth::user()->role !== 'admin' && Auth::user()->role !== 'superadmin') {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.'
@@ -143,7 +143,7 @@ class LeaveController extends Controller
     public function reject(Request $request, $id)
     {
         // Security check
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (!Auth::check() || Auth::user()->role !== 'admin' && Auth::user()->role !== 'superadmin') {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.'
@@ -207,7 +207,7 @@ class LeaveController extends Controller
     public function destroy($id)
     {
         // Security check
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (!Auth::check() || Auth::user()->role !== 'admin' && Auth::user()->role !== 'superadmin') {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.'
@@ -237,3 +237,4 @@ class LeaveController extends Controller
         }
     }
 }
+

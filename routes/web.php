@@ -159,6 +159,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/payroll/export', [PayrollController::class, 'export'])->name('admin.payroll.export');
     });
 
+    // Account Management (Superadmin only)
+    Route::middleware('auth')->group(function () {
+        Route::get('/admin/account-management', [\App\Http\Controllers\Admin\AccountManagementController::class, 'index'])->name('admin.account-management.index');
+    });
+
     // Employee Routes (View only - API handles POST/PUT/DELETE)
     Route::get('/employee/attendance', [\App\Http\Controllers\Employee\AttendanceController::class, 'index'])->name('employee.attendance.index');
     Route::get('/employee/attendance/history', [\App\Http\Controllers\Employee\AttendanceController::class, 'historyPage'])->name('employee.attendance.history');
@@ -171,6 +176,9 @@ Route::middleware(['auth'])->group(function () {
 
     // Employee Leave (View only - API handles POST/DELETE)
     Route::get('/employee/leave', [\App\Http\Controllers\Employee\LeaveController::class, 'index'])->name('employee.leave.index');
+
+    // Employee Attendance Edit Requests (View only - Read-only)
+    Route::get('/employee/attendance/edit-requests', [\App\Http\Controllers\Employee\AttendanceEditRequestController::class, 'index'])->name('employee.attendance.edit-requests');
 
     // Employee Warning Letters (View only - Read-only)
     Route::get('/employee/warning-letters', [\App\Http\Controllers\Employee\WarningLetterController::class, 'index'])->name('employee.warning-letters.index');

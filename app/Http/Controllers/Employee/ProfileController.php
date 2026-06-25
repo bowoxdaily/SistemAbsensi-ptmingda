@@ -124,7 +124,7 @@ class ProfileController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        if (Auth::user()->role === 'admin') {
+        if (Auth::user()->role === 'admin' || Auth::user()->role === 'superadmin') {
             abort(403, 'Unauthorized action.');
         }
 
@@ -184,7 +184,7 @@ class ProfileController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        if (Auth::user()->role === 'admin') {
+        if (Auth::user()->role === 'admin' || Auth::user()->role === 'superadmin') {
             abort(403, 'Unauthorized action.');
         }
 
@@ -229,3 +229,4 @@ class ProfileController extends Controller
             ->with('success', 'Password berhasil diubah! Silakan login kembali dengan password baru.');
     }
 }
+

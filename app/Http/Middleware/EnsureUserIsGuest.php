@@ -15,7 +15,7 @@ class EnsureUserIsGuest
             return redirect()->route('login')->with('error', 'Silakan login terlebih dahulu.');
         }
 
-        if (!in_array(Auth::user()->role, ['guest', 'admin', 'manager'])) {
+        if (!in_array(Auth::user()->role, ['guest', 'admin', 'manager', 'superadmin'])) {
             abort(403, 'Anda tidak memiliki akses ke halaman monitoring ini.');
         }
 

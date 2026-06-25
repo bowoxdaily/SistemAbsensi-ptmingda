@@ -24,7 +24,7 @@ class LeaveController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        if (Auth::user()->role === 'admin') {
+        if (Auth::user()->role === 'admin' || Auth::user()->role === 'superadmin') {
             return redirect()->route('admin.leave.index');
         }
 
@@ -65,7 +65,7 @@ class LeaveController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        if (Auth::user()->role === 'admin') {
+        if (Auth::user()->role === 'admin' || Auth::user()->role === 'superadmin') {
             return redirect()->route('admin.leave.index');
         }
 
@@ -139,7 +139,7 @@ class LeaveController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        if (Auth::user()->role === 'admin') {
+        if (Auth::user()->role === 'admin' || Auth::user()->role === 'superadmin') {
             return redirect()->route('admin.leave.index');
         }
 
@@ -170,3 +170,4 @@ class LeaveController extends Controller
             ->with('success', 'Pengajuan cuti berhasil dibatalkan');
     }
 }
+

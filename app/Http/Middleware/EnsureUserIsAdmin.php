@@ -20,10 +20,10 @@ class EnsureUserIsAdmin
             return redirect()->route('login')->with('error', 'Silakan login terlebih dahulu.');
         }
 
-        // Allow both admin and manager roles
-        if (!in_array(Auth::user()->role, ['admin', 'manager'])) {
+        // Allow admin, manager, and superadmin roles
+        if (!in_array(Auth::user()->role, ['admin', 'manager', 'superadmin'])) {
             // Return 403 Forbidden response with custom error page
-            abort(403, 'Anda tidak memiliki akses ke halaman ini. Halaman ini khusus untuk Administrator dan Manager.');
+            abort(403, 'Anda tidak memiliki akses ke halaman ini. Halaman ini khusus untuk Administrator, Manager, dan Superadmin.');
         }
 
         return $next($request);

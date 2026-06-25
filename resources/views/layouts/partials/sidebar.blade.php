@@ -25,8 +25,8 @@
             </a>
         </li>
 
-        @if (Auth::user()->role == 'admin' || Auth::user()->role == 'manager')
-            <!-- Menu untuk Admin & Manager -->
+        @if (Auth::user()->role == 'admin' || Auth::user()->role == 'manager' || Auth::user()->role == 'superadmin')
+            <!-- Menu untuk Admin, Manager & Superadmin -->
             <!-- Menu Header - Master Data -->
             <li class="menu-header small text-uppercase">
                 <span class="menu-header-text">Master Data</span>
@@ -223,8 +223,8 @@
                 <span class="menu-header-text">Keuangan</span>
             </li>
 
-            <!-- Payroll (Manager only) -->
-            @if (Auth::user()->role == 'manager')
+            <!-- Payroll (Manager & Superadmin) -->
+            @if (Auth::user()->role == 'manager' || Auth::user()->role == 'superadmin')
                 <li class="menu-item {{ request()->routeIs('admin.payroll.*') ? 'active' : '' }}">
                     <a href="{{ route('admin.payroll.index') }}" class="menu-link">
                         <i class="menu-icon tf-icons bx bx-money"></i>
@@ -232,6 +232,7 @@
                     </a>
                 </li>
             @endif
+
 
             <!-- Menu Header - Pengaturan -->
             <li class="menu-header small text-uppercase">
@@ -285,6 +286,16 @@
                     <div data-i18n="Profile">Profil Saya</div>
                 </a>
             </li>
+
+            <!-- Management Akun (Superadmin Only) -->
+            @if (Auth::user()->role == 'superadmin')
+                <li class="menu-item {{ request()->routeIs('admin.account-management.*') ? 'active' : '' }}">
+                    <a href="{{ route('admin.account-management.index') }}" class="menu-link">
+                        <i class="menu-icon tf-icons bx bx-lock-alt"></i>
+                        <div data-i18n="AccountMgmt">Management Akun</div>
+                    </a>
+                </li>
+            @endif
 
         @elseif (Auth::user()->role == 'viewer')
             <!-- Menu untuk Viewer (Read-Only) -->
@@ -467,6 +478,14 @@
                 </a>
             </li>
 
+            <!-- Status Request Edit Absensi -->
+            <li class="menu-item {{ request()->routeIs('employee.attendance.edit-requests') ? 'active' : '' }}">
+                <a href="{{ route('employee.attendance.edit-requests') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-check-double"></i>
+                    <div data-i18n="EditReqs">Status Form Edit Absensi</div>
+                </a>
+            </li>
+
             <!-- Surat Peringatan -->
             <li class="menu-item {{ request()->routeIs('employee.warning-letters.*') ? 'active' : '' }}">
                 <a href="{{ route('employee.warning-letters.index') }}" class="menu-link">
@@ -499,7 +518,7 @@
 
             <!-- Profile -->
             <li class="menu-item {{ request()->routeIs('employee.profile.*', 'admin.profile.*') ? 'active' : '' }}">
-                @if (Auth::user()->role == 'admin')
+                @if (Auth::user()->role == 'admin' || Auth::user()->role == 'superadmin')
                     <a href="{{ route('admin.profile.index') }}" class="menu-link">
                         <i class="menu-icon tf-icons bx bx-user"></i>
                         <div data-i18n="Profile">Profil Saya</div>
@@ -512,7 +531,7 @@
                 @endif
             </li>
 
-            @if (Auth::user()->role != 'admin')
+            @if (Auth::user()->role != 'admin' && Auth::user()->role != 'superadmin')
             <li class="menu-item {{ request()->routeIs('employee.profile.*', 'admin.profile.*') ? 'active' : '' }}">
                 <a href="{{ route('employee.profile.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-user"></i>

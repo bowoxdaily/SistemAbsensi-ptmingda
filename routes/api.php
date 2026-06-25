@@ -235,6 +235,14 @@ Route::middleware('web')->prefix('employee')->group(function () {
     Route::get('/payslip/download', [\App\Http\Controllers\Employee\PayrollController::class, 'downloadPdf']);
 });
 
+// Employee Attendance Edit Requests – view own requests (read-only)
+Route::middleware(['web', 'auth'])->prefix('employee/attendance-edit-requests')->group(function () {
+    Route::get('/list', [\App\Http\Controllers\Employee\AttendanceEditRequestController::class, 'list']);
+    Route::get('/stats', [\App\Http\Controllers\Employee\AttendanceEditRequestController::class, 'stats']);
+    Route::get('/pending-count', [\App\Http\Controllers\Employee\AttendanceEditRequestController::class, 'pendingCount']);
+    Route::get('/detail/{id}', [\App\Http\Controllers\Employee\AttendanceEditRequestController::class, 'detail']);
+});
+
 // Payroll API Routes (Manager only)
 Route::middleware(['web', 'auth', 'manager'])->prefix('payroll')->group(function () {
     Route::get('/', [PayrollController::class, 'list']);
@@ -253,6 +261,18 @@ Route::middleware(['web', 'auth', 'manager'])->prefix('payroll')->group(function
     Route::get('/hris/payslip/download', [PayrollController::class, 'hrisPayslipDownload']);
     Route::post('/hris/test-connection', [PayrollController::class, 'hrisTestConnection']);
     Route::get('/hris/status', [PayrollController::class, 'hrisStatus']);
+});
+
+// Account Management API (Superadmin only)
+Route::middleware(['web', 'auth'])->prefix('admin/account-management')->group(function () {
+    Route::get('/list', [\App\Http\Controllers\Admin\AccountManagementController::class, 'list']);
+    Route::get('/options', [\App\Http\Controllers\Admin\AccountManagementController::class, 'getOptions']);
+    Route::get('/stats', [\App\Http\Controllers\Admin\AccountManagementController::class, 'stats']);
+    Route::get('/detail/{id}', [\App\Http\Controllers\Admin\AccountManagementController::class, 'detail']);
+    Route::post('/store', [\App\Http\Controllers\Admin\AccountManagementController::class, 'store']);
+    Route::put('/update/{id}', [\App\Http\Controllers\Admin\AccountManagementController::class, 'update']);
+    Route::delete('/destroy/{id}', [\App\Http\Controllers\Admin\AccountManagementController::class, 'destroy']);
+    Route::put('/change-password/{id}', [\App\Http\Controllers\Admin\AccountManagementController::class, 'changePassword']);
 });
 
 // Office Settings API

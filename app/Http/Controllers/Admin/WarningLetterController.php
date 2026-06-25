@@ -20,7 +20,7 @@ class WarningLetterController extends Controller
     public function index(Request $request)
     {
         // Security: Ensure only admin can access
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer'])) {
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer', 'superadmin'])) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -33,7 +33,7 @@ class WarningLetterController extends Controller
     public function list(Request $request)
     {
         // Security check
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer'])) {
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer', 'superadmin'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.'
@@ -89,7 +89,7 @@ class WarningLetterController extends Controller
     public function statistics()
     {
         // Security check
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer'])) {
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer', 'superadmin'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.'
@@ -121,7 +121,7 @@ class WarningLetterController extends Controller
     public function show($id)
     {
         // Security check
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer'])) {
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer', 'superadmin'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.'
@@ -154,7 +154,7 @@ class WarningLetterController extends Controller
     public function store(Request $request)
     {
         // Security check
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer'])) {
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer', 'superadmin'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.'
@@ -270,7 +270,7 @@ class WarningLetterController extends Controller
     public function update(Request $request, $id)
     {
         // Security check
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer'])) {
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer', 'superadmin'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.'
@@ -323,7 +323,7 @@ class WarningLetterController extends Controller
     public function destroy($id)
     {
         // Security check
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer'])) {
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer', 'superadmin'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.'
@@ -364,7 +364,7 @@ class WarningLetterController extends Controller
     public function cancel(Request $request, $id)
     {
         // Security check
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer'])) {
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer', 'superadmin'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.'
@@ -415,7 +415,7 @@ class WarningLetterController extends Controller
     public function sendNotification($id)
     {
         // Security check
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer'])) {
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer', 'superadmin'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.'
@@ -475,7 +475,7 @@ class WarningLetterController extends Controller
     public function bulkSendNotification(Request $request)
     {
         // Security check
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer'])) {
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer', 'superadmin'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.'
@@ -535,7 +535,7 @@ class WarningLetterController extends Controller
     public function checkEmployeeSP(Request $request)
     {
         // Security check
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer'])) {
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer', 'superadmin'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.'
@@ -585,7 +585,7 @@ class WarningLetterController extends Controller
     public function generateNumber(Request $request)
     {
         // Security check
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer'])) {
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer', 'superadmin'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.'
@@ -630,7 +630,7 @@ class WarningLetterController extends Controller
     public function uploadDocument(Request $request, $id)
     {
         // Security check
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer'])) {
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer', 'superadmin'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.'
@@ -713,7 +713,7 @@ class WarningLetterController extends Controller
     public function downloadDocument($id)
     {
         // Security check
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer'])) {
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer', 'superadmin'])) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -738,3 +738,4 @@ class WarningLetterController extends Controller
         }
     }
 }
+

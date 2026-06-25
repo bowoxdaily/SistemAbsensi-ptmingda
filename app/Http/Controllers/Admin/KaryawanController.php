@@ -188,7 +188,7 @@ class KaryawanController extends Controller
      */
     public function show($id)
     {
-        $isHr = in_array(optional(Auth::user())->role, ['manager', 'admin'], true);
+        $isHr = in_array(optional(Auth::user())->role, ['manager', 'admin', 'superadmin'], true);
 
         $relations = ['department', 'subDepartment', 'position', 'supervisor', 'workSchedule', 'warningLetters'];
         if ($isHr) {
@@ -352,7 +352,7 @@ class KaryawanController extends Controller
      */
     public function updateCareerHistory(Request $request, $id, $careerId)
     {
-        if (!in_array(optional(Auth::user())->role, ['manager', 'admin'], true)) {
+        if (!in_array(optional(Auth::user())->role, ['manager', 'admin', 'superadmin'], true)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Hanya admin/manager yang dapat mengubah riwayat karir.'
@@ -420,7 +420,7 @@ class KaryawanController extends Controller
      */
     public function destroyCareerHistory($id, $careerId)
     {
-        if (!in_array(optional(Auth::user())->role, ['manager', 'admin'], true)) {
+        if (!in_array(optional(Auth::user())->role, ['manager', 'admin', 'superadmin'], true)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Hanya admin/manager yang dapat menghapus riwayat karir.'
@@ -901,3 +901,4 @@ class KaryawanController extends Controller
         return null;
     }
 }
+

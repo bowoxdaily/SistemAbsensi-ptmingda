@@ -22,6 +22,15 @@ class DatabaseSeeder extends Seeder
             WorkScheduleSeeder::class,
         ]);
 
+        // Create superadmin user
+        User::create([
+            'name' => 'Super Administrator',
+            'email' => 'superadmin@example.com',
+            'password' => bcrypt('password'),
+            'role' => 'superadmin',
+            'status' => 'aktif',
+        ]);
+
         // Create admin user
         User::create([
             'name' => 'Administrator',
