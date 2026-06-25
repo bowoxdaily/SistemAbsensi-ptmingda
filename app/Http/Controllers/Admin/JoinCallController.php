@@ -333,13 +333,16 @@ class JoinCallController extends Controller
             $sent   = 0;
             $failed = 0;
 
+            $totalItems = $joinCalls->count();
+
             /** @var JoinCall $joinCall */
-            foreach ($joinCalls as $joinCall) {
+            foreach ($joinCalls as $index => $joinCall) {
                 Notification::route('mail', $joinCall->email)
                     ->notify(new JoinCallInvitationNotification($joinCall));
 
                 $message    = $this->formatWhatsAppMessage($joinCall);
                 $qrImageUrl = $joinCall->qr_code_image;
+                $hasPhone = !empty($joinCall->phone);
                 $waSent = !empty($joinCall->phone)
                     ? $whatsapp->send($joinCall->phone, $message, $qrImageUrl, $customSender, $customApiKey)
                     : false;
@@ -358,8 +361,10 @@ class JoinCallController extends Controller
 
                 $sent++;
 
-                // Delay to prevent rate limiting
-                usleep(500000); // 0.5 second
+                // Delay 30-60s between WhatsApp sends to reduce provider throttling risk.
+                if ($hasPhone && $index < ($totalItems - 1)) {
+                    $this->pauseBetweenWhatsAppBlastSends();
+                }
             }
 
             return response()->json([
@@ -638,5 +643,11 @@ class JoinCallController extends Controller
         $phone = trim((string) $phone);
 
         return $phone === '' ? null : $phone;
+    }
+
+    protected function pauseBetweenWhatsAppBlastSends(): void
+    {
+        $delaySeconds = random_int(30, 60);
+        sleep($delaySeconds);
     }
 }

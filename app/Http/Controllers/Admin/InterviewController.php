@@ -324,13 +324,16 @@ class InterviewController extends Controller
             $sent = 0;
             $failed = 0;
 
+            $totalItems = $interviews->count();
+
             /** @var Interview $interview */
-            foreach ($interviews as $interview) {
+            foreach ($interviews as $index => $interview) {
                 Notification::route('mail', $interview->email)
                     ->notify(new InterviewInvitationNotification($interview));
 
                 $message = $this->formatWhatsAppMessage($interview);
                 $qrImageUrl = $interview->qr_code_image;
+                $hasPhone = !empty($interview->phone);
                 $waSent = !empty($interview->phone)
                     ? $whatsapp->send($interview->phone, $message, $qrImageUrl)
                     : false;
@@ -349,8 +352,10 @@ class InterviewController extends Controller
 
                 $sent++;
 
-                // Delay to prevent rate limiting
-                usleep(500000); // 0.5 second delay
+                // Delay 30-60s between WhatsApp sends to reduce provider throttling risk.
+                if ($hasPhone && $index < ($totalItems - 1)) {
+                    $this->pauseBetweenWhatsAppBlastSends();
+                }
             }
 
             return response()->json([
@@ -623,5 +628,11 @@ class InterviewController extends Controller
         $phone = trim((string) $phone);
 
         return $phone === '' ? null : $phone;
+    }
+
+    protected function pauseBetweenWhatsAppBlastSends(): void
+    {
+        $delaySeconds = random_int(30, 60);
+        sleep($delaySeconds);
     }
 }
