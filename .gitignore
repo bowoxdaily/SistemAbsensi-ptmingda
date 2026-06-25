@@ -22,3 +22,15 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# AI Agents & MCP
+/.agents
+/.mcp
+.mcp.json
+mcp.json
+/.cursor
+/.aider*
+/.claude
+/.continue
+/.github/copilot-instructions.local.md
+/memories
