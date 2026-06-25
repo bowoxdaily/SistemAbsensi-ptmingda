@@ -23,8 +23,11 @@ class InterviewScanController extends Controller
             ]);
         }
 
+        // interview_date is stored as Y-m-d string, so normalize it to Carbon first.
+        $interviewDate = Carbon::parse($interview->interview_date);
+
         // Check if interview date is today or in the future
-        if ($interview->interview_date->lt(Carbon::today())) {
+        if ($interviewDate->lt(Carbon::today())) {
             return view('interview.scan-error', [
                 'message' => 'Jadwal interview sudah lewat',
                 'interview' => $interview
@@ -94,7 +97,7 @@ class InterviewScanController extends Controller
                 'id' => $interview->id,
                 'candidate_name' => $interview->candidate_name,
                 'position' => $interview->position->name,
-                'interview_date' => $interview->interview_date->format('d/m/Y'),
+                'interview_date' => Carbon::parse($interview->interview_date)->format('d/m/Y'),
                 'interview_time' => $interview->interview_time->format('H:i'),
                 'location' => $interview->location,
                 'status' => $interview->status,

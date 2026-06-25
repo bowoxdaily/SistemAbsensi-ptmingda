@@ -50,15 +50,16 @@ class InterviewImport implements ToModel, WithHeadingRow, WithValidation, SkipsO
 
         // Skip empty rows - check multiple fields
         $isEmpty = empty(trim($row['nama_kandidat'] ?? '')) 
-                && empty(trim($row['no_hp'] ?? ''))
-                && empty(trim($row['posisi'] ?? ''));
+            && empty(trim($row['email'] ?? ''))
+            && empty(trim($row['no_hp'] ?? ''))
+            && empty(trim($row['posisi'] ?? ''));
         
         if ($isEmpty) {
             return null;
         }
 
         // Also skip if only nama filled but no other required fields
-        if (!empty($row['nama_kandidat']) && empty($row['no_hp']) && empty($row['posisi'])) {
+        if (!empty($row['nama_kandidat']) && empty($row['email']) && empty($row['no_hp']) && empty($row['posisi'])) {
             return null;
         }
 
@@ -66,8 +67,8 @@ class InterviewImport implements ToModel, WithHeadingRow, WithValidation, SkipsO
         if (empty(trim($row['nama_kandidat'] ?? ''))) {
             throw new \Exception("Nama Kandidat wajib diisi");
         }
-        if (empty(trim($row['no_hp'] ?? ''))) {
-            throw new \Exception("No. HP wajib diisi");
+        if (empty(trim($row['email'] ?? ''))) {
+            throw new \Exception("Email wajib diisi");
         }
         if (empty(trim($row['posisi'] ?? ''))) {
             throw new \Exception("Posisi wajib diisi");
@@ -121,8 +122,8 @@ class InterviewImport implements ToModel, WithHeadingRow, WithValidation, SkipsO
 
         return new Interview([
             'candidate_name' => $row['nama_kandidat'],
-            'phone' => $this->formatPhone($row['no_hp']),
-            'email' => !empty($row['email']) ? $row['email'] : null,
+            'phone' => !empty($row['no_hp']) ? $this->formatPhone($row['no_hp']) : null,
+            'email' => strtolower(trim($row['email'])),
             'position_id' => $positionId,
             'interview_date' => $interviewDate,
             'interview_time' => $interviewTime,
@@ -158,7 +159,7 @@ class InterviewImport implements ToModel, WithHeadingRow, WithValidation, SkipsO
     {
         return [
             'nama_kandidat.required' => 'Nama Kandidat wajib diisi',
-            'no_hp.required' => 'No. HP wajib diisi',
+            'email.required' => 'Email wajib diisi',
             'email.email' => 'Format email tidak valid',
             'posisi.required' => 'Posisi wajib diisi',
             'tanggal_interview.required' => 'Tanggal Interview wajib diisi',

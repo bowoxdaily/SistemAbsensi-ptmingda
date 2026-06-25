@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\JoinCall;
 use App\Models\JoinMessageTemplate;
+use App\Notifications\JoinCallInvitationNotification;
 use App\Models\SubDepartment;
 use App\Models\WhatsAppSetting;
 use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Facades\Excel;
@@ -47,8 +49,8 @@ class JoinCallController extends Controller
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('candidate_name', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
@@ -75,8 +77,8 @@ class JoinCallController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'candidate_name' => 'required|string|max:100',
-            'phone' => 'required|string|max:20',
-            'email' => 'nullable|email|max:100',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'required|email|max:100',
             'sub_department_id' => 'required|exists:sub_departments,id',
             'join_call_date' => 'required|date',
             'join_call_time' => 'required',
@@ -96,8 +98,8 @@ class JoinCallController extends Controller
         try {
             $joinCall = JoinCall::create([
                 'candidate_name' => $request->candidate_name,
-                'phone' => $request->phone,
-                'email' => $request->email,
+                'phone' => $this->normalizePhone($request->phone),
+                'email' => strtolower(trim($request->email)),
                 'sub_department_id' => $request->sub_department_id,
                 'join_call_date' => $request->join_call_date,
                 'join_call_time' => $request->join_call_time,
@@ -147,8 +149,8 @@ class JoinCallController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'candidate_name' => 'required|string|max:100',
-            'phone' => 'required|string|max:20',
-            'email' => 'nullable|email|max:100',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'required|email|max:100',
             'sub_department_id' => 'required|exists:sub_departments,id',
             'join_call_date' => 'required|date',
             'join_call_time' => 'required',
@@ -171,8 +173,8 @@ class JoinCallController extends Controller
 
             $joinCall->update([
                 'candidate_name' => $request->candidate_name,
-                'phone' => $request->phone,
-                'email' => $request->email,
+                'phone' => $this->normalizePhone($request->phone),
+                'email' => strtolower(trim($request->email)),
                 'sub_department_id' => $request->sub_department_id,
                 'join_call_date' => $request->join_call_date,
                 'join_call_time' => $request->join_call_time,
@@ -260,39 +262,39 @@ class JoinCallController extends Controller
         try {
             $joinCall = JoinCall::with('subDepartment')->findOrFail($id);
 
-            $whatsapp = new WhatsAppService();
+            Notification::route('mail', $joinCall->email)
+                ->notify(new JoinCallInvitationNotification($joinCall));
 
-            // Load custom API key & sender for join_call
-            $setting = WhatsAppSetting::getActive();
-            $customApiKey = $setting?->join_call_api_key ?: null;
-            $customSender  = $setting?->join_call_sender  ?: null;
+            $sentChannels = ['email'];
 
-            // Format message
-            $message = $this->formatWhatsAppMessage($joinCall);
+            if (!empty($joinCall->phone)) {
+                $whatsapp = new WhatsAppService();
+                $setting = WhatsAppSetting::getActive();
+                $customApiKey = $setting?->join_call_api_key ?: null;
+                $customSender  = $setting?->join_call_sender  ?: null;
+                $message = $this->formatWhatsAppMessage($joinCall);
+                $qrImageUrl = $joinCall->qr_code_image;
+                $sent = $whatsapp->send($joinCall->phone, $message, $qrImageUrl, $customSender, $customApiKey);
 
-            // Get QR code image URL
-            $qrImageUrl = $joinCall->qr_code_image;
+                if ($sent) {
+                    $sentChannels[] = 'WhatsApp';
+                }
 
-            // Send WhatsApp with custom API key/sender if configured
-            $sent = $whatsapp->send($joinCall->phone, $message, $qrImageUrl, $customSender, $customApiKey);
-
-            if ($sent) {
                 $joinCall->update([
                     'status'     => 'notified',
                     'wa_sent_at' => now(),
                     'wa_message' => $message,
                 ]);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Notifikasi WhatsApp berhasil dikirim' . ($customApiKey ? ' (API key custom)' : '')
+            } else {
+                $joinCall->update([
+                    'status' => 'notified',
                 ]);
             }
 
             return response()->json([
-                'success' => false,
-                'message' => 'Gagal mengirim notifikasi WhatsApp. Pastikan konfigurasi WhatsApp sudah benar.'
-            ], 500);
+                'success' => true,
+                'message' => 'Notifikasi berhasil dikirim via ' . implode(' dan ', $sentChannels)
+            ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -333,19 +335,28 @@ class JoinCallController extends Controller
 
             /** @var JoinCall $joinCall */
             foreach ($joinCalls as $joinCall) {
+                Notification::route('mail', $joinCall->email)
+                    ->notify(new JoinCallInvitationNotification($joinCall));
+
                 $message    = $this->formatWhatsAppMessage($joinCall);
                 $qrImageUrl = $joinCall->qr_code_image;
+                $waSent = !empty($joinCall->phone)
+                    ? $whatsapp->send($joinCall->phone, $message, $qrImageUrl, $customSender, $customApiKey)
+                    : false;
 
-                if ($whatsapp->send($joinCall->phone, $message, $qrImageUrl, $customSender, $customApiKey)) {
+                if ($waSent) {
                     $joinCall->update([
                         'status'     => 'notified',
                         'wa_sent_at' => now(),
                         'wa_message' => $message,
                     ]);
-                    $sent++;
-                } else {
-                    $failed++;
                 }
+
+                $joinCall->update([
+                    'status' => 'notified',
+                ]);
+
+                $sent++;
 
                 // Delay to prevent rate limiting
                 usleep(500000); // 0.5 second
@@ -353,7 +364,7 @@ class JoinCallController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Blast WhatsApp selesai: {$sent} berhasil, {$failed} gagal" . ($customApiKey ? ' (API key custom)' : ''),
+                'message' => "Blast notifikasi selesai: {$sent} email berhasil dikirim, {$failed} gagal" . ($customApiKey ? ' (WA custom aktif)' : ''),
                 'data'    => [
                     'sent'   => $sent,
                     'failed' => $failed,
@@ -620,5 +631,12 @@ class JoinCallController extends Controller
                 'message' => 'Gagal mengimport data: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    protected function normalizePhone(?string $phone): ?string
+    {
+        $phone = trim((string) $phone);
+
+        return $phone === '' ? null : $phone;
     }
 }

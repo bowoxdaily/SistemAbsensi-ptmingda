@@ -52,7 +52,8 @@ class JoinCallImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
 
         // Skip empty rows - check multiple fields
         $isEmpty = empty(trim($row['nama_kandidat'] ?? '')) 
-                && empty(trim($row['no_hp'] ?? ''))
+            && empty(trim($row['email'] ?? ''))
+            && empty(trim($row['no_hp'] ?? ''))
             && empty(trim($subDepartmentRaw));
         
         if ($isEmpty) {
@@ -60,7 +61,7 @@ class JoinCallImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
         }
 
         // Also skip if only nama filled but no other required fields
-        if (!empty($row['nama_kandidat']) && empty($row['no_hp']) && empty($subDepartmentRaw)) {
+        if (!empty($row['nama_kandidat']) && empty($row['email']) && empty($row['no_hp']) && empty($subDepartmentRaw)) {
             return null;
         }
 
@@ -68,8 +69,8 @@ class JoinCallImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
         if (empty(trim($row['nama_kandidat'] ?? ''))) {
             throw new \Exception("Nama Kandidat wajib diisi");
         }
-        if (empty(trim($row['no_hp'] ?? ''))) {
-            throw new \Exception("No. HP wajib diisi");
+        if (empty(trim($row['email'] ?? ''))) {
+            throw new \Exception("Email wajib diisi");
         }
         if (empty(trim($subDepartmentRaw))) {
             throw new \Exception("Sub Departemen wajib diisi");
@@ -124,8 +125,8 @@ class JoinCallImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
 
         return new JoinCall([
             'candidate_name' => $row['nama_kandidat'],
-            'phone' => $this->formatPhone($row['no_hp']),
-            'email' => !empty($row['email']) ? $row['email'] : null,
+            'phone' => !empty($row['no_hp']) ? $this->formatPhone($row['no_hp']) : null,
+            'email' => strtolower(trim($row['email'])),
             'sub_department_id' => $departmentId,
             'join_call_date' => $joinDate,
             'join_call_time' => $joinTime,
@@ -163,7 +164,7 @@ class JoinCallImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
     {
         return [
             'nama_kandidat.required' => 'Nama Kandidat wajib diisi',
-            'no_hp.required' => 'No. HP wajib diisi',
+            'email.required' => 'Email wajib diisi',
             'email.email' => 'Format email tidak valid',
             'sub_departemen.required' => 'Sub Departemen wajib diisi',
             'departemen.required' => 'Departemen wajib diisi',

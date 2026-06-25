@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Interview;
 use App\Models\InterviewMessageTemplate;
+use App\Notifications\InterviewInvitationNotification;
 use App\Models\Position;
 use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Facades\Excel;
@@ -46,8 +48,8 @@ class InterviewController extends Controller
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('candidate_name', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
@@ -74,8 +76,8 @@ class InterviewController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'candidate_name' => 'required|string|max:100',
-            'phone' => 'required|string|max:20',
-            'email' => 'nullable|email|max:100',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'required|email|max:100',
             'position_id' => 'required|exists:positions,id',
             'interview_date' => 'required|date',
             'interview_time' => 'required',
@@ -95,8 +97,8 @@ class InterviewController extends Controller
         try {
             $interview = Interview::create([
                 'candidate_name' => $request->candidate_name,
-                'phone' => $request->phone,
-                'email' => $request->email,
+                'phone' => $this->normalizePhone($request->phone),
+                'email' => strtolower(trim($request->email)),
                 'position_id' => $request->position_id,
                 'interview_date' => $request->interview_date,
                 'interview_time' => $request->interview_time,
@@ -146,8 +148,8 @@ class InterviewController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'candidate_name' => 'required|string|max:100',
-            'phone' => 'required|string|max:20',
-            'email' => 'nullable|email|max:100',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'required|email|max:100',
             'position_id' => 'required|exists:positions,id',
             'interview_date' => 'required|date',
             'interview_time' => 'required',
@@ -170,8 +172,8 @@ class InterviewController extends Controller
 
             $interview->update([
                 'candidate_name' => $request->candidate_name,
-                'phone' => $request->phone,
-                'email' => $request->email,
+                'phone' => $this->normalizePhone($request->phone),
+                'email' => strtolower(trim($request->email)),
                 'position_id' => $request->position_id,
                 'interview_date' => $request->interview_date,
                 'interview_time' => $request->interview_time,
@@ -259,34 +261,36 @@ class InterviewController extends Controller
         try {
             $interview = Interview::with('position')->findOrFail($id);
 
-            $whatsapp = new WhatsAppService();
+            Notification::route('mail', $interview->email)
+                ->notify(new InterviewInvitationNotification($interview));
 
-            // Format message
-            $message = $this->formatWhatsAppMessage($interview);
+            $sentChannels = ['email'];
 
-            // Get QR code image URL (from Google Charts API)
-            $qrImageUrl = $interview->qr_code_image;
+            if (!empty($interview->phone)) {
+                $whatsapp = new WhatsAppService();
+                $message = $this->formatWhatsAppMessage($interview);
+                $qrImageUrl = $interview->qr_code_image;
+                $sent = $whatsapp->send($interview->phone, $message, $qrImageUrl);
 
-            // Send WhatsApp with QR code image
-            $sent = $whatsapp->send($interview->phone, $message, $qrImageUrl);
+                if ($sent) {
+                    $sentChannels[] = 'WhatsApp';
+                }
 
-            if ($sent) {
                 $interview->update([
                     'status' => 'notified',
                     'wa_sent_at' => now(),
                     'wa_message' => $message,
                 ]);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Notifikasi WhatsApp berhasil dikirim (dengan QR Code)'
+            } else {
+                $interview->update([
+                    'status' => 'notified',
                 ]);
             }
 
             return response()->json([
-                'success' => false,
-                'message' => 'Gagal mengirim notifikasi WhatsApp. Pastikan konfigurasi WhatsApp sudah benar.'
-            ], 500);
+                'success' => true,
+                'message' => 'Notifikasi berhasil dikirim via ' . implode(' dan ', $sentChannels)
+            ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -322,19 +326,28 @@ class InterviewController extends Controller
 
             /** @var Interview $interview */
             foreach ($interviews as $interview) {
+                Notification::route('mail', $interview->email)
+                    ->notify(new InterviewInvitationNotification($interview));
+
                 $message = $this->formatWhatsAppMessage($interview);
                 $qrImageUrl = $interview->qr_code_image;
+                $waSent = !empty($interview->phone)
+                    ? $whatsapp->send($interview->phone, $message, $qrImageUrl)
+                    : false;
 
-                if ($whatsapp->send($interview->phone, $message, $qrImageUrl)) {
+                if ($waSent) {
                     $interview->update([
                         'status' => 'notified',
                         'wa_sent_at' => now(),
                         'wa_message' => $message,
                     ]);
-                    $sent++;
-                } else {
-                    $failed++;
                 }
+
+                $interview->update([
+                    'status' => 'notified',
+                ]);
+
+                $sent++;
 
                 // Delay to prevent rate limiting
                 usleep(500000); // 0.5 second delay
@@ -342,7 +355,7 @@ class InterviewController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Blast WhatsApp selesai: {$sent} berhasil, {$failed} gagal (dengan QR Code)",
+                'message' => "Blast notifikasi selesai: {$sent} email berhasil dikirim, {$failed} gagal",
                 'data' => [
                     'sent' => $sent,
                     'failed' => $failed,
@@ -603,5 +616,12 @@ class InterviewController extends Controller
                 'message' => 'Gagal mengimport data: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    protected function normalizePhone(?string $phone): ?string
+    {
+        $phone = trim((string) $phone);
+
+        return $phone === '' ? null : $phone;
     }
 }

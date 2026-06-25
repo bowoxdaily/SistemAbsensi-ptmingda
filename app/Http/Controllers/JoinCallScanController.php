@@ -23,8 +23,11 @@ class JoinCallScanController extends Controller
             ]);
         }
 
+        // join_call_date is stored as Y-m-d string, so normalize it to Carbon first.
+        $joinDate = Carbon::parse($joinCall->join_call_date);
+
         // Check if join date is today or in the future
-        if ($joinCall->join_call_date->lt(Carbon::today())) {
+        if ($joinDate->lt(Carbon::today())) {
             return view('join_call.scan-error', [
                 'message' => 'Jadwal panggilan join sudah lewat',
                 'joinCall' => $joinCall
@@ -94,7 +97,7 @@ class JoinCallScanController extends Controller
                 'id' => $joinCall->id,
                 'candidate_name' => $joinCall->candidate_name,
                 'sub_department' => $joinCall->subDepartment?->name,
-                'join_call_date' => $joinCall->join_call_date->format('d/m/Y'),
+                'join_call_date' => Carbon::parse($joinCall->join_call_date)->format('d/m/Y'),
                 'join_call_time' => $joinCall->join_call_time->format('H:i'),
                 'location' => $joinCall->location,
                 'status' => $joinCall->status,

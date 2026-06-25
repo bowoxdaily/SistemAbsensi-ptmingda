@@ -77,7 +77,7 @@
                                     <div class="col-6"><strong>Posisi/Departemen:</strong></div>
                                     <div class="col-6" id="infoPosition"></div>
                                     
-                                    <div class="col-6"><strong>No. HP:</strong></div>
+                                    <div class="col-6"><strong>Email:</strong></div>
                                     <div class="col-6" id="infoPhone"></div>
                                     
                                     <div class="col-6" id="infoTimeLabel"><strong>Waktu:</strong></div>
@@ -390,8 +390,8 @@
                                 <td>${roleValue}</td>
                             </tr>
                             <tr>
-                                <td><strong>No. HP:</strong></td>
-                                <td>${data.phone}</td>
+                                <td><strong>Email:</strong></td>
+                                <td>${data.email || '-'}</td>
                             </tr>
                             <tr>
                                 <td><strong>${timeLabel}:</strong></td>

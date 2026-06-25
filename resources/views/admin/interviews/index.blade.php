@@ -131,7 +131,7 @@
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Cari</label>
-                            <input type="text" class="form-control" name="search" placeholder="Nama/No. HP" value="{{ request('search') }}">
+                            <input type="text" class="form-control" name="search" placeholder="Nama/Email" value="{{ request('search') }}">
                         </div>
                         <div class="col-12">
                             <button type="submit" class="btn btn-primary">
@@ -141,7 +141,7 @@
                                 <i class='bx bx-reset me-1'></i> Reset
                             </a>
                             <button type="button" class="btn btn-success" id="bulkBlastBtn" style="display: none;">
-                                <i class='bx bxl-whatsapp me-1'></i> Blast WA (<span id="selectedCount">0</span>)
+                                <i class='bx bx-send me-1'></i> Blast Notifikasi (<span id="selectedCount">0</span>)
                             </button>
                             <button type="button" class="btn btn-danger" id="bulkDeleteBtn" style="display: none;">
                                 <i class='bx bx-trash me-1'></i> Hapus Terpilih (<span id="deleteCount">0</span>)
@@ -177,8 +177,8 @@
                                 </th>
                                 <th>No</th>
                                 <th>Nama Kandidat</th>
-                                <th>No. HP</th>
                                 <th>Email</th>
+                                <th>No. HP</th>
                                 <th>Posisi</th>
                                 <th>Tanggal Interview</th>
                                 <th>Waktu</th>
@@ -197,8 +197,8 @@
                                     </td>
                                     <td>{{ $interviews->firstItem() + $index }}</td>
                                     <td><strong>{{ $interview->candidate_name }}</strong></td>
-                                    <td>{{ $interview->phone }}</td>
                                     <td>{{ $interview->email ?? '-' }}</td>
+                                    <td>{{ $interview->phone ?? '-' }}</td>
                                     <td><span class="badge bg-label-primary">{{ $interview->position->name }}</span></td>
                                     <td>{{ \Carbon\Carbon::parse($interview->interview_date)->locale('id')->translatedFormat('d M Y') }}</td>
                                     <td>{{ \Carbon\Carbon::parse($interview->interview_time)->format('H:i') }} WIB</td>
@@ -236,7 +236,7 @@
                                                     <i class="bx bx-edit me-1"></i> Edit
                                                 </a>
                                                 <a class="dropdown-item send-wa-btn" href="javascript:void(0);" data-id="{{ $interview->id }}">
-                                                    <i class="bx bxl-whatsapp me-1"></i> Kirim WA
+                                                    <i class="bx bx-send me-1"></i> Kirim Notifikasi
                                                 </a>
                                                 <a class="dropdown-item view-qr-btn" href="javascript:void(0);" data-id="{{ $interview->id }}" data-name="{{ $interview->candidate_name }}" data-token="{{ $interview->qr_code_token }}">
                                                     <i class="bx bx-qr me-1"></i> Lihat QR Code
@@ -289,7 +289,7 @@
                                                 <i class="bx bx-edit me-1"></i> Edit
                                             </a>
                                             <a class="dropdown-item send-wa-btn" href="javascript:void(0);" data-id="{{ $interview->id }}">
-                                                <i class="bx bxl-whatsapp me-1"></i> Kirim WA
+                                                <i class="bx bx-send me-1"></i> Kirim Notifikasi
                                             </a>
                                             <a class="dropdown-item view-qr-btn" href="javascript:void(0);" data-id="{{ $interview->id }}" data-name="{{ $interview->candidate_name }}" data-token="{{ $interview->qr_code_token }}">
                                                 <i class="bx bx-qr me-1"></i> Lihat QR Code
@@ -304,10 +304,10 @@
 
                                 <div class="mb-2">
                                     <small class="text-muted d-block mb-1">
-                                        <i class='bx bxs-phone'></i> {{ $interview->phone }}
+                                        <i class='bx bx-envelope'></i> {{ $interview->email ?? '-' }}
                                     </small>
                                     <small class="text-muted d-block mb-1">
-                                        <i class='bx bx-envelope'></i> {{ $interview->email ?? '-' }}
+                                        <i class='bx bxs-phone'></i> {{ $interview->phone ?? '-' }}
                                     </small>
                                     <small class="text-muted d-block mb-1">
                                         <i class='bx bx-calendar'></i> {{ \Carbon\Carbon::parse($interview->interview_date)->locale('id')->translatedFormat('d M Y') }}
@@ -382,15 +382,15 @@
                                 <input type="text" class="form-control" id="candidate_name" name="candidate_name" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Nomor HP/WhatsApp <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="phone" name="phone" placeholder="08xxxxxxxxxx" required>
+                                <label class="form-label">Email <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="email" name="email" placeholder="kandidat@email.com" required>
                             </div>
                         </div>
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Email</label>
-                                <input type="email" class="form-control" id="email" name="email">
+                                <label class="form-label">Nomor HP/WhatsApp</label>
+                                <input type="text" class="form-control" id="phone" name="phone" placeholder="08xxxxxxxxxx">
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Posisi yang Dilamar <span class="text-danger">*</span></label>
@@ -598,8 +598,8 @@
                             <ol class="mb-0 mt-2 ps-3">
                                 <li>Download template Excel terlebih dahulu</li>
                                 <li><strong>PENTING:</strong> Mulai isi data dari <u>BARIS KE-3</u> (baris 2 adalah contoh berwarna kuning yang akan di-skip otomatis)</li>
-                                <li><strong>Kolom WAJIB diisi:</strong> Nama Kandidat, No. HP, Posisi, Tanggal Interview, Waktu Interview</li>
-                                <li><strong>Kolom OPSIONAL:</strong> Email, Lokasi (default: Kantor PT Mingda), Catatan, Template Notifikasi</li>
+                                <li><strong>Kolom WAJIB diisi:</strong> Nama Kandidat, Email, Posisi, Tanggal Interview, Waktu Interview</li>
+                                <li><strong>Kolom OPSIONAL:</strong> No. HP, Lokasi (default: Kantor PT Mingda), Catatan, Template Notifikasi</li>
                                 <li><strong>Format Tanggal:</strong> YYYY-MM-DD atau M/D/YYYY (contoh: 2026-02-20 atau 2/15/2026). Biarkan Excel format otomatis.</li>
                                 <li><strong>Format Waktu:</strong> HH:MM atau angka jam (contoh: 09:00, 9:30, atau ketik 9 untuk 09:00). Sistem support berbagai format waktu Excel.</li>
                                 <li>Kolom Posisi dan Template Notifikasi memiliki <strong>dropdown otomatis</strong> - pilih dari list</li>
@@ -858,7 +858,7 @@
 
                 const formData = {
                     candidate_name: $('#candidate_name').val(),
-                    phone: $('#phone').val(),
+                    phone: $('#phone').val() || null,
                     email: $('#email').val() || null,
                     position_id: $('#position_id').val(),
                     interview_date: $('#interview_date').val(),
@@ -998,8 +998,8 @@
                                     <h6 class="mb-3">Informasi Kandidat</h6>
                                     <table class="table table-sm">
                                         <tr><th width="40%">Nama</th><td>${data.candidate_name}</td></tr>
-                                        <tr><th>No. HP</th><td>${data.phone}</td></tr>
                                         <tr><th>Email</th><td>${data.email || '-'}</td></tr>
+                                        <tr><th>No. HP</th><td>${data.phone || '-'}</td></tr>
                                         <tr><th>Posisi</th><td>${data.position.name}</td></tr>
                                     </table>
                                 </div>
@@ -1065,13 +1065,13 @@
                 });
             });
 
-            // Send WhatsApp Single
+            // Send Notification Single
             $(document).on('click', '.send-wa-btn', function() {
                 const id = $(this).data('id');
 
                 Swal.fire({
-                    title: 'Kirim Notifikasi WhatsApp?',
-                    text: 'Pesan undangan interview akan dikirim ke kandidat',
+                    title: 'Kirim Notifikasi?',
+                    text: 'Undangan interview akan dikirim ke email kandidat dan WhatsApp jika nomor tersedia',
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonText: 'Ya, Kirim!',
@@ -1103,7 +1103,7 @@
                                 });
                             },
                             error: function(xhr) {
-                                Swal.fire('Error', xhr.responseJSON?.message || 'Gagal mengirim WhatsApp', 'error');
+                                Swal.fire('Error', xhr.responseJSON?.message || 'Gagal mengirim notifikasi', 'error');
                             }
                         });
                     }
@@ -1286,7 +1286,7 @@
                 });
             });
 
-            // Bulk Blast WhatsApp
+            // Bulk Blast Notification
             $('#bulkBlastBtn').on('click', function() {
                 const ids = [];
                 const names = [];
@@ -1305,17 +1305,17 @@
                 namesList += '</div>';
 
                 Swal.fire({
-                    title: `Blast WhatsApp ke ${ids.length} Kandidat?`,
-                    html: `Pesan undangan interview akan dikirim ke:${namesList}`,
+                    title: `Blast notifikasi ke ${ids.length} kandidat?`,
+                    html: `Undangan interview akan dikirim ke email kandidat, dan ke WhatsApp bila nomor tersedia:${namesList}`,
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonText: 'Ya, Blast Sekarang!',
                     cancelButtonText: 'Batal',
-                    confirmButtonColor: '#25D366'
+                    confirmButtonColor: '#198754'
                 }).then((result) => {
                     if (result.isConfirmed) {
                         Swal.fire({
-                            title: 'Mengirim Blast WhatsApp...',
+                            title: 'Mengirim blast notifikasi...',
                             html: `Sedang mengirim ke ${ids.length} kandidat...`,
                             allowOutsideClick: false,
                             didOpen: () => { Swal.showLoading(); }

@@ -25,7 +25,7 @@
                     <label class="form-label small mb-1">Cari Kandidat</label>
                     <div class="input-group input-group-sm">
                         <span class="input-group-text"><i class='bx bx-search'></i></span>
-                        <input type="text" class="form-control" id="searchInput" placeholder="Nama / Posisi...">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Nama / Email / Posisi...">
                     </div>
                 </div>
                 <div class="col-6 col-md-2">
@@ -119,7 +119,7 @@
                             <tr>
                                 <th>#</th><th>Nama Kandidat</th><th>Posisi</th>
                                 <th>Tanggal Interview</th><th>Waktu</th><th>Lokasi</th>
-                                <th>No. Telp</th><th class="text-center">Status</th>
+                                <th>Email</th><th class="text-center">Status</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody">
@@ -223,7 +223,7 @@ function renderTable(rows, meta) {
         const pos   = iv.position ? iv.position.name : (iv.position_name || '-');
         const tgl   = iv.interview_date ? iv.interview_date.substring(0, 10).split('-').reverse().join('/') : '-';
         const time  = iv.interview_time ? iv.interview_time.substring(0, 5) : '-';
-        const phone = iv.phone || '-';
+        const email = iv.email || '-';
         const loc   = iv.location || '-';
 
         html += `<tr>
@@ -233,7 +233,7 @@ function renderTable(rows, meta) {
             <td>${tgl}</td>
             <td>${time}</td>
             <td>${loc}</td>
-            <td>${phone}</td>
+            <td>${email}</td>
             <td class="text-center"><span class="badge ${s.cls} badge-intv">${s.label}</span></td>
         </tr>`;
 
@@ -248,7 +248,7 @@ function renderTable(rows, meta) {
             <div class="mt-1 small text-muted">
                 ${tgl} ${time} &nbsp;|&nbsp; ${loc}
             </div>
-            <div class="small text-muted">${phone}</div>
+            <div class="small text-muted">${email}</div>
         </div>`;
     });
     $('#tableBody').html(html);

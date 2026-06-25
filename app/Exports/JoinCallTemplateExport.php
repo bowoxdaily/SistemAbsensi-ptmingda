@@ -45,8 +45,8 @@ class JoinCallTemplateExport implements FromCollection, WithHeadings, WithStyles
         // Create example row
         $exampleRow = [
             'John Doe',                    // Nama Kandidat
-            '08123456789',                 // No. HP
             'johndoe@example.com',         // Email
+            '08123456789',                 // No. HP
             !empty($this->departments) ? $this->departments[0] : 'Human Resource',  // Sub Departemen
             '2026-02-20',                  // Tanggal Join (YYYY-MM-DD)
             '09:00',                       // Waktu Join (HH:MM)
@@ -60,8 +60,8 @@ class JoinCallTemplateExport implements FromCollection, WithHeadings, WithStyles
         for ($i = 0; $i < 20; $i++) {
             $rows->push([
                 '',  // Nama Kandidat
-                '',  // No. HP
                 '',  // Email
+                '',  // No. HP
                 '',  // Sub Departemen
                 '',  // Tanggal Join
                 '',  // Waktu Join
@@ -81,8 +81,8 @@ class JoinCallTemplateExport implements FromCollection, WithHeadings, WithStyles
     {
         return [
             'Nama Kandidat',
-            'No. HP',
             'Email',
+            'No. HP',
             'Sub Departemen',
             'Tanggal Join',
             'Waktu Join',
@@ -99,8 +99,8 @@ class JoinCallTemplateExport implements FromCollection, WithHeadings, WithStyles
     {
         return [
             'A' => 25,  // Nama Kandidat
-            'B' => 18,  // No. HP
-            'C' => 30,  // Email
+            'B' => 30,  // Email
+            'C' => 18,  // No. HP
             'D' => 20,  // Sub Departemen
             'E' => 20,  // Tanggal Join
             'F' => 18,  // Waktu Join
@@ -220,11 +220,11 @@ class JoinCallTemplateExport implements FromCollection, WithHeadings, WithStyles
                 $sheet->setCellValue('A23', 'CATATAN PENTING:');
                 $sheet->setCellValue('A24', '1. Baris ke-2 (warna kuning) adalah CONTOH - akan diabaikan otomatis saat import');
                 $sheet->setCellValue('A25', '2. Mulai isi data dari BARIS KE-3 dan seterusnya');
-                $sheet->setCellValue('A26', '3. Kolom WAJIB diisi: Nama Kandidat, No. HP, Sub Departemen, Tanggal Join, Waktu Join');
-                $sheet->setCellValue('A27', '4. Kolom OPSIONAL: Email, Lokasi (default: Kantor PT Mingda), Catatan, Template Notifikasi');
+                $sheet->setCellValue('A26', '3. Kolom WAJIB diisi: Nama Kandidat, Email, Sub Departemen, Tanggal Join, Waktu Join');
+                $sheet->setCellValue('A27', '4. Kolom OPSIONAL: No. HP, Lokasi (default: Kantor PT Mingda), Catatan, Template Notifikasi');
                 $sheet->setCellValue('A28', '5. Format tanggal: YYYY-MM-DD, M/D/YYYY, atau biarkan Excel auto-format (contoh: 2026-02-20, 2/15/2026)');
                 $sheet->setCellValue('A29', '6. Format waktu: HH:MM atau angka jam (contoh: 09:00, 9:30, atau 9 untuk 09:00). Biarkan Excel format otomatis.');
-                $sheet->setCellValue('A30', '7. No. HP akan otomatis diformat menjadi 628xxx (bisa tulis 08xxx)');
+                $sheet->setCellValue('A30', '7. No. HP bersifat opsional dan akan otomatis diformat menjadi 628xxx bila diisi');
                 $sheet->setCellValue('A31', '8. Template Notifikasi: Pilih dari dropdown template yang tersedia atau kosongkan untuk pakai template default.');
                 $sheet->setCellValue('A32', '9. Hapus baris yang tidak digunakan atau biarkan kosong - akan di-skip otomatis');
                 

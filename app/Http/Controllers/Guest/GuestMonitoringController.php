@@ -206,6 +206,7 @@ class GuestMonitoringController extends Controller
         $paginated = Interview::with('position')
             ->when($search, fn($q) => $q->where(fn($q2) => $q2
                 ->where('candidate_name', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%")
                 ->orWhere('phone', 'like', "%{$search}%")))
             ->when($status, fn($q) => $q->where('status', $status))
             ->when($dateFrom, fn($q) => $q->whereDate('interview_date', '>=', $dateFrom))
