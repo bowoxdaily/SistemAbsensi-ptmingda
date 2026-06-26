@@ -158,6 +158,9 @@ class KaryawanImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
                 'serikat' => $row['status_serikat'] ?? 'Non Serikat',
                 'work_schedule_id' => $workScheduleId,
                 'tanggal_resign' => !empty($row['tanggal_resign']) ? $this->convertDate($row['tanggal_resign']) : null,
+                'tanggal_phk' => !empty($row['tanggal_phk'])
+                    ? $this->convertDate($row['tanggal_phk'])
+                    : (($status === 'phk' && !empty($row['tanggal_resign'])) ? $this->convertDate($row['tanggal_resign']) : null),
                 'bank' => $row['bank'] ?? null,
                 'nomor_rekening' => $row['nomor_rekening'] ?? null,
                 'tax_npwp' => $row['npwp'] ?? null,
@@ -291,6 +294,8 @@ class KaryawanImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
             return 'gagal_probation';
         } elseif (in_array($status, ['pending'])) {
             return 'pending';
+        } elseif (in_array($status, ['phk', 'pemutusan hubungan kerja'])) {
+            return 'phk';
         }
         return 'active'; // Default
     }

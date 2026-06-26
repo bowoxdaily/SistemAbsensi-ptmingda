@@ -38,6 +38,7 @@
                         <option value="mangkir">Mangkir</option>
                         <option value="gagal_probation">Gagal Probation</option>
                         <option value="pending">Pending</option>
+                        <option value="phk">PHK</option>
                     </select>
                 </div>
                 <div class="col-6 col-md-3">
@@ -98,6 +99,7 @@ const STATUS = {
     mangkir:         { label: 'Mangkir',          cls: 'bg-warning text-dark' },
     gagal_probation: { label: 'Gagal Probation',  cls: 'bg-info text-dark' },
     pending:         { label: 'Pending',           cls: 'bg-primary' },
+    phk:             { label: 'PHK',               cls: 'bg-danger' },
 };
 
 $(function() {

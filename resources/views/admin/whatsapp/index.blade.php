@@ -37,25 +37,45 @@
                             @csrf
                             <input type="hidden" name="form_type" value="config">
 
-                            <!-- Provider (Hidden - Fixed to Fonnte) -->
-                            <input type="hidden" name="provider" value="fonnte">
-
-                            <!-- Fonnte API Key -->
+                            <!-- Provider -->
                             <div class="mb-3">
-                                <label class="form-label" for="api_key">Fonnte API Key (Default)</label>
+                                <label class="form-label" for="provider">Provider</label>
+                                <select class="form-select" id="provider" name="provider" onchange="toggleProviderFields()">
+                                    <option value="fonnte" {{ ($setting->provider ?? 'fonnte') === 'fonnte' ? 'selected' : '' }}>Fonnte</option>
+                                    <option value="kirimdev" {{ ($setting->provider ?? 'fonnte') === 'kirimdev' ? 'selected' : '' }}>Kirim.dev</option>
+                                </select>
+                            </div>
+
+                            <!-- API Key -->
+                            <div class="mb-3">
+                                <label class="form-label" for="api_key">API Key (Default)</label>
                                 <div class="input-group">
                                     <input type="text" class="form-control @error('api_key') is-invalid @enderror"
                                         id="api_key" name="api_key" value="{{ old('api_key', $setting->api_key) }}"
-                                        placeholder="Your Fonnte API Key">
+                                        placeholder="Masukkan API Key provider">
                                     <button class="btn btn-outline-secondary" type="button" onclick="testConnection()">
                                         <i class='bx bx-test-tube'></i> Test
                                     </button>
                                 </div>
-                                <div class="form-text">
-                                    Get your API key from <a href="https://fonnte.com/dashboard" target="_blank">Fonnte
-                                        Dashboard</a>. Free 100 messages/month!
+                                <div class="form-text" id="apiKeyHint">
+                                    Fonnte: Ambil API key dari <a href="https://fonnte.com/dashboard" target="_blank">Fonnte Dashboard</a>.
                                 </div>
                                 @error('api_key')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <!-- Kirimdev Phone Number ID -->
+                            <div class="mb-3" id="kirimPhoneIdGroup" style="display: none;">
+                                <label class="form-label" for="kirim_phone_number_id">Kirim.dev Phone Number ID</label>
+                                <input type="text" class="form-control @error('kirim_phone_number_id') is-invalid @enderror"
+                                    id="kirim_phone_number_id" name="kirim_phone_number_id"
+                                    value="{{ old('kirim_phone_number_id', $setting->kirim_phone_number_id) }}"
+                                    placeholder="contoh: 106540352242922">
+                                <div class="form-text">
+                                    Dapatkan dari Kirim.dev dashboard atau endpoint <code>/v1/accounts</code>.
+                                </div>
+                                @error('kirim_phone_number_id')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
@@ -521,7 +541,8 @@
                             <input type="hidden" name="form_type" value="template">
 
                             <!-- Hidden fields untuk preserve settings lain saat update template -->
-                            <input type="hidden" name="provider" value="fonnte">
+                            <input type="hidden" name="provider" value="{{ $setting->provider ?? 'fonnte' }}">
+                            <input type="hidden" name="kirim_phone_number_id" value="{{ $setting->kirim_phone_number_id }}">
 
                             <!-- Checkbox values preserved via hidden inputs -->
                             @if ($setting->is_enabled)
@@ -739,7 +760,7 @@
 
                         <div class="mb-2">
                             <small class="text-muted">Provider:</small>
-                            <strong class="float-end">Fonnte</strong>
+                            <strong class="float-end">{{ strtoupper($setting->provider ?? 'fonnte') }}</strong>
                         </div>
                         <div class="mb-2">
                             <small class="text-muted">API Key:</small>
@@ -1193,5 +1214,27 @@
                 text.textContent = 'Tampilkan';
             }
         }
+
+        function toggleProviderFields() {
+            const provider = document.getElementById('provider')?.value || 'fonnte';
+            const kirimGroup = document.getElementById('kirimPhoneIdGroup');
+            const apiKeyHint = document.getElementById('apiKeyHint');
+
+            if (provider === 'kirimdev') {
+                if (kirimGroup) kirimGroup.style.display = 'block';
+                if (apiKeyHint) {
+                    apiKeyHint.innerHTML = 'Kirim.dev: Ambil API key dari <a href="https://app.kirimdev.com" target="_blank">Dashboard Kirim.dev</a>.';
+                }
+            } else {
+                if (kirimGroup) kirimGroup.style.display = 'none';
+                if (apiKeyHint) {
+                    apiKeyHint.innerHTML = 'Fonnte: Ambil API key dari <a href="https://fonnte.com/dashboard" target="_blank">Fonnte Dashboard</a>.';
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleProviderFields();
+        });
     </script>
 @endpush

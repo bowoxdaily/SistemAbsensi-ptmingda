@@ -305,6 +305,7 @@
                             <option value="mangkir">Mangkir</option>
                             <option value="gagal_probation">Gagal Probation</option>
                             <option value="pending">Pending</option>
+                            <option value="phk">PHK</option>
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -676,6 +677,7 @@
                                             <option value="mangkir">Mangkir</option>
                                             <option value="gagal_probation">Gagal Probation</option>
                                             <option value="pending">Pending</option>
+                                            <option value="phk">PHK</option>
                                         </select>
                                         <div class="invalid-feedback" id="statusError"></div>
                                     </div>
@@ -694,6 +696,12 @@
                                         <input type="date" class="form-control form-control-sm" id="tanggal_resign"
                                             name="tanggal_resign">
                                         <div class="invalid-feedback" id="tanggal_resignError"></div>
+                                    </div>
+                                    <div class="col-sm-6 mb-2" id="phkDateContainer" style="display: none;">
+                                        <label for="tanggal_phk" class="form-label small">Tanggal PHK</label>
+                                        <input type="date" class="form-control form-control-sm" id="tanggal_phk"
+                                            name="tanggal_phk">
+                                        <div class="invalid-feedback" id="tanggal_phkError"></div>
                                     </div>
                                     <div class="col-sm-6 mb-2" id="mangkirDateContainer" style="display: none;">
                                         <label for="tanggal_mangkir" class="form-label small">Tanggal Mangkir</label>
@@ -978,6 +986,10 @@
                                 <tr id="detailResignDateRow" style="display: none;">
                                     <th>Tanggal Resign</th>
                                     <td id="detailTanggalResign">-</td>
+                                </tr>
+                                <tr id="detailPhkDateRow" style="display: none;">
+                                    <th>Tanggal PHK</th>
+                                    <td id="detailTanggalPhk">-</td>
                                 </tr>
                                 <tr id="detailMangkirDateRow" style="display: none;">
                                     <th>Tanggal Mangkir</th>
@@ -1608,7 +1620,8 @@
                     'resign': 'Resign',
                     'mangkir': 'Mangkir',
                     'gagal_probation': 'Gagal Probation',
-                    'pending': 'Pending'
+                    'pending': 'Pending',
+                    'phk': 'PHK'
                 };
                 container.append(
                     `<span class="badge bg-label-warning">Status: ${statusLabel[currentFilters.status]}</span>`);
@@ -1801,7 +1814,8 @@
                 'resign': '<span class="badge bg-label-danger">Resign</span>',
                 'mangkir': '<span class="badge bg-label-dark">Mangkir</span>',
                 'gagal_probation': '<span class="badge bg-label-danger">Gagal Probation</span>',
-                'pending': '<span class="badge bg-label-info">Pending</span>'
+                'pending': '<span class="badge bg-label-info">Pending</span>',
+                'phk': '<span class="badge bg-label-danger">PHK</span>'
             };
             return badges[status] || status;
         }
@@ -1840,6 +1854,7 @@
             if (k.status === 'mangkir' && k.tanggal_mangkir)       return formatDate(k.tanggal_mangkir);
             if (k.status === 'gagal_probation' && k.tanggal_gagal_probation) return formatDate(k.tanggal_gagal_probation);
             if (k.status === 'pending' && k.tanggal_pending)       return formatDate(k.tanggal_pending);
+            if (k.status === 'phk' && k.tanggal_phk)               return formatDate(k.tanggal_phk);
             return '-';
         }
 
@@ -1848,7 +1863,8 @@
                 resign: 'Resign',
                 mangkir: 'Mangkir',
                 gagal_probation: 'Gagal Prob',
-                pending: 'Pending'
+                pending: 'Pending',
+                phk: 'PHK'
             };
             const date = getExitDate(k);
             if (date === '-') return '';
@@ -1904,6 +1920,7 @@
             $('.form-control, .form-select').removeClass('is-invalid');
             $('.nav-tabs button:first').tab('show');
             $('#resignDateContainer').hide();
+            $('#phkDateContainer').hide();
             $('#mangkirDateContainer').hide();
             $('#gagalProbDateContainer').hide();
             $('#pendingDateContainer').hide();
@@ -1933,7 +1950,7 @@
 
         function toggleResignDate() {
             const status = $('#status').val();
-            const showRecommendation = ['resign', 'mangkir', 'gagal_probation'].includes(status);
+            const showRecommendation = ['resign', 'mangkir', 'gagal_probation', 'phk'].includes(status);
 
             if (showRecommendation) {
                 $('#terminationRecommendationContainer').show();
@@ -1949,6 +1966,15 @@
             } else {
                 $('#resignDateContainer').hide();
                 $('#tanggal_resign').prop('required', false).val('');
+            }
+
+            // PHK
+            if (status === 'phk') {
+                $('#phkDateContainer').show();
+                $('#tanggal_phk').prop('required', true);
+            } else {
+                $('#phkDateContainer').hide();
+                $('#tanggal_phk').prop('required', false).val('');
             }
 
             // Mangkir
@@ -2032,6 +2058,15 @@
                     } else {
                         $('#resignDateContainer').hide();
                         $('#tanggal_resign').val('');
+                    }
+
+                    // Toggle tanggal PHK
+                    if (k.status === 'phk' && k.tanggal_phk) {
+                        $('#tanggal_phk').val(k.tanggal_phk);
+                        $('#phkDateContainer').show();
+                    } else {
+                        $('#phkDateContainer').hide();
+                        $('#tanggal_phk').val('');
                     }
 
                     // Toggle tanggal mangkir
@@ -2118,6 +2153,7 @@
                 status: $('#status').val(),
                 termination_recommendation: $('#termination_recommendation').val(),
                 tanggal_resign: formatDateForSubmission($('#tanggal_resign').val()),
+                tanggal_phk: formatDateForSubmission($('#tanggal_phk').val()),
                 tanggal_mangkir: formatDateForSubmission($('#tanggal_mangkir').val()),
                 tanggal_gagal_probation: formatDateForSubmission($('#tanggal_gagal_probation').val()),
                 tanggal_pending: formatDateForSubmission($('#tanggal_pending').val()),
@@ -2291,6 +2327,15 @@
                         $('#detailResignDateRow').show();
                     } else {
                         $('#detailResignDateRow').hide();
+                    }
+
+                    // Tanggal PHK
+                    const phkDateFormatted = formatDateToDisplay(k.tanggal_phk);
+                    if (k.status === 'phk' && k.tanggal_phk) {
+                        $('#detailTanggalPhk').text(phkDateFormatted);
+                        $('#detailPhkDateRow').show();
+                    } else {
+                        $('#detailPhkDateRow').hide();
                     }
 
                     // Tanggal mangkir

@@ -71,6 +71,7 @@
                         <option value="mangkir">Mangkir</option>
                         <option value="gagal_probation">Gagal Probation</option>
                         <option value="pending">Pending</option>
+                        <option value="phk">PHK</option>
                     </select>
                 </div>
                 <!-- Department -->
@@ -177,6 +178,7 @@ const STATUS_INFO = {
     mangkir:         { label: 'Mangkir',          class: 'bg-warning text-dark' },
     gagal_probation: { label: 'Gagal Probation',  class: 'bg-info text-dark' },
     pending:         { label: 'Pending',           class: 'bg-primary' },
+    phk:             { label: 'PHK',               class: 'bg-danger' },
 };
 
 /* --- Department options --- */
@@ -266,6 +268,9 @@ function renderTable(rows, meta) {
         } else if (k.status === 'pending' && k.tanggal_pending) {
             inactiveDateRaw = k.tanggal_pending;
             inactiveDateLabel = 'Pending';
+        } else if (k.status === 'phk' && k.tanggal_phk) {
+            inactiveDateRaw = k.tanggal_phk;
+            inactiveDateLabel = 'PHK';
         }
         if (inactiveDateRaw) inactiveDate = formatDate(inactiveDateRaw);
 

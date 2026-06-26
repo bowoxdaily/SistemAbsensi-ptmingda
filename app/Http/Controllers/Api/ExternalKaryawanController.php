@@ -26,7 +26,7 @@ class ExternalKaryawanController extends Controller
      *   - search         (string) — name, employee_code, or email
      *   - department_id  (int)
      *   - position_id    (int)
-        *   - status         (string: active|inactive|resign|mangkir|gagal_probation|pending)
+        *   - status         (string: active|inactive|resign|mangkir|gagal_probation|pending|phk)
      *   - page           (int, default 1)
      */
     public function index(Request $request)
@@ -79,7 +79,7 @@ class ExternalKaryawanController extends Controller
      *   - search         (string) — name, employee_code, or email
      *   - department_id  (int)
      *   - position_id    (int)
-        *   - status         (string: active|inactive|resign|mangkir|gagal_probation|pending)
+        *   - status         (string: active|inactive|resign|mangkir|gagal_probation|pending|phk)
      */
     public function all(Request $request)
     {

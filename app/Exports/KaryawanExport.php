@@ -77,7 +77,7 @@ class KaryawanExport implements FromCollection, WithHeadings, WithMapping, WithS
             'Status Kerja',
             'Status Serikat',
             'Jadwal Kerja',
-            'Tanggal Resign',
+            'Tanggal Resign/PHK',
             'Rekomendasi',
             'Bank',
             'Nomor Rekening',
@@ -124,7 +124,7 @@ class KaryawanExport implements FromCollection, WithHeadings, WithMapping, WithS
             $karyawan->employment_status ?? '-',
             $karyawan->serikat ?? 'Non Serikat',
             $karyawan->workSchedule ? $karyawan->workSchedule->name : '-',
-            $this->formatDate($karyawan->tanggal_resign),
+            $this->formatDate($karyawan->status === 'phk' ? $karyawan->tanggal_phk : $karyawan->tanggal_resign),
             $this->getTerminationRecommendationLabel($karyawan->termination_recommendation),
             $karyawan->bank ?? '-',
             $karyawan->nomor_rekening ?? '-',
@@ -244,6 +244,7 @@ class KaryawanExport implements FromCollection, WithHeadings, WithMapping, WithS
             'mangkir' => 'Mangkir',
             'gagal_probation' => 'Gagal Probation',
             'pending' => 'Pending',
+            'phk' => 'PHK',
         ];
         return $labels[$status] ?? $status;
     }

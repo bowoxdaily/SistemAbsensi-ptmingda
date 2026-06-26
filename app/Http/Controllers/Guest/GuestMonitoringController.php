@@ -49,6 +49,7 @@ class GuestMonitoringController extends Controller
             'mangkir'         => Karyawans::where('status', 'mangkir')->count(),
             'gagal_probation' => Karyawans::where('status', 'gagal_probation')->count(),
             'pending'         => Karyawans::where('status', 'pending')->count(),
+            'phk'             => Karyawans::where('status', 'phk')->count(),
         ];
 
         $absensiStats = [

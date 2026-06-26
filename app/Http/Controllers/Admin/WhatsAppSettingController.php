@@ -51,8 +51,10 @@ class WhatsAppSettingController extends Controller
 
         // Simple validation - no complex rules
         $validator = Validator::make($request->all(), [
+            'provider' => 'nullable|in:fonnte,kirimdev,baileys',
             'api_key' => 'nullable|string|max:255',
             'sender' => 'nullable|string|max:50',
+            'kirim_phone_number_id' => 'nullable|string|max:100',
             'admin_phone' => 'nullable|string|max:50',
             'checkin_api_key' => 'nullable|string|max:255',
             'checkout_api_key' => 'nullable|string|max:255',
@@ -107,17 +109,19 @@ class WhatsAppSettingController extends Controller
                 'api_key' => $setting->api_key ? '***' . substr($setting->api_key, -4) : 'NULL'
             ]);
 
-            // Always set provider to fonnte
-            $setting->provider = 'fonnte';
-            $setting->api_url = null;
+            // Keep selected provider (set in each form handler)
 
             // Detect which form is being submitted
             $formType = $request->input('form_type', 'config');
 
             if ($formType === 'config') {
+                $provider = $request->input('provider', $setting->provider ?: 'fonnte');
+
                 // CONFIG FORM: Update API Key, Sender, Admin Phone, and Toggles
+                $setting->provider = $provider;
                 $setting->api_key = $request->input('api_key');
                 $setting->sender = $request->input('sender');
+                $setting->kirim_phone_number_id = $request->input('kirim_phone_number_id');
                 $setting->admin_phone = $request->input('admin_phone');
 
                 // Custom API keys
@@ -161,13 +165,19 @@ class WhatsAppSettingController extends Controller
                 $setting->sp_counter_width = $request->input('sp_counter_width') ?: 3;
 
                 Log::info('Config Form Processing', [
+                    'provider' => $setting->provider,
                     'new_api_key' => $setting->api_key ? '***' . substr($setting->api_key, -4) : 'NULL',
                     'new_sender' => $setting->sender,
+                    'kirim_phone_number_id' => $setting->kirim_phone_number_id,
                     'new_admin_phone' => $setting->admin_phone
                 ]);
 
                 // Don't update templates from config form
             } elseif ($formType === 'template') {
+                // Preserve provider and kirim phone number id when saving templates
+                $setting->provider = $request->input('provider', $setting->provider ?: 'fonnte');
+                $setting->kirim_phone_number_id = $request->input('kirim_phone_number_id', $setting->kirim_phone_number_id);
+
                 // TEMPLATE FORM: Only update templates, preserve toggles from hidden inputs
                 $setting->is_enabled = $request->input('is_enabled', 0) ? 1 : 0;
                 $setting->notify_checkin = $request->input('notify_checkin', 0) ? 1 : 0;
@@ -286,7 +296,10 @@ class WhatsAppSettingController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'phone' => 'required|string',
-            'message' => 'required|string',
+            'message' => 'nullable|string|required_without:template_name',
+            'template_name' => 'nullable|string|required_without:message',
+            'template_language' => 'nullable|string|max:10',
+            'template_params' => 'nullable',
         ]);
 
         if ($validator->fails()) {
@@ -299,10 +312,55 @@ class WhatsAppSettingController extends Controller
 
         try {
             $whatsappService = new WhatsAppService();
-            $result = $whatsappService->send(
-                $request->phone,
-                $request->message
-            );
+            $templateName = trim((string) $request->input('template_name', ''));
+
+            if (!empty($templateName)) {
+                $languageCode = $request->input('template_language', 'id');
+                $rawParams = $request->input('template_params', []);
+
+                $parameters = [];
+                if (is_array($rawParams)) {
+                    $parameters = array_values(array_filter(array_map(function ($item) {
+                        return trim((string) $item);
+                    }, $rawParams), function ($item) {
+                        return $item !== '';
+                    }));
+                } elseif (is_string($rawParams) && trim($rawParams) !== '') {
+                    $decoded = json_decode($rawParams, true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                        $parameters = array_values(array_filter(array_map(function ($item) {
+                            return trim((string) $item);
+                        }, $decoded), function ($item) {
+                            return $item !== '';
+                        }));
+                    } else {
+                        $parameters = array_values(array_filter(array_map('trim', explode(',', $rawParams)), function ($item) {
+                            return $item !== '';
+                        }));
+                    }
+                }
+
+                $result = $whatsappService->sendTemplate(
+                    $request->phone,
+                    $templateName,
+                    $languageCode,
+                    $parameters
+                );
+
+                if ($result) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Pesan template test berhasil dikirim ke ' . $request->phone,
+                    ]);
+                }
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal mengirim template. ' . ($whatsappService->getLastError() ?: 'Cek log untuk detail.'),
+                ], 400);
+            }
+
+            $result = $whatsappService->send($request->phone, (string) $request->message);
 
             if ($result) {
                 return response()->json([
@@ -313,7 +371,7 @@ class WhatsAppSettingController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengirim pesan. Cek log untuk detail.',
+                'message' => 'Gagal mengirim pesan. ' . ($whatsappService->getLastError() ?: 'Cek log untuk detail.'),
             ], 400);
         } catch (\Exception $e) {
             return response()->json([

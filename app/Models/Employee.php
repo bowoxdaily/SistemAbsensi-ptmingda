@@ -40,6 +40,7 @@ class Employee extends Model
         'supervisor_id',
         'salary_base',
         'tanggal_resign',
+        'tanggal_phk',
         'termination_recommendation',
 
         // Data Keuangan
@@ -74,6 +75,7 @@ class Employee extends Model
         'birth_date' => 'date',
         'join_date' => 'date',
         'tanggal_resign' => 'date',
+        'tanggal_phk' => 'date',
         'salary_base' => 'decimal:2',
         'tanggungan_anak' => 'integer',
     ];
@@ -203,6 +205,14 @@ class Employee extends Model
      * Accessor untuk tanggal_resign - pastikan selalu dalam format Y-m-d
      */
     public function getTanggalResignAttribute($value)
+    {
+        return $value ? $this->asDate($value)->format('Y-m-d') : null;
+    }
+
+    /**
+     * Accessor untuk tanggal_phk - pastikan selalu dalam format Y-m-d
+     */
+    public function getTanggalPhkAttribute($value)
     {
         return $value ? $this->asDate($value)->format('Y-m-d') : null;
     }

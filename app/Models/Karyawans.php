@@ -38,6 +38,7 @@ class Karyawans extends Model
         'supervisor_id',
         'salary_base',
         'tanggal_resign',
+        'tanggal_phk',
         'tanggal_mangkir',
         'tanggal_gagal_probation',
         'tanggal_pending',
@@ -67,6 +68,7 @@ class Karyawans extends Model
         'birth_date' => 'date',
         'join_date' => 'date',
         'tanggal_resign'           => 'date',
+        'tanggal_phk'             => 'date',
         'tanggal_mangkir'         => 'date',
         'tanggal_gagal_probation' => 'date',
         'tanggal_pending'         => 'date',
@@ -149,6 +151,24 @@ class Karyawans extends Model
      * Accessor untuk tanggal_resign - pastikan selalu dalam format Y-m-d
      */
     public function getTanggalResignAttribute($value)
+    {
+        if (!$value) {
+            return null;
+        }
+        try {
+            if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+                return $value; // Already formatted
+            }
+            return $this->asDate($value)->format('Y-m-d');
+        } catch (\Exception $e) {
+            return $value;
+        }
+    }
+
+    /**
+     * Accessor untuk tanggal_phk - pastikan selalu dalam format Y-m-d
+     */
+    public function getTanggalPhkAttribute($value)
     {
         if (!$value) {
             return null;

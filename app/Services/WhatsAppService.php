@@ -9,10 +9,20 @@ use Illuminate\Support\Facades\Log;
 class WhatsAppService
 {
     protected $setting;
+    protected $lastError;
 
     public function __construct()
     {
         $this->setting = WhatsAppSetting::getActive();
+        $this->lastError = null;
+    }
+
+    /**
+     * Get last error detail from send operation
+     */
+    public function getLastError()
+    {
+        return $this->lastError;
     }
 
     /**
@@ -20,14 +30,19 @@ class WhatsAppService
      */
     public function send($phoneNumber, $message, $image = null, $customSender = null, $apiKey = null, $delay = '2')
     {
+        $this->lastError = null;
+
         if (!$this->setting || !$this->setting->is_enabled) {
             Log::info('WhatsApp notification disabled or not configured');
+            $this->lastError = 'WhatsApp belum diaktifkan atau belum dikonfigurasi.';
             return false;
         }
 
         try {
             if ($this->setting->isFonnte()) {
                 return $this->sendViaFonnte($phoneNumber, $message, $image, $customSender, $apiKey, $delay);
+            } elseif ($this->setting->isKirimDev()) {
+                return $this->sendViaKirimDev($phoneNumber, $message, $image, $customSender, $apiKey);
             } elseif ($this->setting->isBaileys()) {
                 return $this->sendViaBaileys($phoneNumber, $message, $image, $customSender);
             }
@@ -35,6 +50,33 @@ class WhatsAppService
             return false;
         } catch (\Exception $e) {
             Log::error('WhatsApp Send Error: ' . $e->getMessage());
+            $this->lastError = $e->getMessage();
+            return false;
+        }
+    }
+
+    /**
+     * Send WhatsApp template message
+     */
+    public function sendTemplate($phoneNumber, $templateName, $languageCode = 'id', array $parameters = [], $customSender = null, $apiKey = null)
+    {
+        $this->lastError = null;
+
+        if (!$this->setting || !$this->setting->is_enabled) {
+            $this->lastError = 'WhatsApp belum diaktifkan atau belum dikonfigurasi.';
+            return false;
+        }
+
+        try {
+            if ($this->setting->isKirimDev()) {
+                return $this->sendTemplateViaKirimDev($phoneNumber, $templateName, $languageCode, $parameters, $customSender, $apiKey);
+            }
+
+            $this->lastError = 'Kirim template saat ini hanya didukung untuk provider Kirim.dev.';
+            return false;
+        } catch (\Exception $e) {
+            Log::error('WhatsApp Send Template Error: ' . $e->getMessage());
+            $this->lastError = $e->getMessage();
             return false;
         }
     }
@@ -127,6 +169,7 @@ class WhatsAppService
 
         [$ok, $json, $errorReason] = $attemptSend($useApiKey, !is_null($apiKey));
         if ($ok) {
+            $this->lastError = null;
             return true;
         }
 
@@ -144,9 +187,14 @@ class WhatsAppService
                 ]);
 
                 [$fallbackOk] = $attemptSend($this->setting->api_key, false);
+                if (!$fallbackOk) {
+                    $this->lastError = (string) $errorReason;
+                }
                 return $fallbackOk;
             }
         }
+
+        $this->lastError = (string) $errorReason;
 
         return false;
     }
@@ -181,6 +229,7 @@ class WhatsAppService
                 'phone' => $phoneNumber,
                 'response' => $response->json(),
             ]);
+            $this->lastError = null;
             return true;
         }
 
@@ -188,6 +237,218 @@ class WhatsAppService
             'phone' => $phoneNumber,
             'response' => $response->body(),
         ]);
+        $this->lastError = 'Baileys API error: HTTP ' . $response->status();
+        return false;
+    }
+
+    /**
+     * Send via Kirimdev API
+     */
+    protected function sendViaKirimDev($phoneNumber, $message, $image = null, $customSender = null, $apiKey = null)
+    {
+        $useApiKey = $apiKey ?: $this->setting->api_key;
+        // For Kirimdev, sender number is not used as path. Always use Meta phone_number_id.
+        $phoneNumberId = $this->setting->kirim_phone_number_id;
+
+        if (!$useApiKey) {
+            Log::error('Kirimdev send failed: API key is empty');
+            $this->lastError = 'API key Kirim.dev kosong.';
+            return false;
+        }
+
+        if (!$phoneNumberId) {
+            Log::error('Kirimdev send failed: kirim_phone_number_id is empty');
+            $this->lastError = 'Phone Number ID Kirim.dev kosong.';
+            return false;
+        }
+
+        if (!empty($customSender)) {
+            Log::info('Kirimdev ignoring custom sender; using kirim_phone_number_id from settings', [
+                'custom_sender' => $customSender,
+                'phone_number_id' => $phoneNumberId,
+            ]);
+        }
+
+        $to = '+' . $this->formatPhoneNumber($phoneNumber);
+        $url = 'https://api.kirimdev.com/v1/' . trim((string) $phoneNumberId) . '/messages';
+
+        if ($image) {
+            $payload = [
+                'messaging_product' => 'whatsapp',
+                'to' => $to,
+                'type' => 'image',
+                'image' => [
+                    'link' => $image,
+                ],
+            ];
+
+            // Kirimdev/Meta media messages can carry text in image.caption.
+            // This keeps interview/join-call details together with the QR barcode.
+            if (!empty($message)) {
+                $payload['image']['caption'] = $message;
+            }
+        } else {
+            $payload = [
+                'messaging_product' => 'whatsapp',
+                'to' => $to,
+                'type' => 'text',
+                'text' => [
+                    'body' => $message,
+                ],
+            ];
+        }
+
+        $response = Http::timeout(20)
+            ->withToken($useApiKey)
+            ->acceptJson()
+            ->post($url, $payload);
+
+        $json = $response->json();
+        $hasData = is_array($json) && isset($json['data']);
+
+        if ($response->successful() && $hasData) {
+            Log::info('WhatsApp sent via Kirimdev', [
+                'phone' => $to,
+                'phone_number_id' => $phoneNumberId,
+                'message_id' => $json['data']['id'] ?? null,
+            ]);
+            $this->lastError = null;
+            return true;
+        }
+
+        $providerCode = is_array($json) ? ($json['code'] ?? null) : null;
+        $providerMessage = is_array($json) ? ($json['message'] ?? null) : null;
+        $metaCode = is_array($json) && isset($json['meta']) && is_array($json['meta'])
+            ? ($json['meta']['code'] ?? null)
+            : null;
+
+        if ((string) $providerCode === 'undeliverable' && (string) $metaCode === '131047') {
+            $this->lastError = 'Pelanggan tidak membalas dalam 24 jam terakhir. Kirim pesan template (approved) untuk membuka kembali percakapan.';
+        } else {
+            $parts = [];
+            if ($providerCode) {
+                $parts[] = 'code: ' . $providerCode;
+            }
+            if ($metaCode) {
+                $parts[] = 'meta: ' . $metaCode;
+            }
+            if ($providerMessage) {
+                $parts[] = $providerMessage;
+            }
+            $this->lastError = !empty($parts)
+                ? implode(' | ', $parts)
+                : ('Kirim.dev API error HTTP ' . $response->status());
+        }
+
+        Log::error('Kirimdev API Error', [
+            'phone' => $to,
+            'phone_number_id' => $phoneNumberId,
+            'http_status' => $response->status(),
+            'response' => $response->body(),
+            'parsed_error' => $this->lastError,
+        ]);
+
+        return false;
+    }
+
+    /**
+     * Send approved WhatsApp template via Kirimdev API
+     */
+    protected function sendTemplateViaKirimDev($phoneNumber, $templateName, $languageCode = 'id', array $parameters = [], $customSender = null, $apiKey = null)
+    {
+        $useApiKey = $apiKey ?: $this->setting->api_key;
+        $phoneNumberId = $this->setting->kirim_phone_number_id;
+
+        if (!$useApiKey) {
+            $this->lastError = 'API key Kirim.dev kosong.';
+            return false;
+        }
+
+        if (!$phoneNumberId) {
+            $this->lastError = 'Phone Number ID Kirim.dev kosong.';
+            return false;
+        }
+
+        $to = '+' . $this->formatPhoneNumber($phoneNumber);
+        $url = 'https://api.kirimdev.com/v1/' . trim((string) $phoneNumberId) . '/messages';
+
+        $components = [];
+        if (!empty($parameters)) {
+            $components[] = [
+                'type' => 'body',
+                'parameters' => array_map(function ($value) {
+                    return [
+                        'type' => 'text',
+                        'text' => (string) $value,
+                    ];
+                }, $parameters),
+            ];
+        }
+
+        $payload = [
+            'messaging_product' => 'whatsapp',
+            'to' => $to,
+            'type' => 'template',
+            'template' => [
+                'name' => $templateName,
+                'language' => [
+                    'code' => $languageCode,
+                ],
+            ],
+        ];
+
+        if (!empty($components)) {
+            $payload['template']['components'] = $components;
+        }
+
+        $response = Http::timeout(20)
+            ->withToken($useApiKey)
+            ->acceptJson()
+            ->post($url, $payload);
+
+        $json = $response->json();
+        $hasData = is_array($json) && isset($json['data']);
+
+        if ($response->successful() && $hasData) {
+            Log::info('WhatsApp template sent via Kirimdev', [
+                'phone' => $to,
+                'phone_number_id' => $phoneNumberId,
+                'template_name' => $templateName,
+                'message_id' => $json['data']['id'] ?? null,
+            ]);
+            $this->lastError = null;
+            return true;
+        }
+
+        $providerCode = is_array($json) ? ($json['code'] ?? null) : null;
+        $providerMessage = is_array($json) ? ($json['message'] ?? null) : null;
+        $metaCode = is_array($json) && isset($json['meta']) && is_array($json['meta'])
+            ? ($json['meta']['code'] ?? null)
+            : null;
+
+        $parts = [];
+        if ($providerCode) {
+            $parts[] = 'code: ' . $providerCode;
+        }
+        if ($metaCode) {
+            $parts[] = 'meta: ' . $metaCode;
+        }
+        if ($providerMessage) {
+            $parts[] = $providerMessage;
+        }
+        $this->lastError = !empty($parts)
+            ? implode(' | ', $parts)
+            : ('Kirim.dev API error HTTP ' . $response->status());
+
+        Log::error('Kirimdev Template API Error', [
+            'phone' => $to,
+            'phone_number_id' => $phoneNumberId,
+            'template_name' => $templateName,
+            'http_status' => $response->status(),
+            'response' => $response->body(),
+            'parsed_error' => $this->lastError,
+        ]);
+
         return false;
     }
 
@@ -343,6 +604,43 @@ class WhatsAppService
         }
 
         try {
+            if ($this->setting->isKirimDev()) {
+                $meResponse = Http::timeout(15)
+                    ->withToken($this->setting->api_key)
+                    ->acceptJson()
+                    ->get('https://api.kirimdev.com/v1/me');
+
+                if (!$meResponse->successful()) {
+                    return [
+                        'success' => false,
+                        'message' => 'Koneksi Kirimdev gagal: ' . $meResponse->body(),
+                    ];
+                }
+
+                $accountsResponse = Http::timeout(15)
+                    ->withToken($this->setting->api_key)
+                    ->acceptJson()
+                    ->get('https://api.kirimdev.com/v1/accounts');
+
+                $accounts = [];
+                if ($accountsResponse->successful()) {
+                    $accounts = $accountsResponse->json('data') ?? [];
+                }
+
+                $orgName = $meResponse->json('data.organization.name') ?? 'Unknown Org';
+                $totalAccounts = is_array($accounts) ? count($accounts) : 0;
+                $configuredPhoneId = $this->setting->kirim_phone_number_id ?: '-';
+
+                return [
+                    'success' => true,
+                    'message' => "✅ Koneksi Kirimdev berhasil!\nOrg: {$orgName}\nAccounts: {$totalAccounts}\nConfigured Phone Number ID: {$configuredPhoneId}",
+                    'data' => [
+                        'me' => $meResponse->json('data'),
+                        'accounts' => $accounts,
+                    ],
+                ];
+            }
+
             // Test Fonnte connection using /device endpoint
             $response = Http::withHeaders([
                 'Authorization' => $this->setting->api_key,

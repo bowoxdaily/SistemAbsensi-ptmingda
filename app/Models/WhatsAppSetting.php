@@ -23,6 +23,7 @@ class WhatsAppSetting extends Model
         'interview_api_key',
         'join_call_api_key',
         'api_url',
+        'kirim_phone_number_id',
         'sender',
         'checkin_sender',
         'checkout_sender',
@@ -124,6 +125,14 @@ class WhatsAppSetting extends Model
     public function isBaileys()
     {
         return $this->provider === 'baileys';
+    }
+
+    /**
+     * Check if provider is Kirimdev
+     */
+    public function isKirimDev()
+    {
+        return $this->provider === 'kirimdev';
     }
 
     /**
