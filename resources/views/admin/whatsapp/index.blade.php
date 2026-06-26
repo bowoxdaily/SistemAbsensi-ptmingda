@@ -778,6 +778,136 @@
                     </div>
                 </div>
 
+                <!-- Kirim.dev Template Manager Card -->
+                <div class="card mb-4" id="kirimTemplateManagerCard" style="display: none;">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">
+                            <i class='bx bx-layout'></i> Template Kirim.dev
+                        </h5>
+
+                        <div class="mb-2">
+                            <label class="form-label" for="kirim_template_name">Nama Template</label>
+                            <input type="text" class="form-control" id="kirim_template_name" placeholder="contoh: interview_reminder_v2">
+                            <small class="text-muted">Gunakan huruf kecil, angka, dan underscore.</small>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-6 mb-2">
+                                <label class="form-label" for="kirim_template_category">Kategori</label>
+                                <select class="form-select" id="kirim_template_category">
+                                    <option value="UTILITY">UTILITY</option>
+                                    <option value="MARKETING">MARKETING</option>
+                                    <option value="AUTHENTICATION">AUTHENTICATION</option>
+                                </select>
+                            </div>
+                            <div class="col-6 mb-2">
+                                <label class="form-label" for="kirim_template_language">Bahasa</label>
+                                <input type="text" class="form-control" id="kirim_template_language" value="id" placeholder="id">
+                            </div>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label" for="kirim_template_body">Body Text</label>
+                            <textarea class="form-control" id="kirim_template_body" rows="3" placeholder="Halo {{1}}, interview Anda pada {{2}}."></textarea>
+                            <small class="text-muted">Untuk mode cepat body-only. Jika perlu header/button, gunakan endpoint advanced via API.</small>
+                        </div>
+
+                        <div id="kirimAuthOptions" class="border rounded p-2 mb-2" style="display: none;">
+                            <h6 class="mb-2">Opsi AUTHENTICATION (OTP)</h6>
+                            <div class="row">
+                                <div class="col-6 mb-2">
+                                    <label class="form-label" for="auth_message_ttl_seconds">TTL OTP (detik)</label>
+                                    <input type="number" class="form-control" id="auth_message_ttl_seconds" min="30" max="900" value="600">
+                                </div>
+                                <div class="col-6 mb-2">
+                                    <label class="form-label" for="auth_code_expiration_minutes">Expired Footer (menit)</label>
+                                    <input type="number" class="form-control" id="auth_code_expiration_minutes" min="1" max="90" value="5">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-6 mb-2">
+                                    <label class="form-label" for="auth_otp_type">OTP Button Type</label>
+                                    <select class="form-select" id="auth_otp_type">
+                                        <option value="COPY_CODE" selected>COPY_CODE</option>
+                                        <option value="ONE_TAP">ONE_TAP</option>
+                                    </select>
+                                </div>
+                                <div class="col-6 mb-2 d-flex align-items-end">
+                                    <div class="form-check me-3">
+                                        <input class="form-check-input" type="checkbox" id="auth_add_security_recommendation" checked>
+                                        <label class="form-check-label" for="auth_add_security_recommendation">Security recommendation</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex flex-wrap gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="auth_include_footer" checked>
+                                    <label class="form-check-label" for="auth_include_footer">Sertakan footer expiry</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="auth_include_copy_button" checked>
+                                    <label class="form-check-label" for="auth_include_copy_button">Sertakan tombol OTP</label>
+                                </div>
+                            </div>
+
+                            <small class="text-muted d-block mt-2">Untuk AUTHENTICATION, body text Meta bersifat fixed. Field body di atas tidak dipakai saat create AUTH.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="kirim_template_examples">Contoh Variabel</label>
+                            <input type="text" class="form-control" id="kirim_template_examples" placeholder="Budi, Senin 10:00">
+                            <small class="text-muted">Pisahkan dengan koma sesuai urutan placeholder {{1}}, {{2}}, dst.</small>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            <button type="button" class="btn btn-outline-info btn-sm" onclick="applyInterviewTemplatePreset()">
+                                <i class='bx bx-user-voice'></i> Preset Interview
+                            </button>
+                            <button type="button" class="btn btn-outline-info btn-sm" onclick="applyJoinCallTemplatePreset()">
+                                <i class='bx bx-phone-call'></i> Preset Join Call
+                            </button>
+                            <button type="button" class="btn btn-outline-dark btn-sm" onclick="applyAuthTemplatePreset()">
+                                <i class='bx bx-shield-quarter'></i> Preset AUTH OTP
+                            </button>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            <button type="button" class="btn btn-primary btn-sm" id="btnCreateKirimTemplate" onclick="createKirimTemplate()">
+                                <i class='bx bx-plus'></i> Buat Template
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="btnCheckKirimTemplate" onclick="checkKirimTemplateStatus()">
+                                <i class='bx bx-search'></i> Cek Status Nama
+                            </button>
+                            <button type="button" class="btn btn-outline-warning btn-sm" id="btnSyncKirimTemplate" onclick="syncKirimTemplates()">
+                                <i class='bx bx-refresh'></i> Sync Status
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnLoadKirimTemplates" onclick="loadKirimTemplates()">
+                                <i class='bx bx-list-ul'></i> Muat Daftar
+                            </button>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Nama</th>
+                                        <th>Kategori</th>
+                                        <th>Bahasa</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="kirimTemplateListBody">
+                                    <tr>
+                                        <td colspan="4" class="text-muted">Belum ada data template dimuat.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Setup Guide Card -->
                 <div class="card mb-4">
                     <div class="card-body">
@@ -1201,6 +1331,355 @@
             });
         }
 
+        function getKirimTemplateStatusBadge(status) {
+            const normalized = String(status || '').toLowerCase();
+            if (normalized.includes('approved')) {
+                return '<span class="badge bg-success">' + (status || 'approved') + '</span>';
+            }
+            if (normalized.includes('reject')) {
+                return '<span class="badge bg-danger">' + (status || 'rejected') + '</span>';
+            }
+            if (normalized.includes('pending')) {
+                return '<span class="badge bg-warning">' + (status || 'pending') + '</span>';
+            }
+            return '<span class="badge bg-secondary">' + (status || '-') + '</span>';
+        }
+
+        function normalizeKirimTemplates(rawData) {
+            if (Array.isArray(rawData)) {
+                return rawData;
+            }
+            if (rawData && Array.isArray(rawData.items)) {
+                return rawData.items;
+            }
+            if (rawData && Array.isArray(rawData.templates)) {
+                return rawData.templates;
+            }
+            return [];
+        }
+
+        function toggleKirimTemplateCategoryFields() {
+            const category = document.getElementById('kirim_template_category')?.value || 'UTILITY';
+            const authOptions = document.getElementById('kirimAuthOptions');
+            const bodyInput = document.getElementById('kirim_template_body');
+            const exampleInput = document.getElementById('kirim_template_examples');
+
+            if (category === 'AUTHENTICATION') {
+                if (authOptions) authOptions.style.display = 'block';
+                if (bodyInput) {
+                    bodyInput.value = '';
+                    bodyInput.disabled = true;
+                    bodyInput.placeholder = 'Tidak digunakan untuk AUTHENTICATION';
+                }
+                if (exampleInput) {
+                    exampleInput.value = '';
+                    exampleInput.disabled = true;
+                    exampleInput.placeholder = 'Tidak digunakan untuk AUTHENTICATION';
+                }
+            } else {
+                if (authOptions) authOptions.style.display = 'none';
+                if (bodyInput) {
+                    bodyInput.disabled = false;
+                    bodyInput.placeholder = 'Halo {{1}}, interview Anda pada {{2}}.';
+                }
+                if (exampleInput) {
+                    exampleInput.disabled = false;
+                    exampleInput.placeholder = 'Budi, Senin 10:00';
+                }
+            }
+        }
+
+        function applyInterviewTemplatePreset() {
+            const now = new Date();
+            const dateCode = now.getFullYear().toString()
+                + String(now.getMonth() + 1).padStart(2, '0')
+                + String(now.getDate()).padStart(2, '0');
+
+            const nameEl = document.getElementById('kirim_template_name');
+            const categoryEl = document.getElementById('kirim_template_category');
+            const languageEl = document.getElementById('kirim_template_language');
+            const bodyEl = document.getElementById('kirim_template_body');
+            const exampleEl = document.getElementById('kirim_template_examples');
+
+            if (nameEl) nameEl.value = 'interview_invitation_' + dateCode;
+            if (categoryEl) categoryEl.value = 'UTILITY';
+            if (languageEl) languageEl.value = 'id';
+
+            toggleKirimTemplateCategoryFields();
+
+            if (bodyEl) {
+                bodyEl.value = 'Halo {{1}}, kami mengundang Anda untuk interview posisi {{2}} pada {{3}} pukul {{4}} di {{5}}. {{6}}';
+            }
+            if (exampleEl) {
+                exampleEl.value = 'Budi, Staff Admin, Senin 29 Juni 2026, 10:00 WIB, Kantor PT Mingda, Mohon hadir 10 menit lebih awal';
+            }
+        }
+
+        function applyJoinCallTemplatePreset() {
+            const now = new Date();
+            const dateCode = now.getFullYear().toString()
+                + String(now.getMonth() + 1).padStart(2, '0')
+                + String(now.getDate()).padStart(2, '0');
+
+            const nameEl = document.getElementById('kirim_template_name');
+            const categoryEl = document.getElementById('kirim_template_category');
+            const languageEl = document.getElementById('kirim_template_language');
+            const bodyEl = document.getElementById('kirim_template_body');
+            const exampleEl = document.getElementById('kirim_template_examples');
+
+            if (nameEl) nameEl.value = 'join_call_invitation_' + dateCode;
+            if (categoryEl) categoryEl.value = 'UTILITY';
+            if (languageEl) languageEl.value = 'id';
+
+            toggleKirimTemplateCategoryFields();
+
+            if (bodyEl) {
+                bodyEl.value = 'Halo {{1}}, Anda dijadwalkan bergabung di departemen {{2}} pada {{3}} pukul {{4}} di {{5}}. {{6}}';
+            }
+            if (exampleEl) {
+                exampleEl.value = 'Siti, Finance, Selasa 30 Juni 2026, 13:30 WIB, Kantor PT Mingda, Harap membawa dokumen asli';
+            }
+        }
+
+        function applyAuthTemplatePreset() {
+            const now = new Date();
+            const dateCode = now.getFullYear().toString()
+                + String(now.getMonth() + 1).padStart(2, '0')
+                + String(now.getDate()).padStart(2, '0');
+
+            const nameEl = document.getElementById('kirim_template_name');
+            const categoryEl = document.getElementById('kirim_template_category');
+            const languageEl = document.getElementById('kirim_template_language');
+            const ttlEl = document.getElementById('auth_message_ttl_seconds');
+            const expEl = document.getElementById('auth_code_expiration_minutes');
+            const secEl = document.getElementById('auth_add_security_recommendation');
+            const footerEl = document.getElementById('auth_include_footer');
+            const btnEl = document.getElementById('auth_include_copy_button');
+            const otpTypeEl = document.getElementById('auth_otp_type');
+
+            if (nameEl) nameEl.value = 'candidate_verification_otp_' + dateCode;
+            if (categoryEl) categoryEl.value = 'AUTHENTICATION';
+            if (languageEl) languageEl.value = 'id';
+            if (ttlEl) ttlEl.value = 600;
+            if (expEl) expEl.value = 5;
+            if (secEl) secEl.checked = true;
+            if (footerEl) footerEl.checked = true;
+            if (btnEl) btnEl.checked = true;
+            if (otpTypeEl) otpTypeEl.value = 'COPY_CODE';
+
+            toggleKirimTemplateCategoryFields();
+        }
+
+        function renderKirimTemplateList(rawData) {
+            const rows = normalizeKirimTemplates(rawData);
+            const tbody = document.getElementById('kirimTemplateListBody');
+            if (!tbody) return;
+
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-muted">Tidak ada template.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rows.map(item => {
+                const name = item.name || item.template_name || '-';
+                const category = item.category || '-';
+                const language = item.language || item.language_code || '-';
+                const status = item.status || item.review_status || '-';
+                return `
+                    <tr>
+                        <td>${name}</td>
+                        <td>${category}</td>
+                        <td>${language}</td>
+                        <td>${getKirimTemplateStatusBadge(status)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function loadKirimTemplates() {
+            try {
+                const response = await fetch('/api/settings/whatsapp/kirim/templates', {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Gagal mengambil daftar template');
+                }
+
+                renderKirimTemplateList(data.data);
+                toastr.success(data.message || 'Daftar template berhasil dimuat');
+            } catch (error) {
+                toastr.error(error.message || 'Gagal mengambil daftar template');
+            }
+        }
+
+        async function createKirimTemplate() {
+            const btn = document.getElementById('btnCreateKirimTemplate');
+            const original = btn ? btn.innerHTML : '';
+            const name = (document.getElementById('kirim_template_name')?.value || '').trim();
+            const category = document.getElementById('kirim_template_category')?.value || 'UTILITY';
+            const language = (document.getElementById('kirim_template_language')?.value || 'id').trim();
+            const bodyText = (document.getElementById('kirim_template_body')?.value || '').trim();
+            const exampleRaw = (document.getElementById('kirim_template_examples')?.value || '').trim();
+            const authMessageTtlSeconds = Number(document.getElementById('auth_message_ttl_seconds')?.value || 600);
+            const authCodeExpirationMinutes = Number(document.getElementById('auth_code_expiration_minutes')?.value || 5);
+            const authAddSecurityRecommendation = !!document.getElementById('auth_add_security_recommendation')?.checked;
+            const authIncludeFooter = !!document.getElementById('auth_include_footer')?.checked;
+            const authIncludeCopyButton = !!document.getElementById('auth_include_copy_button')?.checked;
+            const authOtpType = document.getElementById('auth_otp_type')?.value || 'COPY_CODE';
+
+            if (!name) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Perhatian',
+                    text: 'Nama template wajib diisi.'
+                });
+                return;
+            }
+
+            if (category !== 'AUTHENTICATION' && !bodyText) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Perhatian',
+                    text: 'Body text wajib diisi untuk kategori selain AUTHENTICATION.'
+                });
+                return;
+            }
+
+            const exampleValues = exampleRaw ? exampleRaw.split(',').map(v => v.trim()).filter(Boolean) : [];
+
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Membuat...';
+            }
+
+            try {
+                const response = await fetch('/api/settings/whatsapp/kirim/templates', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name,
+                        category,
+                        language,
+                        body_text: bodyText,
+                        example_values: exampleValues,
+                        message_send_ttl_seconds: authMessageTtlSeconds,
+                        auth_code_expiration_minutes: authCodeExpirationMinutes,
+                        auth_add_security_recommendation: authAddSecurityRecommendation,
+                        auth_include_footer: authIncludeFooter,
+                        auth_include_copy_button: authIncludeCopyButton,
+                        auth_otp_type: authOtpType
+                    })
+                });
+
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Gagal membuat template');
+                }
+
+                toastr.success(data.message || 'Template berhasil dibuat');
+                await loadKirimTemplates();
+            } catch (error) {
+                toastr.error(error.message || 'Gagal membuat template');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = original;
+                }
+            }
+        }
+
+        async function checkKirimTemplateStatus() {
+            const btn = document.getElementById('btnCheckKirimTemplate');
+            const original = btn ? btn.innerHTML : '';
+            const name = (document.getElementById('kirim_template_name')?.value || '').trim();
+
+            if (!name) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Perhatian',
+                    text: 'Isi nama template terlebih dahulu.'
+                });
+                return;
+            }
+
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Mengecek...';
+            }
+
+            try {
+                const response = await fetch('/api/settings/whatsapp/kirim/templates/' + encodeURIComponent(name), {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Gagal mengambil status template');
+                }
+
+                renderKirimTemplateList([data.data || {}]);
+                toastr.success(data.message || 'Status template berhasil diambil');
+            } catch (error) {
+                toastr.error(error.message || 'Gagal mengambil status template');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = original;
+                }
+            }
+        }
+
+        async function syncKirimTemplates() {
+            const btn = document.getElementById('btnSyncKirimTemplate');
+            const original = btn ? btn.innerHTML : '';
+
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Sync...';
+            }
+
+            try {
+                const response = await fetch('/api/settings/whatsapp/kirim/templates/sync', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                });
+
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Gagal sync template');
+                }
+
+                toastr.success(data.message || 'Sync template berhasil');
+                await loadKirimTemplates();
+            } catch (error) {
+                toastr.error(error.message || 'Gagal sync template');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = original;
+                }
+            }
+        }
+
         // Toggle custom keys section
         function toggleCustomKeys() {
             const section = document.getElementById('customKeysSection');
@@ -1219,14 +1698,17 @@
             const provider = document.getElementById('provider')?.value || 'fonnte';
             const kirimGroup = document.getElementById('kirimPhoneIdGroup');
             const apiKeyHint = document.getElementById('apiKeyHint');
+            const kirimTemplateManagerCard = document.getElementById('kirimTemplateManagerCard');
 
             if (provider === 'kirimdev') {
                 if (kirimGroup) kirimGroup.style.display = 'block';
+                if (kirimTemplateManagerCard) kirimTemplateManagerCard.style.display = 'block';
                 if (apiKeyHint) {
                     apiKeyHint.innerHTML = 'Kirim.dev: Ambil API key dari <a href="https://app.kirimdev.com" target="_blank">Dashboard Kirim.dev</a>.';
                 }
             } else {
                 if (kirimGroup) kirimGroup.style.display = 'none';
+                if (kirimTemplateManagerCard) kirimTemplateManagerCard.style.display = 'none';
                 if (apiKeyHint) {
                     apiKeyHint.innerHTML = 'Fonnte: Ambil API key dari <a href="https://fonnte.com/dashboard" target="_blank">Fonnte Dashboard</a>.';
                 }
@@ -1235,6 +1717,14 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             toggleProviderFields();
+            toggleKirimTemplateCategoryFields();
+            const categorySelect = document.getElementById('kirim_template_category');
+            if (categorySelect) {
+                categorySelect.addEventListener('change', toggleKirimTemplateCategoryFields);
+            }
+            if ((document.getElementById('provider')?.value || 'fonnte') === 'kirimdev') {
+                loadKirimTemplates();
+            }
         });
     </script>
 @endpush

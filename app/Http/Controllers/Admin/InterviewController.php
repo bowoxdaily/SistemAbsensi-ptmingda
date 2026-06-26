@@ -9,6 +9,7 @@ use App\Notifications\InterviewInvitationNotification;
 use App\Models\Position;
 use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
@@ -265,6 +266,7 @@ class InterviewController extends Controller
                 ->notify(new InterviewInvitationNotification($interview));
 
             $sentChannels = ['email'];
+            $waError = null;
 
             if (!empty($interview->phone)) {
                 $whatsapp = new WhatsAppService();
@@ -274,22 +276,38 @@ class InterviewController extends Controller
 
                 if ($sent) {
                     $sentChannels[] = 'WhatsApp';
-                }
 
-                $interview->update([
-                    'status' => 'notified',
-                    'wa_sent_at' => now(),
-                    'wa_message' => $message,
-                ]);
+                    $interview->update([
+                        'status' => 'notified',
+                        'wa_sent_at' => now(),
+                        'wa_message' => $message,
+                    ]);
+                } else {
+                    $waError = $whatsapp->getLastError();
+                    Log::warning('Interview WhatsApp notification failed', [
+                        'interview_id' => $interview->id,
+                        'phone' => $interview->phone,
+                        'error' => $waError,
+                    ]);
+
+                    $interview->update([
+                        'status' => 'notified',
+                    ]);
+                }
             } else {
                 $interview->update([
                     'status' => 'notified',
                 ]);
             }
 
+            $message = 'Notifikasi berhasil dikirim via ' . implode(' dan ', $sentChannels);
+            if ($waError) {
+                $message .= '. WhatsApp gagal: ' . $waError;
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'Notifikasi berhasil dikirim via ' . implode(' dan ', $sentChannels)
+                'message' => $message
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -321,8 +339,10 @@ class InterviewController extends Controller
             $interviews = Interview::with('position')->whereIn('id', $request->ids)->get();
             $whatsapp = new WhatsAppService();
 
-            $sent = 0;
-            $failed = 0;
+            $emailSent = 0;
+            $waSentCount = 0;
+            $waFailedCount = 0;
+            $waSkippedNoPhone = 0;
 
             $totalItems = $interviews->count();
 
@@ -344,13 +364,24 @@ class InterviewController extends Controller
                         'wa_sent_at' => now(),
                         'wa_message' => $message,
                     ]);
+
+                    $waSentCount++;
+                } elseif ($hasPhone) {
+                    $waFailedCount++;
+                    Log::warning('Interview WhatsApp notification failed (bulk)', [
+                        'interview_id' => $interview->id,
+                        'phone' => $interview->phone,
+                        'error' => $whatsapp->getLastError(),
+                    ]);
+                } else {
+                    $waSkippedNoPhone++;
                 }
 
                 $interview->update([
                     'status' => 'notified',
                 ]);
 
-                $sent++;
+                $emailSent++;
 
                 // Delay 30-60s between WhatsApp sends to reduce provider throttling risk.
                 if ($hasPhone && $index < ($totalItems - 1)) {
@@ -360,10 +391,13 @@ class InterviewController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Blast notifikasi selesai: {$sent} email berhasil dikirim, {$failed} gagal",
+                'message' => "Blast notifikasi selesai: {$emailSent} email terkirim, WA sukses {$waSentCount}, WA gagal {$waFailedCount}, tanpa nomor WA {$waSkippedNoPhone}",
                 'data' => [
-                    'sent' => $sent,
-                    'failed' => $failed,
+                    'sent' => $emailSent,
+                    'failed' => $waFailedCount,
+                    'wa_sent' => $waSentCount,
+                    'wa_failed' => $waFailedCount,
+                    'wa_skipped_no_phone' => $waSkippedNoPhone,
                     'total' => $interviews->count()
                 ]
             ]);

@@ -297,6 +297,10 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('settings/whatsapp')->group(
     Route::post('/', [\App\Http\Controllers\Admin\WhatsAppSettingController::class, 'update']);
     Route::post('/test-connection', [\App\Http\Controllers\Admin\WhatsAppSettingController::class, 'testConnection']);
     Route::post('/send-test', [\App\Http\Controllers\Admin\WhatsAppSettingController::class, 'sendTest']);
+    Route::get('/kirim/templates', [\App\Http\Controllers\Admin\WhatsAppSettingController::class, 'listKirimTemplates']);
+    Route::post('/kirim/templates', [\App\Http\Controllers\Admin\WhatsAppSettingController::class, 'createKirimTemplate']);
+    Route::get('/kirim/templates/{name}', [\App\Http\Controllers\Admin\WhatsAppSettingController::class, 'getKirimTemplateByName']);
+    Route::post('/kirim/templates/sync', [\App\Http\Controllers\Admin\WhatsAppSettingController::class, 'syncKirimTemplates']);
     Route::post('/reset-templates', [\App\Http\Controllers\Admin\WhatsAppSettingController::class, 'resetTemplates']);
 });
 

@@ -246,7 +246,7 @@ class WhatsAppService
      */
     protected function sendViaKirimDev($phoneNumber, $message, $image = null, $customSender = null, $apiKey = null)
     {
-        $useApiKey = $apiKey ?: $this->setting->api_key;
+        $useApiKey = $this->setting->api_key;
         // For Kirimdev, sender number is not used as path. Always use Meta phone_number_id.
         $phoneNumberId = $this->setting->kirim_phone_number_id;
 
@@ -269,8 +269,16 @@ class WhatsAppService
             ]);
         }
 
+        if (!empty($apiKey)) {
+            Log::info('Kirimdev ignoring custom API key; using primary API key from settings', [
+                'custom_api_key_tail' => substr((string) $apiKey, -4),
+                'primary_api_key_tail' => substr((string) $this->setting->api_key, -4),
+            ]);
+        }
+
         $to = '+' . $this->formatPhoneNumber($phoneNumber);
         $url = 'https://api.kirimdev.com/v1/' . trim((string) $phoneNumberId) . '/messages';
+        $followUpText = '';
 
         if ($image) {
             $payload = [
@@ -282,10 +290,9 @@ class WhatsAppService
                 ],
             ];
 
-            // Kirimdev/Meta media messages can carry text in image.caption.
-            // This keeps interview/join-call details together with the QR barcode.
+            // Avoid hard caption limit issues (1024) by sending the message body separately.
             if (!empty($message)) {
-                $payload['image']['caption'] = $message;
+                $followUpText = $message;
             }
         } else {
             $payload = [
@@ -312,12 +319,33 @@ class WhatsAppService
                 'phone_number_id' => $phoneNumberId,
                 'message_id' => $json['data']['id'] ?? null,
             ]);
+
+            if (!empty($followUpText)) {
+                $followUpSent = $this->sendViaKirimDev($phoneNumber, $followUpText, null, $customSender, $apiKey);
+                if (!$followUpSent) {
+                    Log::warning('Kirimdev follow-up text failed after sending image', [
+                        'phone' => $to,
+                        'phone_number_id' => $phoneNumberId,
+                        'error' => $this->lastError,
+                    ]);
+                    return false;
+                }
+            }
+
             $this->lastError = null;
             return true;
         }
 
-        $providerCode = is_array($json) ? ($json['code'] ?? null) : null;
-        $providerMessage = is_array($json) ? ($json['message'] ?? null) : null;
+        $errorObj = is_array($json) && isset($json['error']) && is_array($json['error'])
+            ? $json['error']
+            : [];
+        $providerCode = is_array($json)
+            ? ($json['code'] ?? ($errorObj['code'] ?? null))
+            : ($errorObj['code'] ?? null);
+        $providerMessage = is_array($json)
+            ? ($json['message'] ?? ($errorObj['message'] ?? null))
+            : ($errorObj['message'] ?? null);
+        $errorParam = $errorObj['param'] ?? null;
         $metaCode = is_array($json) && isset($json['meta']) && is_array($json['meta'])
             ? ($json['meta']['code'] ?? null)
             : null;
@@ -334,6 +362,9 @@ class WhatsAppService
             }
             if ($providerMessage) {
                 $parts[] = $providerMessage;
+            }
+            if ($errorParam) {
+                $parts[] = 'param: ' . $errorParam;
             }
             $this->lastError = !empty($parts)
                 ? implode(' | ', $parts)
@@ -356,8 +387,15 @@ class WhatsAppService
      */
     protected function sendTemplateViaKirimDev($phoneNumber, $templateName, $languageCode = 'id', array $parameters = [], $customSender = null, $apiKey = null)
     {
-        $useApiKey = $apiKey ?: $this->setting->api_key;
+        $useApiKey = $this->setting->api_key;
         $phoneNumberId = $this->setting->kirim_phone_number_id;
+
+        if (!empty($apiKey)) {
+            Log::info('Kirimdev template send ignoring custom API key; using primary API key from settings', [
+                'custom_api_key_tail' => substr((string) $apiKey, -4),
+                'primary_api_key_tail' => substr((string) $this->setting->api_key, -4),
+            ]);
+        }
 
         if (!$useApiKey) {
             $this->lastError = 'API key Kirim.dev kosong.';
@@ -450,6 +488,336 @@ class WhatsAppService
         ]);
 
         return false;
+    }
+
+    /**
+     * List templates from Kirim.dev for configured phone number id.
+     */
+    public function listKirimDevTemplates(): array
+    {
+        if (!$this->setting || !$this->setting->is_enabled) {
+            return [
+                'success' => false,
+                'message' => 'WhatsApp belum diaktifkan atau belum dikonfigurasi.',
+            ];
+        }
+
+        if (!$this->setting->isKirimDev()) {
+            return [
+                'success' => false,
+                'message' => 'Fitur ini hanya tersedia untuk provider Kirim.dev.',
+            ];
+        }
+
+        if (!$this->setting->api_key) {
+            return [
+                'success' => false,
+                'message' => 'API key Kirim.dev kosong.',
+            ];
+        }
+
+        if (!$this->setting->kirim_phone_number_id) {
+            return [
+                'success' => false,
+                'message' => 'Phone Number ID Kirim.dev kosong.',
+            ];
+        }
+
+        $url = 'https://api.kirimdev.com/v1/' . trim((string) $this->setting->kirim_phone_number_id) . '/templates';
+
+        $response = Http::timeout(20)
+            ->withToken($this->setting->api_key)
+            ->acceptJson()
+            ->get($url);
+
+        $json = $response->json();
+        if ($response->successful()) {
+            return [
+                'success' => true,
+                'message' => 'Daftar template berhasil diambil.',
+                'data' => is_array($json) ? ($json['data'] ?? $json) : $json,
+            ];
+        }
+
+        $errorObj = is_array($json) && isset($json['error']) && is_array($json['error'])
+            ? $json['error']
+            : [];
+
+        $code = $errorObj['code'] ?? (is_array($json) ? ($json['code'] ?? null) : null);
+        $message = $errorObj['message'] ?? (is_array($json) ? ($json['message'] ?? null) : null);
+
+        return [
+            'success' => false,
+            'message' => trim(implode(' | ', array_filter([
+                'Gagal mengambil template',
+                $code ? 'code: ' . $code : null,
+                $message,
+            ]))),
+            'http_status' => $response->status(),
+            'raw' => $json,
+        ];
+    }
+
+    /**
+     * Create template via Kirim.dev public API.
+     */
+    public function createKirimDevTemplate(array $payload): array
+    {
+        if (!$this->setting || !$this->setting->is_enabled) {
+            return [
+                'success' => false,
+                'message' => 'WhatsApp belum diaktifkan atau belum dikonfigurasi.',
+            ];
+        }
+
+        if (!$this->setting->isKirimDev()) {
+            return [
+                'success' => false,
+                'message' => 'Fitur create template hanya tersedia untuk provider Kirim.dev.',
+            ];
+        }
+
+        if (!$this->setting->api_key) {
+            return [
+                'success' => false,
+                'message' => 'API key Kirim.dev kosong.',
+            ];
+        }
+
+        if (!$this->setting->kirim_phone_number_id) {
+            return [
+                'success' => false,
+                'message' => 'Phone Number ID Kirim.dev kosong.',
+            ];
+        }
+
+        $url = 'https://api.kirimdev.com/v1/' . trim((string) $this->setting->kirim_phone_number_id) . '/templates';
+
+        // Kirim.dev can intermittently return 502 for upstream Meta faults.
+        // Retry once to reduce false-negative failures for users.
+        $response = Http::timeout(30)
+            ->withToken($this->setting->api_key)
+            ->acceptJson()
+            ->retry(1, 500, function ($exception, $request) {
+                return true;
+            }, false)
+            ->post($url, $payload);
+
+        $json = $response->json();
+        if ($response->successful()) {
+            Log::info('Kirimdev template created', [
+                'phone_number_id' => $this->setting->kirim_phone_number_id,
+                'name' => $payload['name'] ?? null,
+                'category' => $payload['category'] ?? null,
+                'language' => $payload['language'] ?? null,
+                'status' => is_array($json) ? ($json['data']['status'] ?? null) : null,
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Template berhasil dibuat (status biasanya pending review Meta).',
+                'data' => is_array($json) ? ($json['data'] ?? $json) : $json,
+            ];
+        }
+
+        $errorObj = is_array($json) && isset($json['error']) && is_array($json['error'])
+            ? $json['error']
+            : [];
+
+        $code = $errorObj['code'] ?? (is_array($json) ? ($json['code'] ?? null) : null);
+        $message = $errorObj['message'] ?? (is_array($json) ? ($json['message'] ?? null) : null);
+        $param = $errorObj['param'] ?? null;
+
+        Log::error('Kirimdev create template failed', [
+            'http_status' => $response->status(),
+            'payload' => $payload,
+            'response' => $response->body(),
+        ]);
+
+        // Some upstream 502 responses happen after Meta accepted creation.
+        // Verify by name so we can avoid telling users it failed when it actually exists.
+        if ($response->status() === 502 && !empty($payload['name'])) {
+            $check = $this->getKirimDevTemplateByName((string) $payload['name']);
+            if (!empty($check['success'])) {
+                return [
+                    'success' => true,
+                    'message' => 'Template kemungkinan sudah dibuat meski API sempat 502. Silakan cek status template.',
+                    'data' => $check['data'] ?? null,
+                ];
+            }
+
+            // If not visible yet, force a sync then check again.
+            $sync = $this->syncKirimDevTemplates();
+            if (!empty($sync['success'])) {
+                $checkAfterSync = $this->getKirimDevTemplateByName((string) $payload['name']);
+                if (!empty($checkAfterSync['success'])) {
+                    return [
+                        'success' => true,
+                        'message' => 'Template berhasil terdeteksi setelah sinkronisasi. Status bisa masih pending review Meta.',
+                        'data' => $checkAfterSync['data'] ?? null,
+                    ];
+                }
+            }
+        }
+
+        $fallbackBody = trim((string) $response->body());
+        $finalMessage = trim(implode(' | ', array_filter([
+            'Gagal membuat template',
+            $code ? 'code: ' . $code : null,
+            $message,
+            $param ? 'param: ' . $param : null,
+            (!$code && !$message && $fallbackBody !== '') ? $fallbackBody : null,
+        ])));
+
+        return [
+            'success' => false,
+            'message' => $finalMessage,
+            'http_status' => $response->status(),
+            'raw' => $json,
+        ];
+    }
+
+    /**
+     * Get template detail/status by template name from Kirim.dev.
+     */
+    public function getKirimDevTemplateByName(string $name): array
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return [
+                'success' => false,
+                'message' => 'Nama template wajib diisi.',
+                'http_status' => 422,
+            ];
+        }
+
+        if (!$this->setting || !$this->setting->is_enabled) {
+            return [
+                'success' => false,
+                'message' => 'WhatsApp belum diaktifkan atau belum dikonfigurasi.',
+            ];
+        }
+
+        if (!$this->setting->isKirimDev()) {
+            return [
+                'success' => false,
+                'message' => 'Fitur ini hanya tersedia untuk provider Kirim.dev.',
+            ];
+        }
+
+        if (!$this->setting->api_key) {
+            return [
+                'success' => false,
+                'message' => 'API key Kirim.dev kosong.',
+            ];
+        }
+
+        if (!$this->setting->kirim_phone_number_id) {
+            return [
+                'success' => false,
+                'message' => 'Phone Number ID Kirim.dev kosong.',
+            ];
+        }
+
+        $url = 'https://api.kirimdev.com/v1/' . trim((string) $this->setting->kirim_phone_number_id) . '/templates/' . urlencode($name);
+
+        $response = Http::timeout(20)
+            ->withToken($this->setting->api_key)
+            ->acceptJson()
+            ->get($url);
+
+        $json = $response->json();
+        if ($response->successful()) {
+            return [
+                'success' => true,
+                'message' => 'Detail template berhasil diambil.',
+                'data' => is_array($json) ? ($json['data'] ?? $json) : $json,
+            ];
+        }
+
+        $errorObj = is_array($json) && isset($json['error']) && is_array($json['error'])
+            ? $json['error']
+            : [];
+        $code = $errorObj['code'] ?? (is_array($json) ? ($json['code'] ?? null) : null);
+        $message = $errorObj['message'] ?? (is_array($json) ? ($json['message'] ?? null) : null);
+
+        return [
+            'success' => false,
+            'message' => trim(implode(' | ', array_filter([
+                'Gagal mengambil detail template',
+                $code ? 'code: ' . $code : null,
+                $message,
+            ]))),
+            'http_status' => $response->status(),
+            'raw' => $json,
+        ];
+    }
+
+    /**
+     * Sync templates status from Meta via Kirim.dev.
+     */
+    public function syncKirimDevTemplates(): array
+    {
+        if (!$this->setting || !$this->setting->is_enabled) {
+            return [
+                'success' => false,
+                'message' => 'WhatsApp belum diaktifkan atau belum dikonfigurasi.',
+            ];
+        }
+
+        if (!$this->setting->isKirimDev()) {
+            return [
+                'success' => false,
+                'message' => 'Fitur ini hanya tersedia untuk provider Kirim.dev.',
+            ];
+        }
+
+        if (!$this->setting->api_key) {
+            return [
+                'success' => false,
+                'message' => 'API key Kirim.dev kosong.',
+            ];
+        }
+
+        if (!$this->setting->kirim_phone_number_id) {
+            return [
+                'success' => false,
+                'message' => 'Phone Number ID Kirim.dev kosong.',
+            ];
+        }
+
+        $url = 'https://api.kirimdev.com/v1/' . trim((string) $this->setting->kirim_phone_number_id) . '/templates/sync';
+
+        $response = Http::timeout(30)
+            ->withToken($this->setting->api_key)
+            ->acceptJson()
+            ->post($url, []);
+
+        $json = $response->json();
+        if ($response->successful()) {
+            return [
+                'success' => true,
+                'message' => 'Sinkronisasi template berhasil dijalankan.',
+                'data' => is_array($json) ? ($json['data'] ?? $json) : $json,
+            ];
+        }
+
+        $errorObj = is_array($json) && isset($json['error']) && is_array($json['error'])
+            ? $json['error']
+            : [];
+        $code = $errorObj['code'] ?? (is_array($json) ? ($json['code'] ?? null) : null);
+        $message = $errorObj['message'] ?? (is_array($json) ? ($json['message'] ?? null) : null);
+
+        return [
+            'success' => false,
+            'message' => trim(implode(' | ', array_filter([
+                'Gagal sinkronisasi template',
+                $code ? 'code: ' . $code : null,
+                $message,
+            ]))),
+            'http_status' => $response->status(),
+            'raw' => $json,
+        ];
     }
 
     /**

@@ -10,6 +10,7 @@ use App\Models\SubDepartment;
 use App\Models\WhatsAppSetting;
 use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
@@ -266,6 +267,7 @@ class JoinCallController extends Controller
                 ->notify(new JoinCallInvitationNotification($joinCall));
 
             $sentChannels = ['email'];
+            $waError = null;
 
             if (!empty($joinCall->phone)) {
                 $whatsapp = new WhatsAppService();
@@ -278,22 +280,38 @@ class JoinCallController extends Controller
 
                 if ($sent) {
                     $sentChannels[] = 'WhatsApp';
-                }
 
-                $joinCall->update([
-                    'status'     => 'notified',
-                    'wa_sent_at' => now(),
-                    'wa_message' => $message,
-                ]);
+                    $joinCall->update([
+                        'status'     => 'notified',
+                        'wa_sent_at' => now(),
+                        'wa_message' => $message,
+                    ]);
+                } else {
+                    $waError = $whatsapp->getLastError();
+                    Log::warning('Join call WhatsApp notification failed', [
+                        'join_call_id' => $joinCall->id,
+                        'phone' => $joinCall->phone,
+                        'error' => $waError,
+                    ]);
+
+                    $joinCall->update([
+                        'status' => 'notified',
+                    ]);
+                }
             } else {
                 $joinCall->update([
                     'status' => 'notified',
                 ]);
             }
 
+            $message = 'Notifikasi berhasil dikirim via ' . implode(' dan ', $sentChannels);
+            if ($waError) {
+                $message .= '. WhatsApp gagal: ' . $waError;
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'Notifikasi berhasil dikirim via ' . implode(' dan ', $sentChannels)
+                'message' => $message
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -330,8 +348,10 @@ class JoinCallController extends Controller
             $customApiKey = $setting?->join_call_api_key ?: null;
             $customSender  = $setting?->join_call_sender  ?: null;
 
-            $sent   = 0;
-            $failed = 0;
+            $emailSent = 0;
+            $waSentCount = 0;
+            $waFailedCount = 0;
+            $waSkippedNoPhone = 0;
 
             $totalItems = $joinCalls->count();
 
@@ -353,13 +373,24 @@ class JoinCallController extends Controller
                         'wa_sent_at' => now(),
                         'wa_message' => $message,
                     ]);
+
+                    $waSentCount++;
+                } elseif ($hasPhone) {
+                    $waFailedCount++;
+                    Log::warning('Join call WhatsApp notification failed (bulk)', [
+                        'join_call_id' => $joinCall->id,
+                        'phone' => $joinCall->phone,
+                        'error' => $whatsapp->getLastError(),
+                    ]);
+                } else {
+                    $waSkippedNoPhone++;
                 }
 
                 $joinCall->update([
                     'status' => 'notified',
                 ]);
 
-                $sent++;
+                $emailSent++;
 
                 // Delay 30-60s between WhatsApp sends to reduce provider throttling risk.
                 if ($hasPhone && $index < ($totalItems - 1)) {
@@ -369,10 +400,13 @@ class JoinCallController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Blast notifikasi selesai: {$sent} email berhasil dikirim, {$failed} gagal" . ($customApiKey ? ' (WA custom aktif)' : ''),
+                'message' => "Blast notifikasi selesai: {$emailSent} email terkirim, WA sukses {$waSentCount}, WA gagal {$waFailedCount}, tanpa nomor WA {$waSkippedNoPhone}",
                 'data'    => [
-                    'sent'   => $sent,
-                    'failed' => $failed,
+                    'sent'   => $emailSent,
+                    'failed' => $waFailedCount,
+                    'wa_sent' => $waSentCount,
+                    'wa_failed' => $waFailedCount,
+                    'wa_skipped_no_phone' => $waSkippedNoPhone,
                     'total'  => $joinCalls->count()
                 ]
             ]);

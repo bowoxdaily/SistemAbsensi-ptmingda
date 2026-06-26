@@ -382,6 +382,266 @@ class WhatsAppSettingController extends Controller
     }
 
     /**
+     * List templates from Kirim.dev
+     */
+    public function listKirimTemplates()
+    {
+        try {
+            $whatsappService = new WhatsAppService();
+            $result = $whatsappService->listKirimDevTemplates();
+
+            if ($result['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $result['message'],
+                    'data' => $result['data'] ?? [],
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'] ?? 'Gagal mengambil daftar template.',
+                'data' => $result['raw'] ?? null,
+            ], $result['http_status'] ?? 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Create template via Kirim.dev API.
+     * Supports simple body-only mode and advanced custom components mode.
+     */
+    public function createKirimTemplate(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:128',
+            'category' => 'required|string|in:UTILITY,MARKETING,AUTHENTICATION,utility,marketing,authentication',
+            'language' => 'nullable|string|max:20',
+            'body_text' => 'nullable|string',
+            'example_values' => 'nullable',
+            'components' => 'nullable|array',
+            'message_send_ttl_seconds' => 'nullable|integer|min:30|max:900',
+            'auth_add_security_recommendation' => 'nullable|boolean',
+            'auth_code_expiration_minutes' => 'nullable|integer|min:1|max:90',
+            'auth_include_footer' => 'nullable|boolean',
+            'auth_include_copy_button' => 'nullable|boolean',
+            'auth_otp_type' => 'nullable|string|in:COPY_CODE,ONE_TAP,copy_code,one_tap',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $name = strtolower(trim((string) $request->input('name')));
+            $category = strtoupper((string) $request->input('category'));
+            $language = trim((string) $request->input('language', 'id'));
+            $components = $request->input('components');
+
+            if ($category !== 'AUTHENTICATION' && (!is_array($components) || empty($components))) {
+                $bodyText = trim((string) $request->input('body_text', ''));
+                if ($bodyText === '') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Validasi gagal',
+                        'errors' => [
+                            'body_text' => ['Body text wajib diisi untuk kategori selain AUTHENTICATION.'],
+                        ],
+                    ], 422);
+                }
+            }
+
+            $payload = [
+                'name' => $name,
+                'category' => $category,
+                'language' => $language,
+            ];
+
+            if ($category === 'AUTHENTICATION' && (!is_array($components) || empty($components))) {
+                $authComponents = [
+                    [
+                        'type' => 'BODY',
+                        'add_security_recommendation' => (bool) $request->boolean('auth_add_security_recommendation', true),
+                    ],
+                ];
+
+                if ($request->boolean('auth_include_footer', true)) {
+                    $authComponents[] = [
+                        'type' => 'FOOTER',
+                        'code_expiration_minutes' => (int) $request->input('auth_code_expiration_minutes', 5),
+                    ];
+                }
+
+                if ($request->boolean('auth_include_copy_button', true)) {
+                    $authComponents[] = [
+                        'type' => 'BUTTONS',
+                        'buttons' => [[
+                            'type' => 'OTP',
+                            'otp_type' => strtoupper((string) $request->input('auth_otp_type', 'COPY_CODE')),
+                        ]],
+                    ];
+                }
+
+                $payload['messageSendTtlSeconds'] = (int) $request->input('message_send_ttl_seconds', 600);
+                $payload['components'] = $authComponents;
+            } elseif (!is_array($components) || empty($components)) {
+                $bodyText = (string) $request->input('body_text', '');
+                $rawExamples = $request->input('example_values', []);
+
+                $exampleValues = [];
+                if (is_array($rawExamples)) {
+                    $exampleValues = array_values(array_filter(array_map(function ($item) {
+                        return trim((string) $item);
+                    }, $rawExamples), function ($item) {
+                        return $item !== '';
+                    }));
+                } elseif (is_string($rawExamples) && trim($rawExamples) !== '') {
+                    $decoded = json_decode($rawExamples, true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                        $exampleValues = array_values(array_filter(array_map(function ($item) {
+                            return trim((string) $item);
+                        }, $decoded), function ($item) {
+                            return $item !== '';
+                        }));
+                    } else {
+                        $exampleValues = array_values(array_filter(array_map('trim', explode(',', $rawExamples)), function ($item) {
+                            return $item !== '';
+                        }));
+                    }
+                }
+
+                $bodyComponent = [
+                    'type' => 'BODY',
+                    'text' => $bodyText,
+                ];
+
+                $hasBodyPlaceholder = preg_match('/\{\{\d+\}\}/', $bodyText) === 1;
+
+                if (!empty($exampleValues) && $hasBodyPlaceholder) {
+                    $bodyComponent['example'] = [
+                        'body_text' => [array_values($exampleValues)],
+                    ];
+                }
+
+                $components = [$bodyComponent];
+                $payload['components'] = $components;
+            } else {
+                $payload['components'] = $components;
+            }
+
+            $whatsappService = new WhatsAppService();
+
+            $existing = $whatsappService->getKirimDevTemplateByName($name);
+            if (!empty($existing['success'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Template dengan nama tersebut sudah ada. Gunakan nama lain.',
+                    'data' => $existing['data'] ?? null,
+                ], 409);
+            }
+
+            $result = $whatsappService->createKirimDevTemplate($payload);
+
+            if ($result['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $result['message'],
+                    'data' => $result['data'] ?? null,
+                ]);
+            }
+
+            $statusCode = (int) ($result['http_status'] ?? 400);
+            if ($statusCode >= 500) {
+                return response()->json([
+                    'success' => false,
+                    'message' => ($result['message'] ?? 'Gagal membuat template.') . ' Upstream Kirim.dev sedang gangguan. Coba lagi beberapa saat atau gunakan nama template lain lalu cek status via tombol Cek Status Nama.',
+                    'data' => $result['raw'] ?? null,
+                    'upstream_status' => $statusCode,
+                ], 200);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'] ?? 'Gagal membuat template.',
+                'data' => $result['raw'] ?? null,
+            ], $statusCode ?: 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get template detail/status by template name from Kirim.dev
+     */
+    public function getKirimTemplateByName($name)
+    {
+        try {
+            $whatsappService = new WhatsAppService();
+            $result = $whatsappService->getKirimDevTemplateByName((string) $name);
+
+            if ($result['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $result['message'],
+                    'data' => $result['data'] ?? null,
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'] ?? 'Gagal mengambil detail template.',
+                'data' => $result['raw'] ?? null,
+            ], $result['http_status'] ?? 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Trigger template status sync from Kirim.dev
+     */
+    public function syncKirimTemplates()
+    {
+        try {
+            $whatsappService = new WhatsAppService();
+            $result = $whatsappService->syncKirimDevTemplates();
+
+            if ($result['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $result['message'],
+                    'data' => $result['data'] ?? null,
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'] ?? 'Gagal sinkronisasi template.',
+                'data' => $result['raw'] ?? null,
+            ], $result['http_status'] ?? 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Reset templates to default
      */
     public function resetTemplates()
