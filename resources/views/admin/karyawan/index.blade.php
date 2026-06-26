@@ -355,12 +355,12 @@
                                     <th style="width: 45px;">#</th>
                                     <th style="min-width: 110px;">Kode</th>
                                     <th style="min-width: 160px;">Nama</th>
-                                    <th style="min-width: 130px;">Departemen</th>
                                     <th style="min-width: 130px;">Sub Departemen</th>
                                     <th style="min-width: 120px;">Posisi</th>
                                     <th style="min-width: 95px;" class="text-nowrap">Tgl. Join</th>
                                     <th style="min-width: 95px;" class="text-nowrap">Tgl. Keluar</th>
                                     <th style="min-width: 90px;" class="text-center">Status</th>
+                                    <th style="min-width: 140px;" class="text-center">Rekomendasi</th>
                                     <th style="width: 55px;" class="text-center">Aksi</th>
                                 </tr>
                             </thead>
@@ -1710,18 +1710,19 @@
                 data.data.forEach((k, index) => {
                     const rowNumber = data.from + index;
                     const statusBadge = getStatusBadge(k.status);
+                    const recommendationBadge = getTerminationRecommendationBadge(k.termination_recommendation);
 
                     tbody.append(`
                         <tr>
                             <td style="white-space: nowrap;">${rowNumber}</td>
                             <td style="white-space: nowrap;"><strong>${k.employee_code}</strong></td>
                             <td>${k.name}</td>
-                            <td>${k.department ? k.department.name : '-'}</td>
                             <td>${k.sub_department ? k.sub_department.name : '-'}</td>
                             <td>${k.position ? k.position.name : '-'}</td>
                             <td class="text-nowrap"><small>${k.join_date ? formatDate(k.join_date) : '-'}</small></td>
                             <td class="text-nowrap"><small>${getExitDate(k)}</small></td>
                             <td class="text-center" style="white-space: nowrap;">${statusBadge}</td>
+                            <td class="text-center" style="white-space: nowrap;">${recommendationBadge}</td>
                             <td class="text-center" style="white-space: nowrap;">
                                 <div class="dropdown">
                                     <button type="button" class="btn btn-sm btn-icon btn-text-secondary rounded-pill dropdown-toggle hide-arrow"
@@ -1752,11 +1753,12 @@
                                             <span class="text-muted small">${k.employee_code}</span>
                                         </div>
                                         <h6 class="mb-1 fw-bold text-truncate">${k.name}</h6>
-                                        <p class="text-muted small mb-1 text-truncate">${k.department ? k.department.name : '-'}${k.sub_department ? ' / ' + k.sub_department.name : ''}</p>
+                                        <p class="text-muted small mb-1 text-truncate">${k.sub_department ? k.sub_department.name : '-'}</p>
                                         <p class="text-muted small mb-2 text-truncate">${k.position ? k.position.name : '-'}</p>
                                         <div class="d-flex flex-wrap gap-2">
                                             <span class="badge bg-label-primary"><i class='bx bx-calendar-plus me-1'></i>${k.join_date ? formatDate(k.join_date) : '-'}</span>
                                             ${getExitDate(k) !== '-' ? `<span class="badge bg-label-danger"><i class='bx bx-calendar-x me-1'></i>${getExitDate(k)}</span>` : ''}
+                                            ${k.termination_recommendation ? `<span class="badge bg-label-secondary">${getTerminationRecommendationLabel(k.termination_recommendation)}</span>` : ''}
                                         </div>
                                     </div>
                                     <div class="dropdown flex-shrink-0">
@@ -1811,6 +1813,18 @@
                 'blacklist': 'Blacklist'
             };
             return labels[value] || '-';
+        }
+
+        function getTerminationRecommendationBadge(value) {
+            if (!value) return '-';
+
+            const badges = {
+                'can_rehire': '<span class="badge bg-label-success">Bisa Kerja Kembali</span>',
+                'considered': '<span class="badge bg-label-primary">Dipertimbangkan</span>',
+                'blacklist': '<span class="badge bg-label-danger">Blacklist</span>'
+            };
+
+            return badges[value] || '-';
         }
 
         function formatDate(dateStr) {
