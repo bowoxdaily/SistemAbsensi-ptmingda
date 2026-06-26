@@ -270,9 +270,12 @@ class InterviewController extends Controller
 
             if (!empty($interview->phone)) {
                 $whatsapp = new WhatsAppService();
+                $setting = \App\Models\WhatsAppSetting::getActive();
+                $customApiKey = $setting?->interview_api_key ?: null;
+                $customSender = $setting?->interview_sender ?: null;
                 $message = $this->formatWhatsAppMessage($interview);
                 $qrImageUrl = $interview->qr_code_image;
-                $sent = $whatsapp->send($interview->phone, $message, $qrImageUrl);
+                $sent = $whatsapp->send($interview->phone, $message, $qrImageUrl, $customSender, $customApiKey);
 
                 if ($sent) {
                     $sentChannels[] = 'WhatsApp';
@@ -339,6 +342,10 @@ class InterviewController extends Controller
             $interviews = Interview::with('position')->whereIn('id', $request->ids)->get();
             $whatsapp = new WhatsAppService();
 
+            $setting = \App\Models\WhatsAppSetting::getActive();
+            $customApiKey = $setting?->interview_api_key ?: null;
+            $customSender = $setting?->interview_sender ?: null;
+
             $emailSent = 0;
             $waSentCount = 0;
             $waFailedCount = 0;
@@ -355,7 +362,7 @@ class InterviewController extends Controller
                 $qrImageUrl = $interview->qr_code_image;
                 $hasPhone = !empty($interview->phone);
                 $waSent = !empty($interview->phone)
-                    ? $whatsapp->send($interview->phone, $message, $qrImageUrl)
+                    ? $whatsapp->send($interview->phone, $message, $qrImageUrl, $customSender, $customApiKey)
                     : false;
 
                 if ($waSent) {
