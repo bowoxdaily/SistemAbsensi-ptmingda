@@ -40,6 +40,7 @@ class Employee extends Model
         'supervisor_id',
         'salary_base',
         'tanggal_resign',
+        'termination_recommendation',
 
         // Data Keuangan
         'bank',

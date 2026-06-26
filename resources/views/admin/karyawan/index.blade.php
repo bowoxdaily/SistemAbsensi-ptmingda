@@ -679,6 +679,16 @@
                                         </select>
                                         <div class="invalid-feedback" id="statusError"></div>
                                     </div>
+                                    <div class="col-sm-6 mb-2" id="terminationRecommendationContainer" style="display: none;">
+                                        <label for="termination_recommendation" class="form-label small">Rekomendasi</label>
+                                        <select class="form-select form-select-sm" id="termination_recommendation" name="termination_recommendation">
+                                            <option value="">Pilih...</option>
+                                            <option value="can_rehire">Bisa Kerja Kembali</option>
+                                            <option value="considered">Dipertimbangkan</option>
+                                            <option value="blacklist">Blacklist</option>
+                                        </select>
+                                        <div class="invalid-feedback" id="termination_recommendationError"></div>
+                                    </div>
                                     <div class="col-sm-6 mb-2" id="resignDateContainer" style="display: none;">
                                         <label for="tanggal_resign" class="form-label small">Tanggal Resign</label>
                                         <input type="date" class="form-control form-control-sm" id="tanggal_resign"
@@ -960,6 +970,10 @@
                                 <tr>
                                     <th>Status Karyawan</th>
                                     <td id="detailStatus">-</td>
+                                </tr>
+                                <tr id="detailTerminationRecommendationRow" style="display: none;">
+                                    <th>Rekomendasi</th>
+                                    <td id="detailTerminationRecommendation">-</td>
                                 </tr>
                                 <tr id="detailResignDateRow" style="display: none;">
                                     <th>Tanggal Resign</th>
@@ -1790,6 +1804,15 @@
             return badges[status] || status;
         }
 
+        function getTerminationRecommendationLabel(value) {
+            const labels = {
+                'can_rehire': 'Bisa Kerja Kembali',
+                'considered': 'Dipertimbangkan',
+                'blacklist': 'Blacklist'
+            };
+            return labels[value] || '-';
+        }
+
         function formatDate(dateStr) {
             if (!dateStr) return '-';
             const d = dateStr.toString().split(/[T\s]/)[0];
@@ -1807,7 +1830,12 @@
         }
 
         function getExitDateBadge(k) {
-            const labelMap = { resign: 'Resign', mangkir: 'Mangkir', gagal_probation: 'Gagal Prob', pending: 'Pending' };
+            const labelMap = {
+                resign: 'Resign',
+                mangkir: 'Mangkir',
+                gagal_probation: 'Gagal Prob',
+                pending: 'Pending'
+            };
             const date = getExitDate(k);
             if (date === '-') return '';
             return ` &nbsp;<i class='bx bx-calendar-x me-1'></i>${labelMap[k.status]}: <strong>${date}</strong>`;
@@ -1865,6 +1893,8 @@
             $('#mangkirDateContainer').hide();
             $('#gagalProbDateContainer').hide();
             $('#pendingDateContainer').hide();
+            $('#terminationRecommendationContainer').hide();
+            $('#termination_recommendation').val('');
             
             // Reset Select2 for department
             const deptSelect = $('#department_id');
@@ -1889,6 +1919,14 @@
 
         function toggleResignDate() {
             const status = $('#status').val();
+            const showRecommendation = ['resign', 'mangkir', 'gagal_probation'].includes(status);
+
+            if (showRecommendation) {
+                $('#terminationRecommendationContainer').show();
+            } else {
+                $('#terminationRecommendationContainer').hide();
+                $('#termination_recommendation').val('');
+            }
 
             // Resign
             if (status === 'resign') {
@@ -1970,6 +2008,8 @@
                     $('#serikat').val(k.serikat || 'Non Serikat');
                     $('#work_schedule_id').val(k.work_schedule_id);
                     $('#status').val(k.status);
+                    $('#termination_recommendation').val(k.termination_recommendation || '');
+                    toggleResignDate();
 
                     // Toggle tanggal resign
                     if (k.status === 'resign' && k.tanggal_resign) {
@@ -2062,6 +2102,7 @@
                 serikat: $('#serikat').val(),
                 work_schedule_id: $('#work_schedule_id').val(),
                 status: $('#status').val(),
+                termination_recommendation: $('#termination_recommendation').val(),
                 tanggal_resign: formatDateForSubmission($('#tanggal_resign').val()),
                 tanggal_mangkir: formatDateForSubmission($('#tanggal_mangkir').val()),
                 tanggal_gagal_probation: formatDateForSubmission($('#tanggal_gagal_probation').val()),
@@ -2222,6 +2263,13 @@
                     $('#detailSerikat').text(k.serikat || 'Non Serikat');
                     $('#detailShiftType').text(k.work_schedule ? k.work_schedule.name : '-');
                     $('#detailStatus').html(getStatusBadge(k.status));
+
+                    if (k.termination_recommendation) {
+                        $('#detailTerminationRecommendation').text(getTerminationRecommendationLabel(k.termination_recommendation));
+                        $('#detailTerminationRecommendationRow').show();
+                    } else {
+                        $('#detailTerminationRecommendationRow').hide();
+                    }
 
                     // Tanggal resign
                     if (k.status === 'resign' && k.tanggal_resign) {

@@ -78,6 +78,7 @@ class KaryawanExport implements FromCollection, WithHeadings, WithMapping, WithS
             'Status Serikat',
             'Jadwal Kerja',
             'Tanggal Resign',
+            'Rekomendasi',
             'Bank',
             'Nomor Rekening',
             'NPWP',
@@ -124,6 +125,7 @@ class KaryawanExport implements FromCollection, WithHeadings, WithMapping, WithS
             $karyawan->serikat ?? 'Non Serikat',
             $karyawan->workSchedule ? $karyawan->workSchedule->name : '-',
             $this->formatDate($karyawan->tanggal_resign),
+            $this->getTerminationRecommendationLabel($karyawan->termination_recommendation),
             $karyawan->bank ?? '-',
             $karyawan->nomor_rekening ?? '-',
             $karyawan->tax_npwp ?? '-',
@@ -168,20 +170,21 @@ class KaryawanExport implements FromCollection, WithHeadings, WithMapping, WithS
             'S' => 15,  // Status Kerja
             'T' => 18,  // Jadwal Kerja
             'U' => 15,  // Tanggal Resign
-            'V' => 20,  // Bank
-            'W' => 20,  // Nomor Rekening
-            'X' => 20,  // NPWP
-            'Y' => 20,  // BPJS Kesehatan
-            'Z' => 20,  // BPJS Ketenagakerjaan
-            'AA' => 12, // Status
-            'AB' => 35, // Alamat
-            'AC' => 15, // Kota
-            'AD' => 15, // Provinsi
-            'AE' => 12, // Kode Pos
-            'AF' => 15, // No HP
-            'AG' => 25, // Email
-            'AH' => 25, // Kontak Darurat Nama
-            'AI' => 15, // Kontak Darurat No
+            'V' => 24,  // Rekomendasi
+            'W' => 20,  // Bank
+            'X' => 20,  // Nomor Rekening
+            'Y' => 20,  // NPWP
+            'Z' => 20,  // BPJS Kesehatan
+            'AA' => 20, // BPJS Ketenagakerjaan
+            'AB' => 12, // Status
+            'AC' => 35, // Alamat
+            'AD' => 15, // Kota
+            'AE' => 15, // Provinsi
+            'AF' => 12, // Kode Pos
+            'AG' => 15, // No HP
+            'AH' => 25, // Email
+            'AI' => 25, // Kontak Darurat Nama
+            'AJ' => 15, // Kontak Darurat No
         ];
     }
 
@@ -237,8 +240,25 @@ class KaryawanExport implements FromCollection, WithHeadings, WithMapping, WithS
         $labels = [
             'active' => 'Aktif',
             'inactive' => 'Tidak Aktif',
-            'resign' => 'Resign'
+            'resign' => 'Resign',
+            'mangkir' => 'Mangkir',
+            'gagal_probation' => 'Gagal Probation',
+            'pending' => 'Pending',
         ];
         return $labels[$status] ?? $status;
+    }
+
+    /**
+     * Get termination recommendation label
+     */
+    private function getTerminationRecommendationLabel($value)
+    {
+        $labels = [
+            'can_rehire' => 'Bisa Kerja Kembali',
+            'considered' => 'Dipertimbangkan',
+            'blacklist' => 'Blacklist',
+        ];
+
+        return $labels[$value] ?? '-';
     }
 }

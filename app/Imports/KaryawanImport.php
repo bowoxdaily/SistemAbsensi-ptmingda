@@ -285,6 +285,10 @@ class KaryawanImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
             return 'inactive';
         } elseif (in_array($status, ['resign', 'keluar'])) {
             return 'resign';
+        } elseif (in_array($status, ['mangkir'])) {
+            return 'mangkir';
+        } elseif (in_array($status, ['gagal probation', 'gagal_probation'])) {
+            return 'gagal_probation';
         } elseif (in_array($status, ['pending'])) {
             return 'pending';
         }

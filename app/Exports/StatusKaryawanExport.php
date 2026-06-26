@@ -60,6 +60,7 @@ class StatusKaryawanExport implements FromCollection, WithHeadings, WithMapping,
             'Tanggal Mangkir',
             'Tanggal Gagal Probation',
             'Tanggal Pending',
+            'Rekomendasi',
         ];
     }
 
@@ -77,6 +78,12 @@ class StatusKaryawanExport implements FromCollection, WithHeadings, WithMapping,
             'pending'         => 'Pending',
         ][$row->status] ?? $row->status;
 
+        $recommendationLabel = [
+            'can_rehire' => 'Bisa Kerja Kembali',
+            'considered' => 'Dipertimbangkan',
+            'blacklist'  => 'Blacklist',
+        ][$row->termination_recommendation] ?? '-';
+
         return [
             $no,
             $row->employee_code,
@@ -92,6 +99,7 @@ class StatusKaryawanExport implements FromCollection, WithHeadings, WithMapping,
             $this->formatDate($row->tanggal_mangkir),
             $this->formatDate($row->tanggal_gagal_probation),
             $this->formatDate($row->tanggal_pending),
+            $recommendationLabel,
         ];
     }
 

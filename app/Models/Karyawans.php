@@ -41,6 +41,7 @@ class Karyawans extends Model
         'tanggal_mangkir',
         'tanggal_gagal_probation',
         'tanggal_pending',
+        'termination_recommendation',
         'bank',
         'nomor_rekening',
         'tax_npwp',
