@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use App\Exports\KaryawanExport;
 use App\Exports\KaryawanTemplateExport;
 use App\Imports\KaryawanImport;
+use App\Models\Attendance;
 use Maatwebsite\Excel\Facades\Excel;
 
 class KaryawanController extends Controller
@@ -209,6 +210,20 @@ class KaryawanController extends Controller
 
         // Convert to array (dates are already Y-m-d strings since model doesn't cast)
         $data = $karyawan->toArray();
+
+        $attendanceSummary = Attendance::query()
+            ->select('status', DB::raw('COUNT(*) as total'))
+            ->where('employee_id', $karyawan->id)
+            ->whereIn('status', ['hadir', 'alpha', 'sakit', 'izin'])
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $data['attendance_summary'] = [
+            'hadir' => (int) ($attendanceSummary['hadir'] ?? 0),
+            'alpha' => (int) ($attendanceSummary['alpha'] ?? 0),
+            'sakit' => (int) ($attendanceSummary['sakit'] ?? 0),
+            'izin' => (int) ($attendanceSummary['izin'] ?? 0),
+        ];
 
         return response()->json([
             'success' => true,

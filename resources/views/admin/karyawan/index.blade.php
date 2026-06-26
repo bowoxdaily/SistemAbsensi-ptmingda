@@ -1076,6 +1076,26 @@
                                 </tr>
                             </table>
 
+                            <h6 class="text-primary mb-3 mt-4">Rekap Absensi</h6>
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <th width="45%">Hadir</th>
+                                    <td id="detailAttendanceHadir">0</td>
+                                </tr>
+                                <tr>
+                                    <th>Alpa</th>
+                                    <td id="detailAttendanceAlpha">0</td>
+                                </tr>
+                                <tr>
+                                    <th>Sakit</th>
+                                    <td id="detailAttendanceSakit">0</td>
+                                </tr>
+                                <tr>
+                                    <th>Izin</th>
+                                    <td id="detailAttendanceIzin">0</td>
+                                </tr>
+                            </table>
+
                             <h6 class="text-primary mb-3 mt-4">Data Peringatan (SP) <span class="badge bg-warning text-dark" id="warningLetterBadge" style="display: none;"></span></h6>
                             
                             <!-- Desktop: Table View -->
@@ -2385,6 +2405,13 @@
                     $('#detailTaxNpwp').text(k.tax_npwp || '-');
                     $('#detailBpjsKesehatan').text(k.bpjs_kesehatan || '-');
                     $('#detailBpjsKetenagakerjaan').text(k.bpjs_ketenagakerjaan || '-');
+
+                    // Rekap Absensi
+                    const attendanceSummary = k.attendance_summary || {};
+                    $('#detailAttendanceHadir').text(attendanceSummary.hadir ?? 0);
+                    $('#detailAttendanceAlpha').text(attendanceSummary.alpha ?? 0);
+                    $('#detailAttendanceSakit').text(attendanceSummary.sakit ?? 0);
+                    $('#detailAttendanceIzin').text(attendanceSummary.izin ?? 0);
 
                     // Data Peringatan (SP)
                     displayWarningLetters(k.warning_letters || []);
