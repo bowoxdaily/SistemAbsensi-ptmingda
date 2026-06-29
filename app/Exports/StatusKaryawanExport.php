@@ -81,9 +81,10 @@ class StatusKaryawanExport implements FromCollection, WithHeadings, WithMapping,
         ][$row->status] ?? $row->status;
 
         $recommendationLabel = [
-            'can_rehire' => 'Bisa Kerja Kembali',
-            'considered' => 'Dipertimbangkan',
-            'blacklist'  => 'Blacklist',
+            'can_rehire' => 'DIREKOMENDASIKAN',
+            'considered' => 'DI PERTIMBANGKAN',
+            'not_recommended' => 'TIDAK DIREKOMENDASIKAN',
+            'blacklist'  => 'BLACKLIST',
         ][$row->termination_recommendation] ?? '-';
 
         return [

@@ -685,9 +685,10 @@
                                         <label for="termination_recommendation" class="form-label small">Rekomendasi</label>
                                         <select class="form-select form-select-sm" id="termination_recommendation" name="termination_recommendation">
                                             <option value="">Pilih...</option>
-                                            <option value="can_rehire">Bisa Kerja Kembali</option>
-                                            <option value="considered">Dipertimbangkan</option>
-                                            <option value="blacklist">Blacklist</option>
+                                            <option value="can_rehire">DIREKOMENDASIKAN</option>
+                                            <option value="considered">DI PERTIMBANGKAN</option>
+                                            <option value="not_recommended">TIDAK DIREKOMENDASIKAN</option>
+                                            <option value="blacklist">BLACKLIST</option>
                                         </select>
                                         <div class="invalid-feedback" id="termination_recommendationError"></div>
                                     </div>
@@ -1842,9 +1843,10 @@
 
         function getTerminationRecommendationLabel(value) {
             const labels = {
-                'can_rehire': 'Bisa Kerja Kembali',
-                'considered': 'Dipertimbangkan',
-                'blacklist': 'Blacklist'
+                'can_rehire': 'DIREKOMENDASIKAN',
+                'considered': 'DI PERTIMBANGKAN',
+                'not_recommended': 'TIDAK DIREKOMENDASIKAN',
+                'blacklist': 'BLACKLIST'
             };
             return labels[value] || '-';
         }
@@ -1853,9 +1855,10 @@
             if (!value) return '-';
 
             const badges = {
-                'can_rehire': '<span class="badge bg-label-success">Bisa Kerja Kembali</span>',
-                'considered': '<span class="badge bg-label-primary">Dipertimbangkan</span>',
-                'blacklist': '<span class="badge bg-label-danger">Blacklist</span>'
+                'can_rehire': '<span class="badge bg-label-success">DIREKOMENDASIKAN</span>',
+                'considered': '<span class="badge bg-label-primary">DI PERTIMBANGKAN</span>',
+                'not_recommended': '<span class="badge bg-label-warning">TIDAK DIREKOMENDASIKAN</span>',
+                'blacklist': '<span class="badge bg-label-danger">BLACKLIST</span>'
             };
 
             return badges[value] || '-';

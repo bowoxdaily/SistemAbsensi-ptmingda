@@ -255,9 +255,10 @@ class KaryawanExport implements FromCollection, WithHeadings, WithMapping, WithS
     private function getTerminationRecommendationLabel($value)
     {
         $labels = [
-            'can_rehire' => 'Bisa Kerja Kembali',
-            'considered' => 'Dipertimbangkan',
-            'blacklist' => 'Blacklist',
+            'can_rehire' => 'DIREKOMENDASIKAN',
+            'considered' => 'DI PERTIMBANGKAN',
+            'not_recommended' => 'TIDAK DIREKOMENDASIKAN',
+            'blacklist' => 'BLACKLIST',
         ];
 
         return $labels[$value] ?? '-';
