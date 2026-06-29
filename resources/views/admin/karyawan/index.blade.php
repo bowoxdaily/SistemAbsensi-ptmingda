@@ -308,7 +308,13 @@
                             <option value="phk">PHK</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
+                        <label for="filterWorkSchedule" class="form-label small mb-1">Jam Kerja</label>
+                        <select class="form-select form-select-sm" id="filterWorkSchedule">
+                            <option value="">Semua Jam Kerja</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
                         <div class="d-flex gap-2">
                             <button type="button" class="btn btn-sm btn-primary flex-grow-1" onclick="applyFilter()">
                                 <i class='bx bx-filter-alt me-1'></i> Filter
@@ -1287,6 +1293,7 @@
             sub_department_id: '',
             position_id: '',
             status: '',
+            work_schedule_id: '',
             search: ''
         };
         let perPage = 10;
@@ -1395,6 +1402,7 @@
                     populateFilterDepartments();
                     populateFilterSubDepartments();
                     populateFilterPositions();
+                    populateFilterWorkSchedules();
                 },
                 error: function(xhr) {
                     console.error('Failed to load master data:', xhr);
@@ -1479,6 +1487,14 @@
             select.find('option:not(:first)').remove();
             masterData.positions.forEach(pos => {
                 select.append(`<option value="${pos.id}">${pos.display_name}</option>`);
+            });
+        }
+
+        function populateFilterWorkSchedules() {
+            const select = $('#filterWorkSchedule');
+            select.find('option:not(:first)').remove();
+            masterData.work_schedules.forEach(schedule => {
+                select.append(`<option value="${schedule.id}">${schedule.name}</option>`);
             });
         }
 
@@ -1569,6 +1585,7 @@
             currentFilters.sub_department_id = $('#filterSubDepartment').val();
             currentFilters.position_id = $('#filterPosition').val();
             currentFilters.status = $('#filterStatus').val();
+            currentFilters.work_schedule_id = $('#filterWorkSchedule').val();
             currentFilters.search = $('#searchInput').val();
             updateFilterBadges();
             loadKaryawans(1);
@@ -1580,6 +1597,7 @@
                 sub_department_id: '',
                 position_id: '',
                 status: '',
+                work_schedule_id: '',
                 search: ''
             };
             $('#filterDepartment').val('');
@@ -1587,6 +1605,7 @@
             $('#filterSubDepartment').val('');
             $('#filterPosition').val('');
             $('#filterStatus').val('');
+            $('#filterWorkSchedule').val('');
             $('#searchInput').val('');
             updateFilterBadges();
             loadKaryawans(1);
@@ -1649,6 +1668,12 @@
                 hasFilter = true;
             }
 
+            if (currentFilters.work_schedule_id) {
+                const scheduleName = $('#filterWorkSchedule option:selected').text();
+                container.append(`<span class="badge bg-label-dark">Jam Kerja: ${scheduleName}</span>`);
+                hasFilter = true;
+            }
+
             if (hasFilter) {
                 $('#activeFilters').removeClass('d-none');
             } else {
@@ -1673,6 +1698,9 @@
             }
             if (currentFilters.status) {
                 url += '&status=' + currentFilters.status;
+            }
+            if (currentFilters.work_schedule_id) {
+                url += '&work_schedule_id=' + currentFilters.work_schedule_id;
             }
 
             $.ajax({
@@ -1709,6 +1737,9 @@
             }
             if (currentFilters.status) {
                 url += '&status=' + currentFilters.status;
+            }
+            if (currentFilters.work_schedule_id) {
+                url += '&work_schedule_id=' + currentFilters.work_schedule_id;
             }
 
             window.location.href = url;

@@ -46,6 +46,9 @@ class KaryawanExport implements FromCollection, WithHeadings, WithMapping, WithS
             ->when(!empty($this->filters['status']), function ($query) {
                 return $query->where('status', $this->filters['status']);
             })
+            ->when(!empty($this->filters['work_schedule_id']), function ($query) {
+                return $query->where('work_schedule_id', $this->filters['work_schedule_id']);
+            })
             ->orderBy('employee_code', 'asc')
             ->get();
     }

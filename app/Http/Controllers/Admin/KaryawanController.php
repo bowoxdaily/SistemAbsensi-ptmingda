@@ -38,6 +38,7 @@ class KaryawanController extends Controller
         $subDepartmentId = $request->get('sub_department_id');
         $positionId = $request->get('position_id');
         $status = $request->get('status');
+        $workScheduleId = $request->get('work_schedule_id');
 
         $karyawans = Karyawans::with(['department', 'subDepartment', 'position', 'workSchedule'])
             ->when($search, function ($query, $search) {
@@ -58,6 +59,9 @@ class KaryawanController extends Controller
             })
             ->when($status, function ($query, $status) {
                 return $query->where('status', $status);
+            })
+            ->when($workScheduleId, function ($query, $workScheduleId) {
+                return $query->where('work_schedule_id', $workScheduleId);
             })
             ->orderBy('employee_code', 'asc')
             ->paginate($perPage);
@@ -546,6 +550,7 @@ class KaryawanController extends Controller
         $subDepartmentId = $request->get('sub_department_id');
         $positionId = $request->get('position_id');
         $status = $request->get('status');
+        $workScheduleId = $request->get('work_schedule_id');
 
         $filters = [
             'search' => $search,
@@ -553,10 +558,11 @@ class KaryawanController extends Controller
             'sub_department_id' => $subDepartmentId,
             'position_id' => $positionId,
             'status' => $status,
+            'work_schedule_id' => $workScheduleId,
         ];
 
         $filename = 'Data_Karyawan';
-        if ($search || $departmentId || $subDepartmentId || $positionId || $status) {
+        if ($search || $departmentId || $subDepartmentId || $positionId || $status || $workScheduleId) {
             $filename .= '_Filtered';
         }
         $filename .= '_' . date('Y-m-d_His') . '.xlsx';
