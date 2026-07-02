@@ -54,7 +54,11 @@ class WhatsAppSettingController extends Controller
             'provider' => 'nullable|in:fonnte,kirimdev,baileys',
             'api_key' => 'nullable|string|max:255',
             'sender' => 'nullable|string|max:50',
-            'kirim_phone_number_id' => 'nullable|string|max:100',
+            'kirim_phone_number_id'             => 'nullable|string|max:100',
+            'kirim_fallback_template_name'      => 'nullable|string|max:128',
+            'kirim_fallback_template_language'  => 'nullable|string|max:20',
+            'kirim_alpha_template_name'         => 'nullable|string|max:128',
+            'kirim_alpha_template_language'     => 'nullable|string|max:20',
             'admin_phone' => 'nullable|string|max:50',
             'checkin_api_key' => 'nullable|string|max:255',
             'checkout_api_key' => 'nullable|string|max:255',
@@ -121,7 +125,11 @@ class WhatsAppSettingController extends Controller
                 $setting->provider = $provider;
                 $setting->api_key = $request->input('api_key');
                 $setting->sender = $request->input('sender');
-                $setting->kirim_phone_number_id = $request->input('kirim_phone_number_id');
+                $setting->kirim_phone_number_id            = $request->input('kirim_phone_number_id');
+                $setting->kirim_fallback_template_name     = $request->input('kirim_fallback_template_name') ?: null;
+                $setting->kirim_fallback_template_language = $request->input('kirim_fallback_template_language') ?: 'id';
+                $setting->kirim_alpha_template_name        = $request->input('kirim_alpha_template_name') ?: null;
+                $setting->kirim_alpha_template_language    = $request->input('kirim_alpha_template_language') ?: 'id';
                 $setting->admin_phone = $request->input('admin_phone');
 
                 // Custom API keys

@@ -80,6 +80,168 @@
                                 @enderror
                             </div>
 
+                            <!-- Kirimdev Fallback Template (24h Window Bypass) -->
+                            <div class="mb-3" id="kirimFallbackGroup" style="display: none;">
+                                <div class="card border-warning">
+                                    <div class="card-body py-3">
+                                        <h6 class="card-title mb-1">
+                                            <i class='bx bx-time-five text-warning me-1'></i>
+                                            Template Fallback (Bypass 24 Jam Window)
+                                        </h6>
+                                        <p class="text-muted small mb-3">
+                                            WhatsApp Business API (Meta) membatasi pengiriman pesan bebas hanya kepada penerima yang
+                                            membalas dalam <strong>24 jam terakhir</strong>. Jika pesan gagal karena batas ini,
+                                            sistem akan otomatis mengirim ulang menggunakan template Meta yang sudah disetujui.
+                                        </p>
+                                        <div class="row g-2">
+                                            <div class="col-md-8">
+                                                <label class="form-label" for="kirim_fallback_template_name">
+                                                    Nama Template Fallback
+                                                </label>
+                                                <input type="text"
+                                                    class="form-control @error('kirim_fallback_template_name') is-invalid @enderror"
+                                                    id="kirim_fallback_template_name"
+                                                    name="kirim_fallback_template_name"
+                                                    value="{{ old('kirim_fallback_template_name', $setting->kirim_fallback_template_name) }}"
+                                                    placeholder="contoh: notifikasi_sistem">
+                                                <div class="form-text">
+                                                    Nama template yang sudah disetujui Meta di akun KirimDev Anda.
+                                                    Template harus memiliki variabel <code>{{1}}</code> di body agar isi pesan ikut terkirim.
+                                                    Kosongkan jika tidak ingin menggunakan fallback otomatis.
+                                                </div>
+                                                @error('kirim_fallback_template_name')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label" for="kirim_fallback_template_language">
+                                                    Kode Bahasa
+                                                </label>
+                                                <input type="text"
+                                                    class="form-control @error('kirim_fallback_template_language') is-invalid @enderror"
+                                                    id="kirim_fallback_template_language"
+                                                    name="kirim_fallback_template_language"
+                                                    value="{{ old('kirim_fallback_template_language', $setting->kirim_fallback_template_language ?? 'id') }}"
+                                                    placeholder="id"
+                                                    maxlength="20">
+                                                <div class="form-text">
+                                                    <code>id</code> = Indonesia, <code>en</code> = English
+                                                </div>
+                                                @error('kirim_fallback_template_language')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                        @if (!empty($setting->kirim_fallback_template_name))
+                                            <div class="alert alert-success alert-sm p-2 mt-2 mb-0">
+                                                <small>
+                                                    <i class='bx bx-check-circle me-1'></i>
+                                                    <strong>Fallback aktif:</strong>
+                                                    Template <code>{{ $setting->kirim_fallback_template_name }}</code>
+                                                    ({{ $setting->kirim_fallback_template_language ?? 'id' }})
+                                                    akan otomatis digunakan saat pesan gagal karena 24h window.
+                                                </small>
+                                            </div>
+                                        @else
+                                            <div class="alert alert-secondary alert-sm p-2 mt-2 mb-0">
+                                                <small>
+                                                    <i class='bx bx-info-circle me-1'></i>
+                                                    Fallback belum dikonfigurasi. Pesan yang gagal karena 24h window tidak akan dikirim ulang otomatis.
+                                                </small>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Kirimdev Alpha Notification Template -->
+                            <div class="mb-3" id="kirimAlphaTemplateGroup" style="display: none;">
+                                <div class="card border-danger">
+                                    <div class="card-body py-3">
+                                        <h6 class="card-title mb-1">
+                                            <i class='bx bx-user-x text-danger me-1'></i>
+                                            Template Notifikasi Alpha (Karyawan)
+                                        </h6>
+                                        <p class="text-muted small mb-3">
+                                            Jika diisi, notifikasi alpha akan dikirim <strong>langsung via template Meta</strong>
+                                            — bypass 24 jam window sepenuhnya. Template harus sudah disetujui Meta dan memiliki
+                                            <strong>5 variabel</strong>: <code>{{1}}</code> Nama, <code>{{2}}</code> NIP,
+                                            <code>{{3}}</code> Departemen, <code>{{4}}</code> Tanggal, <code>{{5}}</code> Total Alpha.
+                                        </p>
+
+                                        @php
+                                            $alphaTemplateId = 'tmpl_2BGZQ77GKB9YKC2ZVWK0346AP1';
+                                        @endphp
+
+                                        <div class="alert alert-info p-2 mb-3">
+                                            <small>
+                                                <i class='bx bx-info-circle me-1'></i>
+                                                <strong>Template sudah dibuat otomatis:</strong>
+                                                <code>alpha_notification</code> (ID: <code>{{ $alphaTemplateId }}</code>) —
+                                                status <span class="badge bg-warning text-dark">pending review Meta</span>.
+                                                Setelah disetujui, isi kolom di bawah dan simpan.
+                                            </small>
+                                        </div>
+
+                                        <div class="row g-2">
+                                            <div class="col-md-8">
+                                                <label class="form-label" for="kirim_alpha_template_name">
+                                                    Nama Template Alpha
+                                                </label>
+                                                <input type="text"
+                                                    class="form-control @error('kirim_alpha_template_name') is-invalid @enderror"
+                                                    id="kirim_alpha_template_name"
+                                                    name="kirim_alpha_template_name"
+                                                    value="{{ old('kirim_alpha_template_name', $setting->kirim_alpha_template_name) }}"
+                                                    placeholder="alpha_notification">
+                                                <div class="form-text">
+                                                    Isi setelah template disetujui Meta.
+                                                </div>
+                                                @error('kirim_alpha_template_name')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label" for="kirim_alpha_template_language">
+                                                    Kode Bahasa
+                                                </label>
+                                                <input type="text"
+                                                    class="form-control @error('kirim_alpha_template_language') is-invalid @enderror"
+                                                    id="kirim_alpha_template_language"
+                                                    name="kirim_alpha_template_language"
+                                                    value="{{ old('kirim_alpha_template_language', $setting->kirim_alpha_template_language ?? 'id') }}"
+                                                    placeholder="id"
+                                                    maxlength="20">
+                                                <div class="form-text">
+                                                    <code>id</code> = Indonesia
+                                                </div>
+                                                @error('kirim_alpha_template_language')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                        @if (!empty($setting->kirim_alpha_template_name))
+                                            <div class="alert alert-success alert-sm p-2 mt-2 mb-0">
+                                                <small>
+                                                    <i class='bx bx-check-circle me-1'></i>
+                                                    <strong>Aktif:</strong>
+                                                    Notifikasi alpha akan langsung dikirim via template Meta
+                                                    <code>{{ $setting->kirim_alpha_template_name }}</code>
+                                                    dengan data karyawan lengkap — tidak terpengaruh 24h window.
+                                                </small>
+                                            </div>
+                                        @else
+                                            <div class="alert alert-secondary alert-sm p-2 mt-2 mb-0">
+                                                <small>
+                                                    <i class='bx bx-info-circle me-1'></i>
+                                                    Belum dikonfigurasi. Notifikasi alpha menggunakan pesan teks biasa (terkena 24h window).
+                                                </small>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Sender Number -->
                             <div class="mb-3">
                                 <label class="form-label" for="sender">Nomor Pengirim Default (Optional)</label>
@@ -1697,17 +1859,23 @@
         function toggleProviderFields() {
             const provider = document.getElementById('provider')?.value || 'fonnte';
             const kirimGroup = document.getElementById('kirimPhoneIdGroup');
+            const kirimFallbackGroup = document.getElementById('kirimFallbackGroup');
+            const kirimAlphaGroup = document.getElementById('kirimAlphaTemplateGroup');
             const apiKeyHint = document.getElementById('apiKeyHint');
             const kirimTemplateManagerCard = document.getElementById('kirimTemplateManagerCard');
 
             if (provider === 'kirimdev') {
                 if (kirimGroup) kirimGroup.style.display = 'block';
+                if (kirimFallbackGroup) kirimFallbackGroup.style.display = 'block';
+                if (kirimAlphaGroup) kirimAlphaGroup.style.display = 'block';
                 if (kirimTemplateManagerCard) kirimTemplateManagerCard.style.display = 'block';
                 if (apiKeyHint) {
                     apiKeyHint.innerHTML = 'Kirim.dev: Ambil API key dari <a href="https://app.kirimdev.com" target="_blank">Dashboard Kirim.dev</a>.';
                 }
             } else {
                 if (kirimGroup) kirimGroup.style.display = 'none';
+                if (kirimFallbackGroup) kirimFallbackGroup.style.display = 'none';
+                if (kirimAlphaGroup) kirimAlphaGroup.style.display = 'none';
                 if (kirimTemplateManagerCard) kirimTemplateManagerCard.style.display = 'none';
                 if (apiKeyHint) {
                     apiKeyHint.innerHTML = 'Fonnte: Ambil API key dari <a href="https://fonnte.com/dashboard" target="_blank">Fonnte Dashboard</a>.';

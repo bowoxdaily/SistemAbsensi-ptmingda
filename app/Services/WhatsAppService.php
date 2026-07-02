@@ -56,6 +56,46 @@ class WhatsAppService
     }
 
     /**
+     * Send WhatsApp message with automatic template fallback for KirimDev.
+     * Identical to send() but always enables the 24h-window fallback logic,
+     * regardless of whether kirim_fallback_template_name is set in DB.
+     * Callers that pass $fallbackTemplateName can override the DB setting.
+     */
+    public function sendWithFallback(
+        $phoneNumber,
+        $message,
+        $image = null,
+        $customSender = null,
+        $apiKey = null,
+        $delay = '2',
+        $fallbackTemplateName = null,
+        $fallbackTemplateLanguage = null
+    ) {
+        // Temporarily override fallback settings for this call if caller provides them
+        $originalFallbackName = null;
+        $originalFallbackLang = null;
+
+        if ($this->setting && $this->setting->isKirimDev()) {
+            if ($fallbackTemplateName !== null) {
+                $originalFallbackName = $this->setting->kirim_fallback_template_name;
+                $originalFallbackLang = $this->setting->kirim_fallback_template_language;
+                $this->setting->kirim_fallback_template_name     = $fallbackTemplateName;
+                $this->setting->kirim_fallback_template_language = $fallbackTemplateLanguage ?? 'id';
+            }
+        }
+
+        $result = $this->send($phoneNumber, $message, $image, $customSender, $apiKey, $delay);
+
+        // Restore original settings after send
+        if ($this->setting && $this->setting->isKirimDev() && $fallbackTemplateName !== null) {
+            $this->setting->kirim_fallback_template_name     = $originalFallbackName;
+            $this->setting->kirim_fallback_template_language = $originalFallbackLang;
+        }
+
+        return $result;
+    }
+
+    /**
      * Send WhatsApp template message
      */
     public function sendTemplate($phoneNumber, $templateName, $languageCode = 'id', array $parameters = [], $customSender = null, $apiKey = null)
@@ -351,7 +391,37 @@ class WhatsAppService
             : null;
 
         if ((string) $providerCode === 'undeliverable' && (string) $metaCode === '131047') {
-            $this->lastError = 'Pelanggan tidak membalas dalam 24 jam terakhir. Kirim pesan template (approved) untuk membuka kembali percakapan.';
+            // Attempt fallback to approved Meta template if configured
+            if (!empty($this->setting->kirim_fallback_template_name)) {
+                $fallbackTemplate = trim((string) $this->setting->kirim_fallback_template_name);
+                $fallbackLanguage = trim((string) ($this->setting->kirim_fallback_template_language ?: 'id'));
+
+                // Pass the original message as template parameter {{1}} so the
+                // recipient still receives the actual notification content.
+                // The approved template body must contain {{1}} placeholder.
+                // If the template has no variables, we send an empty parameters array
+                // and the message content is lost — which is why {{1}} is recommended.
+                $fallbackParams = !empty($message) ? [$message] : [];
+
+                Log::info('Kirimdev: 24h window expired (131047), attempting fallback template', [
+                    'phone'             => $to,
+                    'phone_number_id'   => $phoneNumberId,
+                    'fallback_template' => $fallbackTemplate,
+                    'language'          => $fallbackLanguage,
+                    'has_message_param' => !empty($fallbackParams),
+                ]);
+
+                return $this->sendTemplateViaKirimDev(
+                    $phoneNumber,
+                    $fallbackTemplate,
+                    $fallbackLanguage,
+                    $fallbackParams,
+                    $customSender,
+                    $apiKey
+                );
+            }
+
+            $this->lastError = 'Pelanggan tidak membalas dalam 24 jam terakhir. Kirim pesan template (approved) untuk membuka kembali percakapan, atau isi "Template Fallback" di pengaturan WhatsApp agar otomatis.';
         } else {
             $parts = [];
             if ($providerCode) {
@@ -1591,13 +1661,74 @@ class WhatsAppService
                 ->count();
         }
 
-        // Get template
-        $template = $this->setting->alpha_template ?: \App\Models\WhatsAppSetting::getDefaultAlphaTemplate();
-
         // Format date
         $formattedDate = \Carbon\Carbon::parse($attendance->attendance_date)
             ->locale('id')
             ->translatedFormat('l, d F Y');
+
+        // Get custom sender and API key for alpha notifications
+        $sender = $this->getSenderFor('alpha');
+        $apiKey = $this->getApiKeyFor('alpha');
+
+        // ── KirimDev: kirim langsung via template Meta jika dikonfigurasi ──
+        // Ini bypass 24h window sepenuhnya — template dikirim kapan saja tanpa
+        // perlu menunggu error 131047 terlebih dahulu.
+        if ($this->setting->isKirimDev() && !empty($this->setting->kirim_alpha_template_name)) {
+            $templateName = trim((string) $this->setting->kirim_alpha_template_name);
+            $templateLang = trim((string) ($this->setting->kirim_alpha_template_language ?: 'id'));
+
+            // Parameters sesuai urutan {{1}}–{{5}} di template alpha_notification:
+            // {{1}} = Nama karyawan
+            // {{2}} = NIP / Kode karyawan
+            // {{3}} = Departemen
+            // {{4}} = Tanggal alpha
+            // {{5}} = Total alpha bulan ini
+            $parameters = [
+                $employee->name          ?? 'N/A',
+                $employee->employee_code ?? 'N/A',
+                $employee->department->name ?? 'N/A',
+                $formattedDate,
+                (string) $totalAlphaThisMonth,
+            ];
+
+            Log::info('Sending alpha notification via KirimDev Meta template', [
+                'employee'  => $employee->name,
+                'template'  => $templateName,
+                'language'  => $templateLang,
+                'date'      => $attendance->attendance_date,
+                'total_alpha' => $totalAlphaThisMonth,
+            ]);
+
+            $result = $this->sendTemplateViaKirimDev(
+                $employee->phone,
+                $templateName,
+                $templateLang,
+                $parameters,
+                $sender,
+                $apiKey
+            );
+
+            if ($result) {
+                Log::info('Alpha notification sent via Meta template', [
+                    'attendance_id' => $attendance->id,
+                    'employee_name' => $employee->name,
+                    'date'          => $attendance->attendance_date,
+                    'total_alpha'   => $totalAlphaThisMonth,
+                ]);
+            } else {
+                Log::warning('Failed to send alpha notification via Meta template', [
+                    'attendance_id' => $attendance->id,
+                    'employee_id'   => $attendance->employee_id,
+                    'error'         => $this->lastError,
+                ]);
+            }
+
+            return $result;
+        }
+
+        // ── Fallback: kirim via free-form (Fonnte / Baileys / KirimDev tanpa template khusus) ──
+        // Get template
+        $template = $this->setting->alpha_template ?: \App\Models\WhatsAppSetting::getDefaultAlphaTemplate();
 
         // Replace variables
         $message = str_replace(
@@ -1609,7 +1740,7 @@ class WhatsAppService
                 '{total_alpha}',
             ],
             [
-                $employee->name ?? 'N/A',
+                $employee->name          ?? 'N/A',
                 $employee->employee_code ?? 'N/A',
                 $employee->department->name ?? 'N/A',
                 $formattedDate,
@@ -1618,23 +1749,19 @@ class WhatsAppService
             $template
         );
 
-        // Get custom sender and API key for alpha notifications
-        $sender = $this->getSenderFor('alpha');
-        $apiKey = $this->getApiKeyFor('alpha');
-
         $result = $this->send($employee->phone, $message, null, $sender, $apiKey, $delay);
 
         if ($result) {
             Log::info('Alpha notification sent to employee', [
                 'attendance_id' => $attendance->id,
                 'employee_name' => $employee->name,
-                'date' => $attendance->attendance_date,
-                'total_alpha' => $totalAlphaThisMonth,
+                'date'          => $attendance->attendance_date,
+                'total_alpha'   => $totalAlphaThisMonth,
             ]);
         } else {
             Log::warning('Failed to send alpha notification', [
                 'attendance_id' => $attendance->id,
-                'employee_id' => $attendance->employee_id,
+                'employee_id'   => $attendance->employee_id,
             ]);
         }
 
