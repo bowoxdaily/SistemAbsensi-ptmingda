@@ -23,19 +23,18 @@ class GenerateAbsentAttendance extends Command
      *
      * @var string
      */
-    protected $description = 'Generate attendance records for absent employees (default: yesterday). For today, requires check-in + 10 minutes grace period.';
+    protected $description = 'Generate attendance records for absent employees (default: today). Uses check-in + 10 minutes grace period for today.';
 
     /**
      * Execute the console command.
      */
     public function handle()
     {
-        // Get date parameter or use yesterday (untuk auto-run di pagi hari)
-        // Jika command jalan otomatis jam 08:00 pagi, generate alpha untuk hari kemarin
-        // Jika ada parameter date, gunakan tanggal yang ditentukan
+        // Get date parameter or use today.
+        // If a date is provided, use that date explicitly.
         $date = $this->argument('date')
             ? Carbon::parse($this->argument('date'))
-            : Carbon::yesterday();
+            : Carbon::today();
 
         $this->info("Generating absent attendance for: " . $date->format('Y-m-d') . " (" . $date->format('l') . ")");
 
@@ -116,9 +115,8 @@ class GenerateAbsentAttendance extends Command
             // Set tanggal check-in ke tanggal yang dicek
             $checkinDateTime = Carbon::parse($date->format('Y-m-d') . ' ' . $checkinTime->format('H:i:s'));
 
-            // Tambahkan grace period 10 menit setelah jam check-in
-            // Grace period hanya dicek jika tanggal yang di-generate adalah hari ini
-            // Untuk hari kemarin/sebelumnya, langsung generate tanpa cek grace period
+            // Tambahkan grace period 10 menit setelah jam check-in.
+            // Untuk tanggal hari ini, alpha baru digenerate setelah lewat jam masuk + 10 menit.
             $isToday = $date->isToday();
             $gracePeriodEnd = null;
             

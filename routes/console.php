@@ -16,11 +16,12 @@ Schedule::call(function () {
     ScheduleRunMiddleware::updateTracking();
 })->everyMinute()->name('update-cron-tracking');
 
-// Schedule: Generate absent attendance setiap hari jam 8 pagi
-// Mengecek apakah ada karyawan yang belum absen untuk hari kemarin
+// Schedule: Generate absent attendance setiap menit pada hari kerja
+// Mengecek apakah ada karyawan yang belum absen untuk hari ini setelah grace period jam masuk + 10 menit
 Schedule::command('attendance:generate-absent')
-    ->dailyAt('08:00')
+    ->everyMinute()
     ->weekdays()
+    ->withoutOverlapping()
     ->before(function () {
         // Update cache untuk tracking
         Cache::put('cron_last_run', now(), now()->addDays(7));
