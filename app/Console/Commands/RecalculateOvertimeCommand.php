@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use App\Models\Attendance;
 use App\Models\Employee;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class RecalculateOvertimeCommand extends Command
 {
@@ -82,6 +83,7 @@ class RecalculateOvertimeCommand extends Command
         $processed = 0;
         $updated = 0;
         $skipped = 0;
+        $bulkUpdates = []; // Collect updates for bulk operation
 
         $progressBar = $this->output->createProgressBar($total);
         $progressBar->start();
@@ -140,12 +142,12 @@ class RecalculateOvertimeCommand extends Command
                     $overtimeMinutes = $scheduledEndTime->diffInMinutes($checkOutTime);
                 }
 
-                // Update if different from current value
+                // Collect update if different from current value
                 if ($attendance->overtime_minutes != $overtimeMinutes) {
-                    if (!$dryRun) {
-                        $attendance->overtime_minutes = $overtimeMinutes;
-                        $attendance->save();
-                    }
+                    $bulkUpdates[] = [
+                        'id' => $attendance->id,
+                        'overtime_minutes' => $overtimeMinutes
+                    ];
                     $updated++;
                 }
             } catch (\Exception $e) {
@@ -158,6 +160,29 @@ class RecalculateOvertimeCommand extends Command
 
         $progressBar->finish();
         $this->newLine(2);
+
+        // Perform bulk update if not dry run
+        if (!$dryRun && !empty($bulkUpdates)) {
+            $this->info('Performing bulk update...');
+            
+            // Build CASE WHEN statement for bulk update
+            $cases = [];
+            $ids = [];
+            
+            foreach ($bulkUpdates as $update) {
+                $cases[] = "WHEN {$update['id']} THEN {$update['overtime_minutes']}";
+                $ids[] = $update['id'];
+            }
+            
+            $casesStr = implode(' ', $cases);
+            $idsStr = implode(',', $ids);
+            
+            DB::update("UPDATE attendances SET overtime_minutes = CASE id {$casesStr} END WHERE id IN ({$idsStr})");
+            
+            $this->info("✓ Bulk updated {$updated} records in a single query");
+        } elseif ($dryRun && !empty($bulkUpdates)) {
+            $this->info("Would perform bulk update for {$updated} records");
+        }
 
         // Summary
         $this->info('=== Recalculation Complete ===');

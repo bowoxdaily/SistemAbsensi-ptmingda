@@ -46,10 +46,11 @@ Schedule::command('fingerspot:sync')
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/fingerspot-sync.log'));
 
-// Schedule: Recalculate overtime setiap hari jam 23:00
+// Schedule: Recalculate overtime setiap hari kerja jam 02:00 (off-peak hours)
 // Menghitung ulang lembur untuk data attendance hari ini
 Schedule::command('attendance:recalculate-overtime', ['--from' => now()->format('Y-m-d')])
-    ->dailyAt('23:00')
+    ->dailyAt('02:00') // Pindah ke dini hari untuk mengurangi beban saat peak hours
+    ->weekdays() // Hanya hari kerja (Senin-Jumat)
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/overtime-recalculate.log'));
