@@ -2,7 +2,7 @@
 -- Jalankan di MySQL/phpMyAdmin untuk analisis
 
 -- 1. Hitung jumlah attendance yang perlu di-recalculate setiap hari (target query)
-SELECT 
+SELECT
     attendance_date,
     COUNT(*) as total_records,
     COUNT(CASE WHEN status IN ('hadir', 'terlambat') AND check_out IS NOT NULL THEN 1 END) as records_to_process
@@ -12,12 +12,12 @@ GROUP BY attendance_date
 ORDER BY attendance_date DESC;
 
 -- 2. Rata-rata attendance per hari dalam sebulan terakhir
-SELECT 
+SELECT
     AVG(daily_count) as avg_daily_attendance,
     MAX(daily_count) as peak_daily_attendance,
     MIN(daily_count) as min_daily_attendance
 FROM (
-    SELECT 
+    SELECT
         attendance_date,
         COUNT(*) as daily_count
     FROM attendances
@@ -37,7 +37,7 @@ SHOW INDEX FROM attendances;
 -- slow_query_log_file = /path/to/slow-query.log
 
 -- 5. Monitor real-time query yang sedang berjalan
-SELECT 
+SELECT
     id,
     USER,
     HOST,

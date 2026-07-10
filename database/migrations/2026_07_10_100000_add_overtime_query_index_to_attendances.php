@@ -8,7 +8,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Menambahkan composite index untuk optimasi query overtime recalculation
      * Query target: whereNotNull('check_out')->whereIn('status', ['hadir', 'terlambat'])->whereDate('attendance_date', '>=', $date)
      */

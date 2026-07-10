@@ -6,18 +6,20 @@ Berdasarkan log `storage/logs/overtime-recalculate.log`:
 
 ```
 Total Processed: 714 records
-Updated:         491 records  
+Updated:         491 records
 No Changes:      223 records
 ```
 
 ### Beban Sebelum Optimasi:
+
 - **~714 SELECT queries** (dengan JOIN ke employees + work_schedules)
 - **~491 individual UPDATE queries**
 - **Total: ~1,200+ queries** per eksekusi
 - **Waktu:** Setiap hari jam 23:00 (termasuk weekend)
 - **Query time:** ~5-10 detik (tanpa index optimal)
 
-**Impact:** 
+**Impact:**
+
 - 8,400+ queries/minggu
 - Database slowdown saat peak hours (23:00)
 - Potential locks yang slow down concurrent users
@@ -34,7 +36,8 @@ No Changes:      223 records
 $table->index(['status', 'attendance_date', 'check_out'], 'att_overtime_query_idx');
 ```
 
-**Impact:** 
+**Impact:**
+
 - Query time: ~5-10 detik → **~1-2 detik** (2-5x faster)
 - Efficient filtering untuk WHERE IN + range query
 
@@ -53,6 +56,7 @@ Schedule::command('attendance:recalculate-overtime')
 ```
 
 **Impact:**
+
 - Eksekusi: 365 hari/tahun → **260 hari/tahun** (28% reduction)
 - Tidak perlu process weekend (biasanya tidak ada attendance)
 
@@ -66,6 +70,7 @@ Schedule::command('attendance:recalculate-overtime')
 **After:** `->dailyAt('02:00')` (dini hari)
 
 **Impact:**
+
 - Menghindari konflik dengan user yang masih online jam 23:00
 - Database load tersebar lebih merata sepanjang 24 jam
 - Tidak mengganggu operasional siang hari
@@ -79,6 +84,7 @@ Schedule::command('attendance:recalculate-overtime')
 **File:** `app/Console/Commands/RecalculateOvertimeCommand.php`
 
 **Before:**
+
 ```php
 // 491 individual UPDATE queries
 foreach ($attendances as $attendance) {
@@ -91,6 +97,7 @@ foreach ($attendances as $attendance) {
 ```
 
 **After:**
+
 ```php
 // 1 bulk UPDATE query
 $bulkUpdates = [];
@@ -104,14 +111,15 @@ foreach ($attendances as $attendance) {
 }
 
 // ✅ Single bulk UPDATE with CASE WHEN
-DB::update("UPDATE attendances SET overtime_minutes = CASE id 
-    WHEN 1 THEN 120 
-    WHEN 2 THEN 60 
-    ... 
+DB::update("UPDATE attendances SET overtime_minutes = CASE id
+    WHEN 1 THEN 120
+    WHEN 2 THEN 60
+    ...
     END WHERE id IN (1,2,...)");
 ```
 
 **Impact:**
+
 - Queries: 491 UPDATEs → **1 bulk UPDATE** (491x reduction!)
 - Database locks: Minimal (single transaction)
 - Performance: ~10x faster untuk UPDATE operations
@@ -124,24 +132,24 @@ DB::update("UPDATE attendances SET overtime_minutes = CASE id
 
 ### Query Count Reduction:
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| SELECT queries | 714 | 714 | - |
-| UPDATE queries | 491 | **1** | **99.8%** ↓ |
-| Total queries | ~1,205 | **~715** | **40.7%** ↓ |
+| Metric         | Before | After    | Improvement |
+| -------------- | ------ | -------- | ----------- |
+| SELECT queries | 714    | 714      | -           |
+| UPDATE queries | 491    | **1**    | **99.8%** ↓ |
+| Total queries  | ~1,205 | **~715** | **40.7%** ↓ |
 
 ### Execution Frequency:
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Per tahun | 365x | **260x** | **28.8%** ↓ |
+| Metric              | Before  | After       | Improvement |
+| ------------------- | ------- | ----------- | ----------- |
+| Per tahun           | 365x    | **260x**    | **28.8%** ↓ |
 | Total queries/tahun | 439,825 | **185,900** | **57.7%** ↓ |
 
 ### Execution Time:
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Query time | ~5-10s | **~1-2s** | **80%** ↓ |
+| Metric      | Before       | After           | Improvement   |
+| ----------- | ------------ | --------------- | ------------- |
+| Query time  | ~5-10s       | **~1-2s**       | **80%** ↓     |
 | Peak impact | High (23:00) | **Low (02:00)** | User-facing ✓ |
 
 ### Total Impact:
@@ -203,9 +211,9 @@ Performing bulk update...
 SHOW INDEX FROM attendances WHERE Key_name = 'att_overtime_query_idx';
 
 -- Check query execution plan
-EXPLAIN SELECT * FROM attendances 
-WHERE status IN ('hadir', 'terlambat') 
-  AND attendance_date >= '2026-07-09' 
+EXPLAIN SELECT * FROM attendances
+WHERE status IN ('hadir', 'terlambat')
+  AND attendance_date >= '2026-07-09'
   AND check_out IS NOT NULL;
 ```
 
@@ -215,7 +223,7 @@ Expected: `key: att_overtime_query_idx` (using index ✓)
 
 ```sql
 -- Check slow queries (if enabled)
-SELECT * FROM mysql.slow_log 
+SELECT * FROM mysql.slow_log
 WHERE start_time >= DATE_SUB(NOW(), INTERVAL 1 DAY)
   AND sql_text LIKE '%attendances%'
 ORDER BY query_time DESC;
@@ -238,29 +246,31 @@ ORDER BY TIME DESC;
 ### Further Optimizations (if still needed):
 
 1. **Add Caching** (jika overtime jarang berubah):
-   ```php
-   Cache::remember("overtime_{$attendanceId}", 3600, function() {
-       return $this->calculateOvertime();
-   });
-   ```
+
+    ```php
+    Cache::remember("overtime_{$attendanceId}", 3600, function() {
+        return $this->calculateOvertime();
+    });
+    ```
 
 2. **Queue Processing** (untuk beban sangat besar):
-   ```php
-   // Process in chunks via queue
-   Schedule::command('attendance:recalculate-overtime')
-       ->dailyAt('02:00')
-       ->runInBackground()
-       ->onQueue('low-priority');
-   ```
+
+    ```php
+    // Process in chunks via queue
+    Schedule::command('attendance:recalculate-overtime')
+        ->dailyAt('02:00')
+        ->runInBackground()
+        ->onQueue('low-priority');
+    ```
 
 3. **Partitioning** (jika data attendance > 1 juta records):
-   ```sql
-   ALTER TABLE attendances 
-   PARTITION BY RANGE (YEAR(attendance_date)) (
-       PARTITION p2025 VALUES LESS THAN (2026),
-       PARTITION p2026 VALUES LESS THAN (2027)
-   );
-   ```
+    ```sql
+    ALTER TABLE attendances
+    PARTITION BY RANGE (YEAR(attendance_date)) (
+        PARTITION p2025 VALUES LESS THAN (2026),
+        PARTITION p2026 VALUES LESS THAN (2027)
+    );
+    ```
 
 ---
 

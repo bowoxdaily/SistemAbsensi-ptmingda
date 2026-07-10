@@ -114,7 +114,7 @@ class RecalculateOvertimeCommand extends Command
 
                 // WorkSchedule end_time is already a Carbon object (datetime:H:i:s cast)
                 $endTime = $schedule->end_time;
-                
+
                 // Handle if it's a Carbon object or string
                 if ($endTime instanceof \Carbon\Carbon) {
                     $endHour = $endTime->hour;
@@ -124,7 +124,7 @@ class RecalculateOvertimeCommand extends Command
                     $endHour = $match ? (int) $match[1] : 17;
                     $endMinute = $match ? (int) $match[2] : 0;
                 }
-                
+
                 $overtimeThreshold = $schedule->overtime_threshold ?? 50;
 
                 // Create scheduled end time
@@ -164,21 +164,21 @@ class RecalculateOvertimeCommand extends Command
         // Perform bulk update if not dry run
         if (!$dryRun && !empty($bulkUpdates)) {
             $this->info('Performing bulk update...');
-            
+
             // Build CASE WHEN statement for bulk update
             $cases = [];
             $ids = [];
-            
+
             foreach ($bulkUpdates as $update) {
                 $cases[] = "WHEN {$update['id']} THEN {$update['overtime_minutes']}";
                 $ids[] = $update['id'];
             }
-            
+
             $casesStr = implode(' ', $cases);
             $idsStr = implode(',', $ids);
-            
+
             DB::update("UPDATE attendances SET overtime_minutes = CASE id {$casesStr} END WHERE id IN ({$idsStr})");
-            
+
             $this->info("✓ Bulk updated {$updated} records in a single query");
         } elseif ($dryRun && !empty($bulkUpdates)) {
             $this->info("Would perform bulk update for {$updated} records");

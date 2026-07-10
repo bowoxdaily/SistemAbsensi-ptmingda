@@ -5,16 +5,18 @@
 ### Cron Job yang Berpotensi Memberatkan MySQL
 
 #### 1. **OVERTIME RECALCULATION** (Prioritas Tertinggi)
+
 - **Jadwal:** Setiap hari jam 23:00
 - **Lokasi:** `routes/console.php` line 51-56
 - **Command:** `attendance:recalculate-overtime`
 - **Beban:**
-  - Query seluruh attendance dengan status `hadir`/`terlambat` yang sudah check-out
-  - Eager loading: `employee.workSchedule` → 2-3 JOIN operations
-  - Loop untuk setiap record → kalkulasi overtime
-  - Multiple UPDATE queries untuk record yang berubah
+    - Query seluruh attendance dengan status `hadir`/`terlambat` yang sudah check-out
+    - Eager loading: `employee.workSchedule` → 2-3 JOIN operations
+    - Loop untuk setiap record → kalkulasi overtime
+    - Multiple UPDATE queries untuk record yang berubah
 
 **Estimasi Load:**
+
 ```
 100 karyawan/hari × (1 SELECT + 1 UPDATE) = ~200 queries
 200 karyawan/hari × (1 SELECT + 1 UPDATE) = ~400 queries
@@ -22,11 +24,13 @@
 ```
 
 #### 2. **FINGERSPOT SYNC** (Beban Sedang)
+
 - **Jadwal:** Setiap 5 menit
 - **Beban:** Tergantung jumlah data dari API Fingerspot
 - **Impact:** Jika ada ratusan scan per 5 menit → bisa membebani
 
 #### 3. **ALPHA GENERATION** (Beban Ringan)
+
 - **Jadwal:** Setiap menit (hari kerja)
 - **Beban:** Relatif ringan, hanya cek karyawan aktif dengan schedule
 
@@ -35,9 +39,11 @@
 ## ✅ Solusi yang Sudah Diimplementasikan
 
 ### 1. **Ubah Jadwal Overtime ke Hari Kerja Saja**
+
 ✅ **Status:** COMPLETED
 
 **Perubahan di `routes/console.php`:**
+
 ```php
 Schedule::command('attendance:recalculate-overtime', ['--from' => now()->format('Y-m-d')])
     ->dailyAt('23:00')
@@ -47,28 +53,33 @@ Schedule::command('attendance:recalculate-overtime', ['--from' => now()->format(
     ->appendOutputTo(storage_path('logs/overtime-recalculate.log'));
 ```
 
-**Impact:** 
+**Impact:**
+
 - Mengurangi eksekusi dari 365 hari/tahun → 260 hari/tahun (28% reduction)
 - Tidak perlu process di Sabtu/Minggu (biasanya tidak ada attendance)
 
 ---
 
 ### 2. **Tambah Database Index untuk Query Overtime**
+
 ✅ **Status:** MIGRATION READY
 
 **File:** `database/migrations/2026_07_10_100000_add_overtime_query_index_to_attendances.php`
 
 **Index baru:**
+
 ```php
 $table->index(['status', 'attendance_date', 'check_out'], 'att_overtime_query_idx');
 ```
 
 **Alasan urutan kolom:**
+
 1. `status` → Filter pertama (IN clause: hadir/terlambat)
 2. `attendance_date` → Range query (>=)
 3. `check_out` → NOT NULL check
 
 **Cara apply:**
+
 ```powershell
 php artisan migrate
 ```
@@ -84,6 +95,7 @@ php artisan migrate
 **Current:** 23:00 (masih prime time untuk beberapa user)
 
 **Opsi:**
+
 ```php
 // Opsi 1: Dini hari (RECOMMENDED)
 ->dailyAt('02:00')  // Beban paling rendah
@@ -107,12 +119,14 @@ php artisan migrate
 #### 1. **Log File Monitoring**
 
 Log file sudah dikonfigurasi di:
+
 ```
 storage/logs/overtime-recalculate.log
 storage/logs/fingerspot-sync.log
 ```
 
 **Cara monitor:**
+
 ```powershell
 # Windows PowerShell
 Get-Content storage\logs\overtime-recalculate.log -Tail 50
@@ -124,6 +138,7 @@ tail -f storage/logs/overtime-recalculate.log
 #### 2. **MySQL Slow Query Log**
 
 Aktifkan di `my.cnf` / `my.ini`:
+
 ```ini
 [mysqld]
 slow_query_log = 1
@@ -136,6 +151,7 @@ Query yang lebih dari 2 detik akan tercatat.
 #### 3. **Laravel Telescope** (Optional)
 
 Install untuk monitoring real-time:
+
 ```powershell
 composer require laravel/telescope --dev
 php artisan telescope:install
@@ -149,6 +165,7 @@ Access di: `http://your-app.test/telescope`
 ### Rekomendasi C: Optimasi Query di RecalculateOvertimeCommand
 
 **Current Implementation:**
+
 ```php
 // app/Console/Commands/RecalculateOvertimeCommand.php
 $attendances = Attendance::with(['employee.workSchedule'])
@@ -164,12 +181,13 @@ foreach ($attendances as $attendance) {
 ```
 
 **Optimasi dengan Bulk Update:**
+
 ```php
 // Collect IDs dan nilai yang perlu diupdate
 $updates = [];
 foreach ($attendances as $attendance) {
     $overtimeMinutes = ... // calculation
-    
+
     if ($attendance->overtime_minutes != $overtimeMinutes) {
         $updates[] = [
             'id' => $attendance->id,
@@ -182,15 +200,15 @@ foreach ($attendances as $attendance) {
 if (!empty($updates)) {
     $cases = [];
     $ids = [];
-    
+
     foreach ($updates as $update) {
         $cases[] = "WHEN {$update['id']} THEN {$update['overtime_minutes']}";
         $ids[] = $update['id'];
     }
-    
+
     $casesStr = implode(' ', $cases);
     $idsStr = implode(',', $ids);
-    
+
     DB::update("UPDATE attendances SET overtime_minutes = CASE id $casesStr END WHERE id IN ($idsStr)");
 }
 ```
@@ -205,12 +223,14 @@ File SQL untuk monitoring sudah dibuat di:
 **`docs/monitoring_mysql_load.sql`**
 
 Query yang tersedia:
+
 1. Hitung attendance yang perlu diproses per hari
 2. Rata-rata beban harian
 3. Check existing indexes
 4. Monitor real-time running queries
 
 **Cara pakai:**
+
 ```sql
 -- Jalankan di phpMyAdmin / MySQL Workbench
 source docs/monitoring_mysql_load.sql;
@@ -267,11 +287,13 @@ php artisan schedule:work
 Setelah implementasi optimasi:
 
 **Before:**
+
 - Eksekusi: 365 hari/tahun
 - Query time: ~2-5 detik untuk 100 karyawan (tanpa index yang optimal)
 - Total queries: ~200-400 per eksekusi
 
 **After:**
+
 - Eksekusi: 260 hari/tahun (28% reduction)
 - Query time: ~0.5-1 detik untuk 100 karyawan (dengan index)
 - Impact: 60-80% reduction in database load
