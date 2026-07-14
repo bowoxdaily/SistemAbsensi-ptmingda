@@ -145,7 +145,7 @@ class AuthController extends Controller
         if (!$user) {
             return response()->json([
                 'success' => false,
-                'message' => 'Email Anda (' . $googleUser->email . ') belum terdaftar di sistem. Silakan hubungi admin untuk didaftarkan.',
+                'message' => 'Akun Google Anda belum terdaftar di sistem. Silakan hubungi admin untuk didaftarkan.',
             ], 404);
         }
 

@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'security' => \App\Http\Middleware\EnsureUserIsSecurity::class,
             'guest_monitor' => \App\Http\Middleware\EnsureUserIsGuest::class,
             'viewer' => \App\Http\Middleware\EnsureUserIsViewer::class,
+            'superadmin' => \App\Http\Middleware\EnsureUserIsSuperAdmin::class,
         ]);
 
         // Note: EnsureFrontendRequestsAreStateful is intentionally NOT added here.

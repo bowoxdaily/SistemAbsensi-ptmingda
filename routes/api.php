@@ -220,8 +220,7 @@ Route::middleware(['web', 'auth', 'manager'])->prefix('admin/attendance-edit-req
 });
 
 // Employee Routes (for logged-in employees)
-// Use web middleware to access session-based auth
-Route::middleware('web')->prefix('employee')->group(function () {
+Route::middleware(['web', 'auth'])->prefix('employee')->group(function () {
     Route::get('/current', [\App\Http\Controllers\Employee\AttendanceController::class, 'getCurrentEmployee']);
     Route::get('/attendance/today', [\App\Http\Controllers\Employee\AttendanceController::class, 'getTodayAttendance']);
     Route::post('/attendance/check-in', [\App\Http\Controllers\Employee\AttendanceController::class, 'checkIn']);
@@ -264,7 +263,7 @@ Route::middleware(['web', 'auth', 'manager'])->prefix('payroll')->group(function
 });
 
 // Account Management API (Superadmin only)
-Route::middleware(['web', 'auth'])->prefix('admin/account-management')->group(function () {
+Route::middleware(['web', 'auth', 'superadmin'])->prefix('admin/account-management')->group(function () {
     Route::get('/list', [\App\Http\Controllers\Admin\AccountManagementController::class, 'list']);
     Route::get('/options', [\App\Http\Controllers\Admin\AccountManagementController::class, 'getOptions']);
     Route::get('/stats', [\App\Http\Controllers\Admin\AccountManagementController::class, 'stats']);
@@ -451,11 +450,11 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('karyawan')->group(function 
 // Fingerspot Webhook API (No Auth - uses device token via X-Fingerspot-Token header)
 Route::prefix('fingerspot')->group(function () {
     Route::post('/webhook', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'handleWebhook']);
-    Route::post('/test-photo-url', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'testPhotoUrl']);
 });
 
 // Fingerspot debug/test endpoints (admin only)
 Route::middleware(['web', 'auth', 'admin'])->prefix('fingerspot')->group(function () {
+    Route::post('/test-photo-url', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'testPhotoUrl']);
     Route::get('/test', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'test']);
     Route::get('/debug-logs', [\App\Http\Controllers\Api\FingerspotWebhookController::class, 'debugLogs']);
 });

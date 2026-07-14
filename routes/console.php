@@ -16,40 +16,37 @@ Schedule::call(function () {
     ScheduleRunMiddleware::updateTracking();
 })->everyMinute()->name('update-cron-tracking');
 
-// Schedule: Generate absent attendance setiap menit pada hari kerja
-// Mengecek apakah ada karyawan yang belum absen untuk hari ini setelah grace period jam masuk + 10 menit
+// Schedule: Generate absent attendance - sweep pagi (07:00-10:00, setiap 30 menit)
+// Menangkap karyawan yang tidak absen setelah grace period jam masuk + 10 menit
+// Cron: setiap 30 menit antara jam 07-10 pada hari kerja (Senin-Jumat)
 Schedule::command('attendance:generate-absent')
-    ->everyMinute()
-    ->weekdays()
+    ->cron('*/30 7-10 * * 1-5')
     ->withoutOverlapping()
-    ->before(function () {
-        // Update cache untuk tracking
-        Cache::put('cron_last_run', now(), now()->addDays(7));
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/generate-absent.log'));
 
-        // Update sentinel file untuk tracking (better for cPanel)
-        $sentinelFile = storage_path('framework/schedule-sentinel');
-        touch($sentinelFile);
-    })
-    ->after(function () {
-        // Update timestamp after successful run
-        Cache::put('cron_last_run', now(), now()->addDays(7));
+// Schedule: Generate absent attendance - sweep akhir hari (17:30)
+// Final sweep untuk karyawan yang belum absen sepanjang hari
+Schedule::command('attendance:generate-absent')
+    ->weekdays()
+    ->dailyAt('17:30')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/generate-absent.log'));
 
-        $sentinelFile = storage_path('framework/schedule-sentinel');
-        touch($sentinelFile);
-    });
-
-// Schedule: Auto sync Fingerspot data every 5 minutes
+// Schedule: Auto sync Fingerspot data every 5 minutes - hanya saat jam kerja (06:00-22:00)
 // Mengambil data attlog dari API Fingerspot dan memproses ke attendance
+// Cron: setiap 5 menit antara jam 06-21 (tidak jalan tengah malam)
 Schedule::command('fingerspot:sync')
-    ->everyFiveMinutes()
+    ->cron('*/5 6-21 * * *')
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/fingerspot-sync.log'));
 
-// Schedule: Recalculate overtime setiap hari kerja jam 02:00 (off-peak hours)
+// Schedule: Recalculate overtime setiap hari kerja jam 23:30 (setelah semua absen masuk)
 // Menghitung ulang lembur untuk data attendance hari ini
 Schedule::command('attendance:recalculate-overtime', ['--from' => now()->format('Y-m-d')])
-    ->dailyAt('02:00') // Pindah ke dini hari untuk mengurangi beban saat peak hours
+    ->dailyAt('23:30') // Jalan setelah semua karyawan selesai absen
     ->weekdays() // Hanya hari kerja (Senin-Jumat)
     ->withoutOverlapping()
     ->runInBackground()

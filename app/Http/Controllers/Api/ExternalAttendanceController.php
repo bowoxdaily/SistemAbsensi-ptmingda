@@ -35,6 +35,16 @@ class ExternalAttendanceController extends Controller
         $dateFrom = $request->get('date_from') ?? Carbon::now()->subDay()->format('Y-m-d');
         $dateTo = $request->get('date_to') ?? Carbon::now()->format('Y-m-d');
 
+        // Enforce max 92-day range to prevent full-table dumps
+        $from = Carbon::parse($dateFrom);
+        $to   = Carbon::parse($dateTo);
+        if ($from->diffInDays($to) > 92) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Rentang tanggal maksimal 92 hari. Gunakan date_from dan date_to yang lebih spesifik.',
+            ], 422);
+        }
+
         $results = Attendance::with(['employee.department', 'employee.position'])
             ->when($employeeId, fn ($q) => $q->where('employee_id', $employeeId))
             ->when($employeeCode, function ($q) use ($employeeCode) {
@@ -108,6 +118,14 @@ class ExternalAttendanceController extends Controller
         $dateFrom = $request->get('date_from') ?? Carbon::now()->subDay()->format('Y-m-d');
         $dateTo = $request->get('date_to') ?? Carbon::now()->format('Y-m-d');
 
+        // Enforce max 92-day range
+        if (Carbon::parse($dateFrom)->diffInDays(Carbon::parse($dateTo)) > 92) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Rentang tanggal maksimal 92 hari.',
+            ], 422);
+        }
+
         $results = Attendance::with(['employee.department', 'employee.position'])
             ->where('employee_id', $employeeId)
             ->when($status, fn ($q) => $q->where('status', $status))
@@ -146,6 +164,14 @@ class ExternalAttendanceController extends Controller
         $employeeId = $request->get('employee_id');
         $dateFrom = $request->get('date_from');
         $dateTo = $request->get('date_to');
+
+        // Enforce max 366-day range on summary to prevent full-table scans
+        if ($dateFrom && $dateTo && Carbon::parse($dateFrom)->diffInDays(Carbon::parse($dateTo)) > 366) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Rentang tanggal maksimal 366 hari untuk summary.',
+            ], 422);
+        }
 
         $baseQuery = Attendance::query()
             ->when($employeeId, fn ($q) => $q->where('employee_id', $employeeId))
