@@ -82,6 +82,13 @@ class GenerateAbsentAttendance extends Command
 
             $workSchedule = $employee->workSchedule;
 
+            // Skip if the date is before the employee's join date
+            if ($employee->join_date && Carbon::parse($employee->join_date)->startOfDay()->gt($date->copy()->startOfDay())) {
+                $this->line("Skipping {$employee->name}: date {$date->format('Y-m-d')} is before join date " . Carbon::parse($employee->join_date)->format('Y-m-d'));
+                $skippedCount++;
+                continue;
+            }
+
             // Check if this day is a working day for the employee's shift
             if (!$this->isWorkingDay($workSchedule, $dayOfWeek)) {
                 $skippedCount++;
