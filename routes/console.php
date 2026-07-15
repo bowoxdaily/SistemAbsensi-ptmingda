@@ -51,3 +51,12 @@ Schedule::command('attendance:recalculate-overtime', ['--from' => now()->format(
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/overtime-recalculate.log'));
+
+// Schedule: Queue worker — proses jobs (email broadcast, notifikasi, dll) setiap menit
+// Menggunakan --stop-when-empty agar tidak berjalan terus-menerus (hemat resource)
+// Setiap menit scheduler memanggil queue:work sekali, memproses semua job yang ada lalu berhenti
+Schedule::command('queue:work', ['--stop-when-empty', '--max-time=55'])
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/queue-worker.log'));

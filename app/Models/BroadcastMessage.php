@@ -11,6 +11,7 @@ class BroadcastMessage extends Model
         'title',
         'message',
         'image',
+        'channel',
         'filter_type',
         'filter_values',
         'total_recipients',

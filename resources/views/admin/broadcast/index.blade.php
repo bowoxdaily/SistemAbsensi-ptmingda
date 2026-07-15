@@ -108,6 +108,33 @@
                             </div>
 
                             <div class="mb-3">
+                                <label class="form-label fw-semibold">Kirim Via <span class="text-danger">*</span></label>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="channel" id="channelWA" value="whatsapp" checked>
+                                        <label class="form-check-label" for="channelWA">
+                                            <i class='bx bxl-whatsapp text-success'></i> WhatsApp
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="channel" id="channelEmail" value="email">
+                                        <label class="form-check-label" for="channelEmail">
+                                            <i class='bx bx-envelope text-primary'></i> Email
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="channel" id="channelBoth" value="both">
+                                        <label class="form-check-label" for="channelBoth">
+                                            <i class='bx bx-broadcast text-warning'></i> Keduanya
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="form-text text-muted" id="channelHint">
+                                    Hanya karyawan yang memiliki nomor WhatsApp terdaftar yang akan menerima pesan.
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
                                 <label class="form-label" for="image">Gambar (Opsional)</label>
                                 <input type="file" class="form-control" id="image" name="image"
                                     accept="image/jpeg,image/png,image/jpg">
@@ -303,6 +330,17 @@
             loadDepartments();
             loadEmployees();
             updateStatistics();
+
+            // Channel selector hint
+            $('input[name="channel"]').change(function() {
+                const channel = $(this).val();
+                const hints = {
+                    whatsapp: 'Hanya karyawan yang memiliki nomor WhatsApp terdaftar yang akan menerima pesan.',
+                    email:    'Hanya karyawan yang memiliki alamat email terdaftar yang akan menerima pesan.',
+                    both:     'Pesan dikirim ke WhatsApp DAN email karyawan secara bersamaan.',
+                };
+                $('#channelHint').text(hints[channel] || '');
+            });
 
             // Filter type change
             $('#filterType').change(function() {
@@ -624,18 +662,19 @@
                     Swal.close();
                     if (res.success) {
                         const data = res.data;
-                        let previewText = `
-                            <div class="mb-2">
-                                <i class='bx bx-user'></i> <strong>${data.valid_phone}</strong> karyawan akan menerima pesan
-                            </div>
-                        `;
+                        const channel = $('input[name="channel"]:checked').val();
 
-                        if (data.without_phone > 0) {
-                            previewText += `
-                                <div class="text-warning">
-                                    <i class='bx bx-error-circle'></i> ${data.without_phone} karyawan tidak memiliki nomor WhatsApp
-                                </div>
-                            `;
+                        let previewText = `<div class="mb-2"><i class='bx bx-group'></i> <strong>${data.total}</strong> total karyawan sesuai filter</div>`;
+
+                        if (channel === 'whatsapp' || channel === 'both') {
+                            previewText += `<div class="mb-1"><i class='bx bxl-whatsapp text-success'></i> <strong>${data.valid_phone}</strong> punya WhatsApp`;
+                            if (data.without_phone > 0) previewText += ` <span class="text-warning">(${data.without_phone} tidak punya)</span>`;
+                            previewText += `</div>`;
+                        }
+                        if (channel === 'email' || channel === 'both') {
+                            previewText += `<div class="mb-1"><i class='bx bx-envelope text-primary'></i> <strong>${data.valid_email}</strong> punya email`;
+                            if (data.without_email > 0) previewText += ` <span class="text-warning">(${data.without_email} tidak punya)</span>`;
+                            previewText += `</div>`;
                         }
 
                         $('#previewText').html(previewText);
@@ -643,7 +682,7 @@
 
                         // Show recipients in modal
                         let recipientsHtml = '<div class="table-responsive"><table class="table table-sm">';
-                        recipientsHtml += '<thead><tr><th>Nama</th><th>NIP</th><th>Jabatan</th><th>WhatsApp</th></tr></thead><tbody>';
+                        recipientsHtml += '<thead><tr><th>Nama</th><th>NIP</th><th>Jabatan</th><th>WhatsApp</th><th>Email</th></tr></thead><tbody>';
 
                         data.recipients.forEach(emp => {
                             recipientsHtml += `
@@ -651,7 +690,8 @@
                                     <td>${emp.name}</td>
                                     <td>${emp.employee_code}</td>
                                     <td>${emp.position}</td>
-                                    <td>${emp.phone}</td>
+                                    <td>${emp.phone ? `<i class='bx bxl-whatsapp text-success'></i> ${emp.phone}` : '<span class="text-muted">-</span>'}</td>
+                                    <td>${emp.email ? `<i class='bx bx-envelope text-primary'></i> ${emp.email}` : '<span class="text-muted">-</span>'}</td>
                                 </tr>
                             `;
                         });
@@ -659,10 +699,10 @@
                         recipientsHtml += '</tbody></table></div>';
 
                         Swal.fire({
-                            title: `Preview Penerima (${data.valid_phone} orang)`,
+                            title: `Preview Penerima (${data.total} orang)`,
                             html: recipientsHtml,
                             icon: 'info',
-                            width: 800,
+                            width: 900,
                             confirmButtonText: 'OK'
                         });
                     }
@@ -734,8 +774,6 @@
                             'X-CSRF-TOKEN': '{{ csrf_token() }}'
                         }
                     }).done(function(res) {
-                        const eta = res.data?.eta_minutes ?? '?';
-                        const delay = res.data?.delay ?? 5;
                         Swal.fire({
                             icon: 'success',
                             title: 'Broadcast Dijadwalkan!',
