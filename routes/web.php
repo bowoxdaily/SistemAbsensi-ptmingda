@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\EmployeeCalendarController;
 use App\Http\Controllers\Admin\RekapitulasiController;
 use App\Http\Controllers\Admin\WarningLetterController;
+use App\Http\Controllers\Admin\EmailWarmupController;
 use App\Http\Controllers\InterviewScanController;
 use App\Http\Controllers\JoinCallScanController;
 use Illuminate\Support\Facades\Route;
@@ -95,6 +96,9 @@ Route::middleware(['auth'])->group(function () {
 
         // Fingerspot Settings (View only - API handles POST/PUT/DELETE)
         Route::get('/admin/settings/fingerspot', [\App\Http\Controllers\Admin\FingerspotSettingController::class, 'index'])->name('admin.settings.fingerspot');
+
+        // Email Warmup Manager (View only - API handles operations)
+        Route::get('/admin/settings/email-warmup', [EmailWarmupController::class, 'index'])->name('admin.settings.email-warmup');
 
         // Leave Management (View only - API handles POST/DELETE)
         Route::get('/admin/leave', [\App\Http\Controllers\Admin\LeaveController::class, 'index'])->name('admin.leave.index');

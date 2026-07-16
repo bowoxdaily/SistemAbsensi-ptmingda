@@ -60,3 +60,11 @@ Schedule::command('queue:work', ['--stop-when-empty', '--max-time=55'])
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/queue-worker.log'));
+
+// Schedule: Dispatch warmup emails every hour (respects daily limits)
+// Sends emails based on warmup schedule configuration
+Schedule::command('email:dispatch-warmup')
+    ->hourly()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/warmup-emails.log'));

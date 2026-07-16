@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\BroadcastController;
 use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\EmployeeCalendarController;
 use App\Http\Controllers\Admin\WarningLetterController;
+use App\Http\Controllers\Admin\EmailWarmupController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ExternalAttendanceController;
 use App\Http\Controllers\Api\ExternalKaryawanController;
@@ -522,6 +523,17 @@ Route::middleware(['web', 'auth'])->prefix('employee/announcements')->group(func
     Route::get('/popups', [\App\Http\Controllers\Employee\AnnouncementController::class, 'getPopups']);
     Route::post('/{id}/mark-read', [\App\Http\Controllers\Employee\AnnouncementController::class, 'markRead']);
     Route::post('/mark-all-read', [\App\Http\Controllers\Employee\AnnouncementController::class, 'markAllRead']);
+});
+
+// ─── Email Warmup Management API (Admin) ───────────────────────────────────
+Route::middleware(['web', 'auth', 'admin'])->prefix('email-warmup')->group(function () {
+    Route::get('/status', [EmailWarmupController::class, 'status']);
+    Route::post('/start', [EmailWarmupController::class, 'start']);
+    Route::post('/pause', [EmailWarmupController::class, 'pause']);
+    Route::post('/resume', [EmailWarmupController::class, 'resume']);
+    Route::post('/stop', [EmailWarmupController::class, 'stop']);
+    Route::get('/recommendations', [EmailWarmupController::class, 'recommendations']);
+    Route::get('/logs', [EmailWarmupController::class, 'logs']);
 });
 
 // WhatsApp Webhook (Fonnte/Gateway) - Dinonaktifkan sementara sesuai permintaan
