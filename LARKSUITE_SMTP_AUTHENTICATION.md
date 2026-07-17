@@ -152,6 +152,34 @@ MAIL_FROM_ADDRESS="noreply@mingda.id"  # Harus domain ter-verify
 
 ---
 
+## Update Penting dari Referensi Resmi Lark
+
+Berikut poin yang wajib dipatuhi agar tidak terkena reject anti-spam:
+
+1. **Batasi frekuensi kirim**
+   - Berdasarkan tabel bounce Lark, ada limit frekuensi sekitar **60 email/menit** untuk sender/domain/IP.
+   - Error yang umum: `450 frequency limited`, `550 Sender/Domain/Ip frequency limited`, `908 rate limit exceed`.
+   - Solusi: kirim bertahap, aktifkan retry dengan backoff, dan hindari burst.
+
+2. **Tangani bounce 912 sebagai pelanggaran konten/reputasi**
+   - Error: `912 This mail is rejected by antispam system`.
+   - Solusi: ubah konten agar tidak mirip promosi massal/spam, pastikan identitas pengirim jelas, dan gunakan domain+akun yang reputasinya baik.
+
+3. **Patuhi Acceptable Use Policy Lark**
+   - Jangan kirim promosi tanpa consent.
+   - Jangan menyamarkan identitas pengirim, subject, atau routing.
+   - Jangan kirim email yang tidak bisa ditolak/diblokir penerima.
+   - Pastikan tidak ada tautan/isi berbahaya atau menyesatkan.
+
+4. **Checklist teknis cepat sebelum kirim massal**
+   - SPF + DKIM status `Verified`.
+   - `MAIL_FROM_ADDRESS` satu domain dengan domain terverifikasi.
+   - Subject/body jelas, tidak misleading, tidak all-caps berlebihan.
+   - Ada versi plain-text (multipart) selain HTML.
+   - Jalankan queue worker agar retry dan throttling aktif.
+
+---
+
 ## References
 
 - Larksuite Documentation: https://open.larksuite.com/

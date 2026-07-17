@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\RateLimiter;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -32,5 +34,10 @@ class AppServiceProvider extends ServiceProvider
 
         // Gunakan Bootstrap 5 untuk Paginasi
         Paginator::useBootstrapFive();
+
+        // Keep SMTP traffic below Lark's frequency caps (60 emails/minute).
+        RateLimiter::for('lark-outbound-email', function (): Limit {
+            return Limit::perMinute(50)->by('smtp_notifications');
+        });
     }
 }

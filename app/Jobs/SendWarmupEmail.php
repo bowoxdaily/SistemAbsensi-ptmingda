@@ -26,16 +26,18 @@ class SendWarmupEmail implements ShouldQueue
     public function handle(): void
     {
         $service = new EmailWarmupService();
+        $schedule = $service->getSchedule();
 
         // Double-check warmup is active
-        if ($service->getSchedule()->status !== 'active') {
+        if ($schedule->status !== 'active') {
             $this->fail(new \Exception('Warmup not active'));
             return;
         }
 
         try {
             // Create mailable instance
-            $mailable = new $this->mailClass($this->employee);
+            $seed = $this->employee->email . '|' . now()->format('Y-m-d H:i:s.u');
+            $mailable = new $this->mailClass($this->employee, (int) $schedule->current_day, $seed);
             
             // Send to employee email (must specify recipient)
             Mail::to($this->employee->email)->send($mailable);

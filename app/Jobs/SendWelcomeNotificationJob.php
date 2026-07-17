@@ -9,6 +9,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Foundation\Bus\Dispatchable;
 use App\Models\Karyawans;
 use App\Mail\WelcomeEmployeeMail;
+use App\Services\EmailSmtpSettingService;
 use App\Services\WhatsAppService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -68,7 +69,10 @@ class SendWelcomeNotificationJob implements ShouldQueue
                 $employee->load(['department', 'position', 'user']);
             }
 
-            Mail::to($emailAddress)
+            $smtpService = new EmailSmtpSettingService();
+            $smtpService->applyMailer(EmailSmtpSettingService::CONTEXT_NOTIFICATIONS, 'smtp_notifications');
+
+            Mail::mailer('smtp_notifications')->to($emailAddress)
                 ->send(new WelcomeEmployeeMail($employee));
 
             Log::info('Welcome email sent', [

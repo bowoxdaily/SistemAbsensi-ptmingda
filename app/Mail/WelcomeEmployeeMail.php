@@ -5,6 +5,7 @@ namespace App\Mail;
 use App\Models\Karyawans;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -34,8 +35,12 @@ class WelcomeEmployeeMail extends Mailable
      */
     public function envelope(): Envelope
     {
+        $fromAddress = (string) config('mail.from_notifications.address', config('mail.from.address'));
+        $fromName = (string) config('mail.from_notifications.name', config('mail.from.name'));
+
         return new Envelope(
             subject: '🎉 Selamat Datang di PT Mingda — Akun Anda Sudah Siap!',
+            from: new Address($fromAddress, $fromName),
         );
     }
 

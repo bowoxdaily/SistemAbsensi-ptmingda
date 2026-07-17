@@ -263,8 +263,8 @@ class BroadcastController extends Controller
                 )->delay(now()->addSeconds($index * $delay));
             }
 
-            // Dispatch Email jobs (no delay needed — SMTP is not rate-limited like WA)
-            foreach ($emailRecipients as $employee) {
+            // Dispatch Email jobs with pacing to avoid Lark frequency-limit bounces.
+            foreach ($emailRecipients as $index => $employee) {
                 SendBroadcastEmailJob::dispatch(
                     $broadcast->id,
                     $employee->email,
@@ -272,7 +272,7 @@ class BroadcastController extends Controller
                     $request->title,
                     $request->message,
                     $imageUrl
-                );
+                )->delay(now()->addSeconds($index * 2));
             }
 
             $channelLabel = match($channel) {

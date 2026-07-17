@@ -271,6 +271,11 @@
                             <div data-i18n="Fingerspot">Fingerspot</div>
                         </a>
                     </li>
+                    <li class="menu-item {{ request()->routeIs('admin.settings.email-smtp*') ? 'active' : '' }}">
+                        <a href="{{ route('admin.settings.email-smtp') }}" class="menu-link">
+                            <div data-i18n="SMTP Email">SMTP Email</div>
+                        </a>
+                    </li>
                 </ul>
             </li>
 

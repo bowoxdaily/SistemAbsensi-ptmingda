@@ -6,6 +6,8 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Address;
+use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
 
 class BroadcastMail extends Mailable
@@ -21,8 +23,12 @@ class BroadcastMail extends Mailable
 
     public function envelope(): Envelope
     {
+        $fromAddress = (string) config('mail.from_notifications.address', config('mail.from.address'));
+        $fromName = (string) config('mail.from_notifications.name', config('mail.from.name'));
+
         return new Envelope(
             subject: $this->broadcastTitle,
+            from: new Address($fromAddress, $fromName),
         );
     }
 
@@ -30,6 +36,7 @@ class BroadcastMail extends Mailable
     {
         return new Content(
             view: 'emails.broadcast',
+            text: 'emails.broadcast_text',
             with: [
                 'recipientName'    => $this->recipientName,
                 'broadcastTitle'   => $this->broadcastTitle,
@@ -39,5 +46,13 @@ class BroadcastMail extends Mailable
                 'appUrl'           => config('app.url'),
             ],
         );
+    }
+
+    public function headers(): Headers
+    {
+        return new Headers(text: [
+            'X-Auto-Response-Suppress' => 'OOF, AutoReply',
+            'Precedence' => 'bulk',
+        ]);
     }
 }

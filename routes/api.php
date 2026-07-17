@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\EmployeeCalendarController;
 use App\Http\Controllers\Admin\WarningLetterController;
 use App\Http\Controllers\Admin\EmailWarmupController;
+use App\Http\Controllers\Admin\EmailSmtpSettingController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ExternalAttendanceController;
 use App\Http\Controllers\Api\ExternalKaryawanController;
@@ -302,6 +303,13 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('settings/whatsapp')->group(
     Route::get('/kirim/templates/{name}', [\App\Http\Controllers\Admin\WhatsAppSettingController::class, 'getKirimTemplateByName']);
     Route::post('/kirim/templates/sync', [\App\Http\Controllers\Admin\WhatsAppSettingController::class, 'syncKirimTemplates']);
     Route::post('/reset-templates', [\App\Http\Controllers\Admin\WhatsAppSettingController::class, 'resetTemplates']);
+});
+
+// Email SMTP Settings API
+Route::middleware(['web', 'auth', 'admin'])->prefix('settings/email-smtp')->group(function () {
+    Route::get('/', [EmailSmtpSettingController::class, 'show']);
+    Route::post('/{context}', [EmailSmtpSettingController::class, 'update']);
+    Route::post('/{context}/test', [EmailSmtpSettingController::class, 'test']);
 });
 
 // Leave Management API (Admin)

@@ -8,6 +8,7 @@ use App\Models\JoinMessageTemplate;
 use App\Notifications\JoinCallInvitationNotification;
 use App\Models\SubDepartment;
 use App\Models\WhatsAppSetting;
+use App\Services\EmailSmtpSettingService;
 use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -262,6 +263,8 @@ class JoinCallController extends Controller
     {
         try {
             $joinCall = JoinCall::with('subDepartment')->findOrFail($id);
+            $smtpService = new EmailSmtpSettingService();
+            $smtpService->applyMailer(EmailSmtpSettingService::CONTEXT_INTERVIEW, 'smtp_interview');
 
             Notification::route('mail', $joinCall->email)
                 ->notify(new JoinCallInvitationNotification($joinCall));
@@ -314,6 +317,11 @@ class JoinCallController extends Controller
                 'message' => $message
             ]);
         } catch (\Exception $e) {
+            Log::error('Join call email notification failed', [
+                'join_call_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mengirim notifikasi: ' . $e->getMessage()
@@ -342,6 +350,8 @@ class JoinCallController extends Controller
         try {
             $joinCalls = JoinCall::with('subDepartment')->whereIn('id', $request->ids)->get();
             $whatsapp  = new WhatsAppService();
+            $smtpService = new EmailSmtpSettingService();
+            $smtpService->applyMailer(EmailSmtpSettingService::CONTEXT_INTERVIEW, 'smtp_interview');
 
             // Load custom API key & sender for join_call (once for the batch)
             $setting      = WhatsAppSetting::getActive();
@@ -411,6 +421,11 @@ class JoinCallController extends Controller
                 ]
             ]);
         } catch (\Exception $e) {
+            Log::error('Join call bulk email notification failed', [
+                'join_call_ids' => $request->ids,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal melakukan blast WhatsApp: ' . $e->getMessage()

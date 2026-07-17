@@ -3,10 +3,12 @@
 namespace App\Notifications;
 
 use App\Models\JoinCall;
+use App\Services\EmailSmtpSettingService;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\HtmlString;
 
 class JoinCallInvitationNotification extends Notification
 {
@@ -26,17 +28,32 @@ class JoinCallInvitationNotification extends Notification
         $date = Carbon::parse($this->joinCall->join_call_date)->locale('id')->translatedFormat('l, d F Y');
         $time = Carbon::parse($this->joinCall->join_call_time)->format('H:i');
         $department = $this->joinCall->subDepartment?->name ?? '-';
+        $fromAddress = (string) config('mail.from_interview.address', config('mail.from.address'));
+        $fromName = (string) config('mail.from_interview.name', config('mail.from.name'));
+        $templateService = app(EmailSmtpSettingService::class);
+        $template = $templateService->getJoinCallEmailTemplateConfig();
+        $variables = [
+            '{nama}' => $this->joinCall->candidate_name,
+            '{departemen}' => $department,
+            '{sub_departemen}' => $department,
+            '{sub_department}' => $department,
+            '{posisi}' => $department,
+            '{tanggal}' => $date,
+            '{waktu}' => $time,
+            '{lokasi}' => $this->joinCall->location,
+            '{catatan}' => $this->joinCall->notes ?? '-',
+            '{qr_url}' => $this->joinCall->qr_code_url ?? '',
+        ];
+        $subject = $templateService->renderTemplate($template['subject'], $variables);
+        $body = $templateService->renderTemplate($template['body'], $variables);
 
         $mail = (new MailMessage)
-            ->subject('Undangan Panggilan Join - PT Mingda')
-            ->greeting('Yth. ' . $this->joinCall->candidate_name . ',')
-            ->line('Selamat. Berdasarkan hasil seleksi, Anda dijadwalkan untuk hadir pada proses panggilan join PT Mingda untuk sub departemen ' . $department . '.')
-            ->line('Tanggal: ' . $date)
-            ->line('Waktu: ' . $time . ' WIB')
-            ->line('Lokasi: ' . $this->joinCall->location);
+            ->mailer('smtp_interview')
+            ->from($fromAddress, $fromName)
+            ->subject($subject);
 
-        if ($this->joinCall->notes) {
-            $mail->line('Catatan: ' . $this->joinCall->notes);
+        foreach ($this->bodyParagraphs($body) as $paragraph) {
+            $mail->line(new HtmlString(nl2br(e($paragraph))));
         }
 
         if ($this->joinCall->qr_code_url) {
@@ -44,8 +61,14 @@ class JoinCallInvitationNotification extends Notification
                 ->line('Silakan tunjukkan QR Code check-in kepada petugas keamanan saat tiba di lokasi.');
         }
 
-        return $mail
-            ->line('Mohon konfirmasi kehadiran Anda dengan membalas email ini atau menghubungi HRD PT Mingda.')
-            ->salutation('Terima kasih, HRD PT Mingda');
+        return $mail;
+    }
+
+    private function bodyParagraphs(string $body): array
+    {
+        return array_values(array_filter(
+            preg_split('/\R{2,}/', trim($body)) ?: [],
+            static fn (string $paragraph): bool => trim($paragraph) !== ''
+        ));
     }
 }
