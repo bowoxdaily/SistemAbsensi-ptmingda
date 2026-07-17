@@ -874,7 +874,7 @@
             <div class="modal-content">
                 <div class="modal-header bg-danger text-white">
                     <h5 class="modal-title">
-                        <i class='bx bx-bell me-1'></i> Kirim Notifikasi Alpha via WhatsApp
+                        <i class='bx bx-bell me-1'></i> Kirim Notifikasi Alpha via WhatsApp & Email
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
@@ -882,10 +882,10 @@
                     <div class="alert alert-warning shadow-none border mb-3">
                         <strong><i class='bx bx-info-circle'></i> Informasi:</strong>
                         <ul class="mb-0 mt-2">
-                            <li>Mengirim notifikasi WhatsApp ke <strong>semua karyawan yang Alpha</strong> pada rentang tanggal yang dipilih</li>
+                            <li>Mengirim notifikasi WhatsApp dan Email ke <strong>semua karyawan yang Alpha</strong> pada rentang tanggal yang dipilih</li>
                             <li>Karyawan akan menerima pesan berisi tanggal alpha dan total alpha bulan ini</li>
                             <li>Karyawan dapat segera menghubungi HRD jika terjadi kesalahan data</li>
-                            <li class="text-danger"><strong>⚠️ Membutuhkan WhatsApp Gateway aktif</strong></li>
+                            <li class="text-danger"><strong>⚠️ Membutuhkan WhatsApp Gateway aktif untuk kanal WA</strong></li>
                         </ul>
                     </div>
                     <div class="row g-3">
@@ -1921,7 +1921,7 @@
 
                 Swal.fire({
                     title: 'Kirim Notifikasi Alpha?',
-                    html: `Kirim notifikasi WhatsApp ke <strong>${name}</strong> untuk menginformasikan status Alpha mereka?<br><br><small class="text-muted">Karyawan akan menerima pesan berisi tanggal alpha dan total alpha bulan ini.</small>`,
+                    html: `Kirim notifikasi WhatsApp dan/atau Email ke <strong>${name}</strong> untuk menginformasikan status Alpha mereka?<br><br><small class="text-muted">Karyawan akan menerima pesan berisi tanggal alpha dan total alpha bulan ini.</small>`,
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonText: '<i class="bx bx-send"></i> Ya, Kirim',
@@ -1932,7 +1932,7 @@
 
                     Swal.fire({
                         title: 'Mengirim...',
-                        html: 'Sedang mengirim notifikasi WhatsApp...',
+                        html: 'Sedang memproses notifikasi WhatsApp dan Email...',
                         allowOutsideClick: false,
                         allowEscapeKey: false,
                         didOpen: () => { Swal.showLoading(); }
@@ -1985,7 +1985,7 @@
 
                 Swal.fire({
                     title: 'Kirim Notifikasi Alpha Massal?',
-                    html: `Mengirim notifikasi WhatsApp ke <strong>semua karyawan yang Alpha</strong> pada periode <strong>${dateFrom}</strong> s/d <strong>${dateTo}</strong>.<br><br><small class="text-muted">Proses ini mungkin memakan waktu beberapa menit...</small>`,
+                    html: `Mengirim notifikasi WhatsApp dan Email ke <strong>semua karyawan yang Alpha</strong> pada periode <strong>${dateFrom}</strong> s/d <strong>${dateTo}</strong>.<br><br><small class="text-muted">Proses ini mungkin memakan waktu beberapa menit...</small>`,
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonText: '<i class="bx bx-send"></i> Ya, Kirim Semua',
@@ -1999,7 +1999,7 @@
 
                     Swal.fire({
                         title: 'Mengirim Notifikasi...',
-                        html: 'Sedang mengirim notifikasi WhatsApp ke karyawan yang Alpha. Mohon tunggu...',
+                        html: 'Sedang memproses notifikasi WhatsApp dan Email untuk karyawan Alpha. Mohon tunggu...',
                         allowOutsideClick: false,
                         allowEscapeKey: false,
                         didOpen: () => { Swal.showLoading(); }
@@ -2039,6 +2039,18 @@
                                             <tr>
                                                 <td>Dilewati (no phone)</td>
                                                 <td class="text-end"><strong class="text-warning">${data.skipped}</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Email Dijadwalkan</td>
+                                                <td class="text-end"><strong class="text-primary">${data.email_queued ?? 0}</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Email Dilewati (no email)</td>
+                                                <td class="text-end"><strong class="text-warning">${data.email_skipped ?? 0}</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Email Gagal Dispatch</td>
+                                                <td class="text-end"><strong class="text-danger">${data.email_failed ?? 0}</strong></td>
                                             </tr>
                                         </table>
                                     </div>

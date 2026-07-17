@@ -49,6 +49,7 @@ class WhatsAppSetting extends Model
         'notify_warning_letter',
         'notify_payroll',
         'notify_alpha',
+        'notify_alpha_email',
         'checkin_template',
         'checkout_template',
         'leave_request_template',
@@ -78,6 +79,7 @@ class WhatsAppSetting extends Model
         'notify_warning_letter' => 'boolean',
         'notify_payroll' => 'boolean',
         'notify_alpha' => 'boolean',
+        'notify_alpha_email' => 'boolean',
         'notify_welcome' => 'boolean',
     ];
 

@@ -64,6 +64,16 @@
                             <label class="form-label">SMTP Password</label>
                             <input type="password" class="form-control" name="smtp_password" placeholder="Kosongkan jika tidak diubah">
                         </div>
+                        <div class="row g-2">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Reply-To Address</label>
+                                <input type="email" class="form-control" name="reply_to_address" value="{{ $settings['notifications']['reply_to_address'] ?? '' }}" placeholder="opsional">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Reply-To Name</label>
+                                <input type="text" class="form-control" name="reply_to_name" value="{{ $settings['notifications']['reply_to_name'] ?? '' }}" placeholder="opsional">
+                            </div>
+                        </div>
                         <div class="form-check form-switch mb-3">
                             <input class="form-check-input" type="checkbox" name="is_active" value="1" {{ ($settings['notifications']['is_active'] ?? false) ? 'checked' : '' }}>
                             <label class="form-check-label">Aktifkan custom credential</label>
@@ -121,6 +131,18 @@
                         <div class="mb-3">
                             <label class="form-label">SMTP Password</label>
                             <input type="password" class="form-control" name="smtp_password" placeholder="Kosongkan jika tidak diubah">
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Reply-To Address</label>
+                                <input type="email" class="form-control" name="reply_to_address" value="{{ $settings['interview']['reply_to_address'] ?? '' }}" placeholder="opsional">
+                                <div class="form-text">Alamat email tujuan balasan.</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Reply-To Name</label>
+                                <input type="text" class="form-control" name="reply_to_name" value="{{ $settings['interview']['reply_to_name'] ?? '' }}" placeholder="opsional">
+                                <div class="form-text">Nama yang tampil saat penerima menekan Reply.</div>
+                            </div>
                         </div>
                         <hr class="my-4">
                         <h6 class="mb-3">Template Email Interview</h6>

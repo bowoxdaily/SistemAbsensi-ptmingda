@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendAlphaNotificationEmailJob;
 use App\Models\Attendance;
 use App\Models\Karyawans;
+use App\Models\WhatsAppSetting;
 use App\Models\WorkSchedule;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
@@ -1400,18 +1403,42 @@ class AttendanceController extends Controller
             }
 
             $whatsappService = new \App\Services\WhatsAppService();
-            $result = $whatsappService->sendAlphaNotification($attendance);
+            $waSent = $whatsappService->sendAlphaNotification($attendance);
 
-            if ($result) {
+            $emailQueued = false;
+            $setting = WhatsAppSetting::first();
+            $isAlphaEmailEnabled = $setting ? (bool) ($setting->notify_alpha_email ?? true) : true;
+            $emailAddress = trim((string) ($attendance->employee->email ?? ''));
+
+            if ($isAlphaEmailEnabled && !empty($emailAddress)) {
+                SendAlphaNotificationEmailJob::dispatch((int) $attendance->id);
+                $emailQueued = true;
+            }
+
+            if ($waSent || $emailQueued) {
+                $channels = [];
+                if ($waSent) {
+                    $channels[] = 'WhatsApp';
+                }
+                if ($emailQueued) {
+                    $channels[] = 'Email';
+                }
+
+                $channelText = implode(' + ', $channels);
+
                 return response()->json([
                     'success' => true,
-                    'message' => 'Notifikasi Alpha berhasil dikirim ke ' . $attendance->employee->name
+                    'message' => 'Notifikasi Alpha berhasil diproses via ' . $channelText . ' untuk ' . $attendance->employee->name,
+                    'data' => [
+                        'wa_sent' => (bool) $waSent,
+                        'email_queued' => (bool) $emailQueued,
+                    ],
                 ]);
             }
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengirim notifikasi. Pastikan WhatsApp aktif dan nomor karyawan terdaftar.'
+                'message' => 'Gagal mengirim notifikasi. Pastikan WhatsApp aktif/nomor terdaftar atau email karyawan tersedia.'
             ], 400);
         } catch (\Exception $e) {
             return response()->json([
@@ -1434,9 +1461,68 @@ class AttendanceController extends Controller
             $whatsappService = new \App\Services\WhatsAppService();
             $result = $whatsappService->sendBulkAlphaNotifications($dateFrom, $dateTo, $department);
 
+            $setting = WhatsAppSetting::first();
+            $isAlphaEmailEnabled = $setting ? (bool) ($setting->notify_alpha_email ?? true) : true;
+
+            if (!$isAlphaEmailEnabled) {
+                $result['email_queued'] = 0;
+                $result['email_skipped'] = 0;
+                $result['email_failed'] = 0;
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Notifikasi Alpha diproses. WhatsApp terkirim: {$result['sent']}, WA gagal: {$result['failed']}, WA dilewati: {$result['skipped']}. Email alpha dinonaktifkan di pengaturan.",
+                    'data' => $result
+                ]);
+            }
+
+            $emailQuery = Attendance::with(['employee.department'])
+                ->where('status', 'alpha')
+                ->whereBetween('attendance_date', [$dateFrom, $dateTo]);
+
+            if (!empty($department)) {
+                $emailQuery->whereHas('employee', function ($q) use ($department) {
+                    $q->where('department_id', $department);
+                });
+            }
+
+            $emailAttendances = $emailQuery->get();
+
+            $emailQueued = 0;
+            $emailSkipped = 0;
+            $emailFailed = 0;
+            $emailIndex = 0;
+
+            foreach ($emailAttendances as $attendance) {
+                $emailAddress = trim((string) ($attendance->employee->email ?? ''));
+
+                if (empty($emailAddress)) {
+                    $emailSkipped++;
+                    continue;
+                }
+
+                try {
+                    SendAlphaNotificationEmailJob::dispatch((int) $attendance->id)
+                        ->delay(now()->addSeconds($emailIndex * 2));
+                    $emailQueued++;
+                    $emailIndex++;
+                } catch (\Throwable $dispatchError) {
+                    $emailFailed++;
+                    Log::warning('Failed to dispatch alpha email notification job', [
+                        'attendance_id' => $attendance->id,
+                        'employee_id' => $attendance->employee_id,
+                        'error' => $dispatchError->getMessage(),
+                    ]);
+                }
+            }
+
+            $result['email_queued'] = $emailQueued;
+            $result['email_skipped'] = $emailSkipped;
+            $result['email_failed'] = $emailFailed;
+
             return response()->json([
                 'success' => true,
-                'message' => "Notifikasi Alpha berhasil diproses. Terkirim: {$result['sent']}, Gagal: {$result['failed']}, Dilewati: {$result['skipped']}",
+                'message' => "Notifikasi Alpha diproses. WhatsApp terkirim: {$result['sent']}, WA gagal: {$result['failed']}, WA dilewati: {$result['skipped']}. Email dijadwalkan: {$emailQueued}, Email dilewati: {$emailSkipped}.",
                 'data' => $result
             ]);
         } catch (\Exception $e) {

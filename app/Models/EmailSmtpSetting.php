@@ -21,6 +21,8 @@ class EmailSmtpSetting extends Model
         'smtp_password',
         'from_address',
         'from_name',
+        'reply_to_address',
+        'reply_to_name',
         'interview_subject_template',
         'interview_body_template',
         'join_call_subject_template',

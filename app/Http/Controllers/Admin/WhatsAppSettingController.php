@@ -26,6 +26,7 @@ class WhatsAppSettingController extends Controller
                 'notify_checkin' => true,
                 'notify_checkout' => true,
                 'notify_alpha' => true,
+                'notify_alpha_email' => true,
                 'checkin_template' => WhatsAppSetting::getDefaultCheckinTemplate(),
                 'checkout_template' => WhatsAppSetting::getDefaultCheckoutTemplate(),
                 'alpha_template' => WhatsAppSetting::getDefaultAlphaTemplate(),
@@ -165,6 +166,7 @@ class WhatsAppSettingController extends Controller
                 $setting->notify_warning_letter = $request->has('notify_warning_letter') ? 1 : 0;
                 $setting->notify_payroll = $request->has('notify_payroll') ? 1 : 0;
                 $setting->notify_alpha = $request->has('notify_alpha') ? 1 : 0;
+                $setting->notify_alpha_email = $request->has('notify_alpha_email') ? 1 : 0;
                 $setting->notify_welcome = $request->has('notify_welcome') ? 1 : 0;
 
                 // SP Number Format Settings
@@ -198,6 +200,7 @@ class WhatsAppSettingController extends Controller
                 $setting->notify_warning_letter = $request->input('notify_warning_letter', 0) ? 1 : 0;
                 $setting->notify_payroll = $request->input('notify_payroll', 0) ? 1 : 0;
                 $setting->notify_alpha = $request->input('notify_alpha', 0) ? 1 : 0;
+                $setting->notify_alpha_email = $request->input('notify_alpha_email', 0) ? 1 : 0;
                 $setting->notify_welcome = $request->input('notify_welcome', 0) ? 1 : 0;
 
                 Log::info('Template Form Processing - Not updating API Key');

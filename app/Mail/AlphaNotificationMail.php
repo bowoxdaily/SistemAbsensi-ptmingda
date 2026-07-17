@@ -4,21 +4,22 @@ namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
 
-class BroadcastMail extends Mailable
+class AlphaNotificationMail extends Mailable
 {
     use Queueable, SerializesModels;
 
     public function __construct(
         public string $recipientName,
-        public string $broadcastTitle,
-        public string $broadcastMessage,
-        public ?string $imageUrl = null,
+        public string $employeeCode,
+        public string $departmentName,
+        public string $attendanceDate,
+        public int $totalAlpha,
     ) {}
 
     public function envelope(): Envelope
@@ -29,7 +30,7 @@ class BroadcastMail extends Mailable
         $replyToName = (string) config('mail.reply_to_notifications.name', $fromName);
 
         return new Envelope(
-            subject: $this->broadcastTitle,
+            subject: 'Pemberitahuan Alpha - ' . $this->attendanceDate,
             from: new Address($fromAddress, $fromName),
             replyTo: [new Address($replyToAddress, $replyToName)],
         );
@@ -38,15 +39,16 @@ class BroadcastMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.broadcast',
-            text: 'emails.broadcast_text',
+            view: 'emails.alpha_notification',
+            text: 'emails.alpha_notification_text',
             with: [
-                'recipientName'    => $this->recipientName,
-                'broadcastTitle'   => $this->broadcastTitle,
-                'broadcastMessage' => $this->broadcastMessage,
-                'imageUrl'         => $this->imageUrl,
-                'appName'          => config('app.name', 'Sistem Absensi'),
-                'appUrl'           => config('app.url'),
+                'recipientName' => $this->recipientName,
+                'employeeCode' => $this->employeeCode,
+                'departmentName' => $this->departmentName,
+                'attendanceDate' => $this->attendanceDate,
+                'totalAlpha' => $this->totalAlpha,
+                'appName' => config('app.name', 'Sistem Absensi'),
+                'appUrl' => config('app.url'),
             ],
         );
     }

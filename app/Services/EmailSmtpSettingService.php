@@ -59,6 +59,8 @@ class EmailSmtpSettingService
                 'smtp_password' => (string) config('mail.mailers.smtp.password', ''),
                 'from_address' => $this->fallbackFromAddress($context),
                 'from_name' => $this->fallbackFromName($context),
+                'reply_to_address' => $this->fallbackReplyToAddress($context),
+                'reply_to_name' => $this->fallbackReplyToName($context),
             ], null);
         }
 
@@ -76,6 +78,8 @@ class EmailSmtpSettingService
                 'smtp_password' => (string) ($record->smtp_password ?? ''),
                 'from_address' => (string) ($record->from_address ?: $this->fallbackFromAddress($context)),
                 'from_name' => (string) ($record->from_name ?: $this->fallbackFromName($context)),
+                'reply_to_address' => (string) ($record->reply_to_address ?: $this->fallbackReplyToAddress($context)),
+                'reply_to_name' => (string) ($record->reply_to_name ?: $this->fallbackReplyToName($context)),
             ], $record);
         }
 
@@ -90,6 +94,8 @@ class EmailSmtpSettingService
             'smtp_password' => (string) config('mail.mailers.smtp.password', ''),
             'from_address' => $this->fallbackFromAddress($context),
             'from_name' => $this->fallbackFromName($context),
+            'reply_to_address' => $this->fallbackReplyToAddress($context),
+            'reply_to_name' => $this->fallbackReplyToName($context),
         ], $record);
     }
 
@@ -108,6 +114,8 @@ class EmailSmtpSettingService
                 'smtp_username' => $config['smtp_username'],
                 'from_address' => $config['from_address'],
                 'from_name' => $config['from_name'],
+                'reply_to_address' => $config['reply_to_address'],
+                'reply_to_name' => $config['reply_to_name'],
                 'has_password' => !empty($config['smtp_password']),
                 'using_custom' => (bool) $config['is_custom'],
                 'interview_subject_template' => $config['interview_subject_template'] ?? self::getDefaultInterviewSubjectTemplate(),
@@ -203,6 +211,10 @@ class EmailSmtpSettingService
                 'address' => $config['from_address'],
                 'name' => $config['from_name'],
             ],
+            "mail.reply_to_{$context}" => [
+                'address' => $config['reply_to_address'],
+                'name' => $config['reply_to_name'],
+            ],
         ]);
 
         return $config;
@@ -216,6 +228,22 @@ class EmailSmtpSettingService
     private function fallbackFromName(string $context): string
     {
         return (string) config("mail.from_{$context}.name", config('mail.from.name', 'Example'));
+    }
+
+    private function fallbackReplyToAddress(string $context): string
+    {
+        return (string) config(
+            "mail.reply_to_{$context}.address",
+            config("mail.from_{$context}.address", config('mail.from.address', 'hello@example.com'))
+        );
+    }
+
+    private function fallbackReplyToName(string $context): string
+    {
+        return (string) config(
+            "mail.reply_to_{$context}.name",
+            config("mail.from_{$context}.name", config('mail.from.name', 'Example'))
+        );
     }
 
     private function appendInvitationTemplateConfig(string $context, array $config, ?EmailSmtpSetting $record): array

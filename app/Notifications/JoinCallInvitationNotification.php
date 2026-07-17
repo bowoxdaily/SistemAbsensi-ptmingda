@@ -30,6 +30,8 @@ class JoinCallInvitationNotification extends Notification
         $department = $this->joinCall->subDepartment?->name ?? '-';
         $fromAddress = (string) config('mail.from_interview.address', config('mail.from.address'));
         $fromName = (string) config('mail.from_interview.name', config('mail.from.name'));
+        $replyToAddress = (string) config('mail.reply_to_interview.address', $fromAddress);
+        $replyToName = (string) config('mail.reply_to_interview.name', $fromName);
         $templateService = app(EmailSmtpSettingService::class);
         $template = $templateService->getJoinCallEmailTemplateConfig();
         $variables = [
@@ -50,6 +52,7 @@ class JoinCallInvitationNotification extends Notification
         $mail = (new MailMessage)
             ->mailer('smtp_interview')
             ->from($fromAddress, $fromName)
+            ->replyTo($replyToAddress, $replyToName)
             ->subject($subject);
 
         foreach ($this->bodyParagraphs($body) as $paragraph) {

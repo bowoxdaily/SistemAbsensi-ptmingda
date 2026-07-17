@@ -666,6 +666,21 @@
                                     </small>
                                 </div>
 
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="notify_alpha_email"
+                                        name="notify_alpha_email"
+                                        {{ ($setting->notify_alpha_email ?? true) ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="notify_alpha_email">
+                                        Kirim notifikasi Alpha via Email
+                                    </label>
+                                </div>
+                                <div class="ms-1 mb-2">
+                                    <small class="text-muted">
+                                        <i class='bx bx-envelope'></i> Jika aktif, sistem akan mengirim email notifikasi alpha
+                                        ke karyawan yang memiliki alamat email terdaftar.
+                                    </small>
+                                </div>
+
                                 <h6 class="mt-3 mb-2">Notifikasi Karyawan Baru</h6>
                                 <div class="form-check form-switch mb-2">
                                     <input class="form-check-input" type="checkbox" id="notify_welcome"
@@ -749,6 +764,10 @@
 
                             @if ($setting->notify_alpha)
                                 <input type="hidden" name="notify_alpha" value="1">
+                            @endif
+
+                            @if ($setting->notify_alpha_email ?? true)
+                                <input type="hidden" name="notify_alpha_email" value="1">
                             @endif
 
                             @if ($setting->notify_welcome)
@@ -936,6 +955,14 @@
                         <div class="mb-2">
                             <small class="text-muted">Check-out Notification:</small>
                             <strong class="float-end">{{ $setting->notify_checkout ? 'Ya' : 'Tidak' }}</strong>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted">Alpha WhatsApp:</small>
+                            <strong class="float-end">{{ $setting->notify_alpha ? 'Ya' : 'Tidak' }}</strong>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted">Alpha Email:</small>
+                            <strong class="float-end">{{ ($setting->notify_alpha_email ?? true) ? 'Ya' : 'Tidak' }}</strong>
                         </div>
                     </div>
                 </div>

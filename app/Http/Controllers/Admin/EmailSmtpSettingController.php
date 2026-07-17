@@ -63,6 +63,8 @@ class EmailSmtpSettingController extends Controller
             'smtp_password' => 'nullable|string|max:255',
             'from_address' => 'required|email|max:191',
             'from_name' => 'required|string|max:191',
+            'reply_to_address' => 'nullable|email|max:191',
+            'reply_to_name' => 'nullable|string|max:191',
             'interview_subject_template' => 'nullable|string|max:191',
             'interview_body_template' => 'nullable|string',
             'join_call_subject_template' => 'nullable|string|max:191',
@@ -85,6 +87,12 @@ class EmailSmtpSettingController extends Controller
             'smtp_username' => $request->string('smtp_username')->toString(),
             'from_address' => $request->string('from_address')->toString(),
             'from_name' => $request->string('from_name')->toString(),
+            'reply_to_address' => $request->filled('reply_to_address')
+                ? $request->string('reply_to_address')->toString()
+                : $request->string('from_address')->toString(),
+            'reply_to_name' => $request->filled('reply_to_name')
+                ? $request->string('reply_to_name')->toString()
+                : $request->string('from_name')->toString(),
             'is_active' => $request->boolean('is_active', true),
         ];
 

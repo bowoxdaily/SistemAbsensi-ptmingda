@@ -111,7 +111,7 @@
                                 <label class="form-label fw-semibold">Kirim Via <span class="text-danger">*</span></label>
                                 <div class="d-flex gap-3">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="channel" id="channelWA" value="whatsapp" checked>
+                                        <input class="form-check-input" type="radio" name="channel" id="channelWA" value="whatsapp">
                                         <label class="form-check-label" for="channelWA">
                                             <i class='bx bxl-whatsapp text-success'></i> WhatsApp
                                         </label>
@@ -123,14 +123,14 @@
                                         </label>
                                     </div>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="channel" id="channelBoth" value="both">
+                                        <input class="form-check-input" type="radio" name="channel" id="channelBoth" value="both" checked>
                                         <label class="form-check-label" for="channelBoth">
                                             <i class='bx bx-broadcast text-warning'></i> Keduanya
                                         </label>
                                     </div>
                                 </div>
                                 <div class="form-text text-muted" id="channelHint">
-                                    Hanya karyawan yang memiliki nomor WhatsApp terdaftar yang akan menerima pesan.
+                                    Pesan dikirim ke WhatsApp DAN email karyawan secara bersamaan.
                                 </div>
                             </div>
 

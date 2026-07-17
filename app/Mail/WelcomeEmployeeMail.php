@@ -37,10 +37,13 @@ class WelcomeEmployeeMail extends Mailable
     {
         $fromAddress = (string) config('mail.from_notifications.address', config('mail.from.address'));
         $fromName = (string) config('mail.from_notifications.name', config('mail.from.name'));
+        $replyToAddress = (string) config('mail.reply_to_notifications.address', $fromAddress);
+        $replyToName = (string) config('mail.reply_to_notifications.name', $fromName);
 
         return new Envelope(
             subject: '🎉 Selamat Datang di PT Mingda — Akun Anda Sudah Siap!',
             from: new Address($fromAddress, $fromName),
+            replyTo: [new Address($replyToAddress, $replyToName)],
         );
     }
 
