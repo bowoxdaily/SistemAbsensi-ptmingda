@@ -9,11 +9,16 @@
         <h4 class="fw-bold mb-0">
             <span class="text-muted fw-light">SDM & Disiplin /</span> Surat Peringatan
         </h4>
-        @if(in_array(auth()->user()->role, ['admin', 'manager', 'viewer']))
-        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#createModal">
-            <i class='bx bx-plus'></i> Buat SP Baru
-        </button>
-        @endif
+        <div>
+            @if(in_array(auth()->user()->role, ['admin', 'manager', 'viewer', 'superadmin']))
+            <button type="button" class="btn btn-success me-2" onclick="exportExcel()">
+                <i class='bx bx-spreadsheet'></i> Export Excel
+            </button>
+            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#createModal">
+                <i class='bx bx-plus'></i> Buat SP Baru
+            </button>
+            @endif
+        </div>
     </div>
 
     <!-- Statistics Cards -->
@@ -1146,6 +1151,20 @@ function formatDateTime(dateString) {
         hour: '2-digit',
         minute: '2-digit'
     });
+}
+
+function exportExcel() {
+    let params = {
+        employee_id: $('#filterEmployee').val() || '',
+        sp_type: $('#filterSpType').val() || '',
+        status: $('#filterStatus').val() || '',
+        search: $('#filterSearch').val() || '',
+        start_date: $('#filterStartDate').val() || '',
+        end_date: $('#filterEndDate').val() || ''
+    };
+    
+    let queryString = $.param(params);
+    window.location.href = '/admin/warning-letters/export?' + queryString;
 }
 </script>
 @endpush

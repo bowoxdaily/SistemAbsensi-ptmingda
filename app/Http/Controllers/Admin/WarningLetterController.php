@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\WarningLetterExport;
 
 class WarningLetterController extends Controller
 {
@@ -736,6 +738,23 @@ class WarningLetterController extends Controller
 
             abort(500, 'Gagal mengunduh dokumen');
         }
+    }
+    /**
+     * Export warning letters to Excel
+     */
+    public function export(Request $request)
+    {
+        // Security check
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer', 'superadmin'])) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $filters = $request->only([
+            'employee_id', 'sp_type', 'status', 'start_date', 'end_date', 'search'
+        ]);
+
+        $fileName = 'Data_Surat_Peringatan_' . date('Ymd_His') . '.xlsx';
+        return Excel::download(new WarningLetterExport($filters), $fileName);
     }
 }
 

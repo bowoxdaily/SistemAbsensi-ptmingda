@@ -42,7 +42,7 @@ class RecalculateOvertimeCommand extends Command
         $this->newLine();
 
         // Build query
-        $query = Attendance::with(['employee.workSchedule'])
+        $query = Attendance::with(['employee.workSchedule', 'employee.position'])
             ->whereNotNull('check_out')
             ->whereIn('status', ['hadir', 'terlambat']);
 
@@ -94,6 +94,21 @@ class RecalculateOvertimeCommand extends Command
             // Skip if no work schedule
             if (!$attendance->employee || !$attendance->employee->workSchedule) {
                 $skipped++;
+                $progressBar->advance();
+                continue;
+            }
+
+            // Weekday overtime hanya untuk Staff dan Operator
+            $isWeekday = \Carbon\Carbon::parse($attendance->attendance_date)->isWeekday();
+            if ($isWeekday && !$attendance->employee->isEligibleForWeekdayOvertime()) {
+                // Jabatan non-eligible: set overtime ke 0 jika sebelumnya ada
+                if ($attendance->overtime_minutes != 0) {
+                    $bulkUpdates[] = [
+                        'id' => $attendance->id,
+                        'overtime_minutes' => 0
+                    ];
+                    $updated++;
+                }
                 $progressBar->advance();
                 continue;
             }

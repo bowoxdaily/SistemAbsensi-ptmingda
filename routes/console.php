@@ -16,11 +16,11 @@ Schedule::call(function () {
     ScheduleRunMiddleware::updateTracking();
 })->everyMinute()->name('update-cron-tracking');
 
-// Schedule: Generate absent attendance - sweep pagi (07:00-10:00, setiap 30 menit)
+// Schedule: Generate absent attendance - sweep pagi (07:00-10:00, setiap 10 menit)
 // Menangkap karyawan yang tidak absen setelah grace period jam masuk + 10 menit
-// Cron: setiap 30 menit antara jam 07-10 pada hari kerja (Senin-Jumat)
+// Cron: setiap 10 menit antara jam 07-10 pada hari kerja (Senin-Jumat)
 Schedule::command('attendance:generate-absent')
-    ->cron('*/30 7-10 * * 1-5')
+    ->cron('*/10 7-10 * * 1-5')
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/generate-absent.log'));

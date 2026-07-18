@@ -72,6 +72,17 @@ class GenerateAbsentAttendance extends Command
         $generatedCount = 0;
         $skippedCount = 0;
 
+        // Pre-fetch existing attendances and approved leaves to avoid N+1 queries in loop
+        $existingAttendances = Attendance::whereDate('attendance_date', $date)
+            ->pluck('id', 'employee_id')
+            ->toArray();
+
+        $approvedLeaves = Leave::where('status', 'approved')
+            ->whereDate('start_date', '<=', $date)
+            ->whereDate('end_date', '>=', $date)
+            ->get()
+            ->keyBy('employee_id');
+
         foreach ($employees as $employee) {
             // Check if employee has work schedule
             if (!$employee->workSchedule) {
@@ -138,22 +149,14 @@ class GenerateAbsentAttendance extends Command
             }
 
             // Check if attendance record already exists
-            $existingAttendance = Attendance::where('employee_id', $employee->id)
-                ->whereDate('attendance_date', $date)
-                ->first();
-
-            if ($existingAttendance) {
+            if (isset($existingAttendances[$employee->id])) {
                 // Attendance already exists, skip
                 $skippedCount++;
                 continue;
             }
 
             // IMPORTANT: Check if employee has approved leave for this date
-            $approvedLeave = Leave::where('employee_id', $employee->id)
-                ->where('status', 'approved')
-                ->whereDate('start_date', '<=', $date)
-                ->whereDate('end_date', '>=', $date)
-                ->first();
+            $approvedLeave = $approvedLeaves->get($employee->id);
 
             if ($approvedLeave) {
                 // Employee has approved leave, create attendance with leave status
@@ -270,24 +273,27 @@ class GenerateAbsentAttendance extends Command
         $generatedCount = 0;
         $skippedCount = 0;
 
+        // Pre-fetch existing attendances and approved leaves to avoid N+1 queries in loop
+        $existingAttendances = Attendance::whereDate('attendance_date', $date)
+            ->pluck('id', 'employee_id')
+            ->toArray();
+
+        $approvedLeaves = Leave::where('status', 'approved')
+            ->whereDate('start_date', '<=', $date)
+            ->whereDate('end_date', '>=', $date)
+            ->get()
+            ->keyBy('employee_id');
+
         foreach ($employees as $employee) {
             // Check if attendance record already exists
-            $existingAttendance = Attendance::where('employee_id', $employee->id)
-                ->whereDate('attendance_date', $date)
-                ->first();
-
-            if ($existingAttendance) {
+            if (isset($existingAttendances[$employee->id])) {
                 // Attendance already exists (mungkin sudah check-in), skip
                 $skippedCount++;
                 continue;
             }
 
             // Check if employee has approved leave for this date
-            $approvedLeave = Leave::where('employee_id', $employee->id)
-                ->where('status', 'approved')
-                ->whereDate('start_date', '<=', $date)
-                ->whereDate('end_date', '>=', $date)
-                ->first();
+            $approvedLeave = $approvedLeaves->get($employee->id);
 
             if ($approvedLeave) {
                 // Employee has approved leave, create attendance with leave status

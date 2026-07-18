@@ -252,4 +252,38 @@ class Karyawans extends Model
     {
         return $this->hasMany(EmployeeCareer::class, 'employee_id')->orderByDesc('effective_date')->orderByDesc('id');
     }
+
+    /**
+     * Cek apakah karyawan eligible untuk lembur di hari kerja (weekdays).
+     *
+     * Hanya jabatan Operator, Staff, dan Pengawas yang mendapat perhitungan overtime di weekdays.
+     * Jabatan lain (Supervisor, Kabag, Asmen, Manager, Direktur, dll) TIDAK eligible.
+     *
+     * @return bool
+     */
+    public function isEligibleForWeekdayOvertime(): bool
+    {
+        if (!$this->relationLoaded('position') && $this->position_id) {
+            $this->load('position');
+        }
+
+        $position = $this->position;
+
+        if (!$position) {
+            return false;
+        }
+
+        // Jabatan yang MENDAPAT overtime di weekdays (case-insensitive, partial match)
+        $eligiblePositions = ['OPERATOR', 'STAFF', 'PENGAWAS'];
+
+        $positionName = strtoupper($position->name);
+
+        foreach ($eligiblePositions as $eligible) {
+            if (str_contains($positionName, $eligible)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

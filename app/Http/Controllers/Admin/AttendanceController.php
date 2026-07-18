@@ -478,11 +478,13 @@ class AttendanceController extends Controller
             }
 
             // Calculate overtime if applicable
+            // Weekday overtime hanya untuk Staff dan Operator
             $overtimeMinutes = 0;
             if (in_array($attendance->status, ['hadir', 'terlambat'])) {
                 try {
-                    $employee = Karyawans::with('workSchedule')->find($request->employee_id);
-                    if ($employee && $employee->workSchedule) {
+                    $employee = Karyawans::with(['workSchedule', 'position'])->find($request->employee_id);
+                    $isWeekday = Carbon::parse($dateString)->isWeekday();
+                    if ($employee && $employee->workSchedule && (!$isWeekday || $employee->isEligibleForWeekdayOvertime())) {
                         $schedule = $employee->workSchedule;
                         // WorkSchedule end_time is already a Carbon object (datetime:H:i:s cast)
                         $endTime = $schedule->end_time;
@@ -940,8 +942,14 @@ class AttendanceController extends Controller
             }
 
             // Calculate overtime minutes if check_out is provided
+            // Weekday overtime hanya untuk Staff dan Operator
             $overtimeMinutes = 0;
-            if (in_array($request->status, ['hadir', 'terlambat']) && $schedule && $request->check_out) {
+            $isWeekday = Carbon::parse($request->attendance_date)->isWeekday();
+            $employee = $attendance->employee;
+            if (!$employee->relationLoaded('position')) {
+                $employee->load('position');
+            }
+            if (in_array($request->status, ['hadir', 'terlambat']) && $schedule && $request->check_out && (!$isWeekday || $employee->isEligibleForWeekdayOvertime())) {
                 try {
                     // Parse check-out time
                     $checkOutTime = Carbon::createFromFormat('Y-m-d H:i', $request->attendance_date . ' ' . $request->check_out);
@@ -1064,7 +1072,7 @@ class AttendanceController extends Controller
 
         try {
             // Get all attendances on specified date
-            $attendances = Attendance::with('employee.workSchedule')
+            $attendances = Attendance::with(['employee.workSchedule', 'employee.position'])
                 ->whereDate('attendance_date', $request->date)
                 ->whereIn('status', ['hadir', 'terlambat'])
                 ->get();
@@ -1115,8 +1123,10 @@ class AttendanceController extends Controller
                 $schedule     = $employee->workSchedule ?? null;
 
                 // Calculate overtime
+                // Weekday overtime hanya untuk Staff dan Operator
                 $overtimeMinutes = 0;
-                if ($schedule) {
+                $isWeekday = Carbon::parse($request->date)->isWeekday();
+                if ($schedule && (!$isWeekday || $employee->isEligibleForWeekdayOvertime())) {
                     try {
                         $endTime = $schedule->end_time;
                         
@@ -1280,7 +1290,7 @@ class AttendanceController extends Controller
             $to = $request->get('to');
 
             // Build query
-            $query = Attendance::with(['employee.workSchedule'])
+            $query = Attendance::with(['employee.workSchedule', 'employee.position'])
                 ->whereNotNull('check_out')
                 ->whereIn('status', ['hadir', 'terlambat']);
 
@@ -1313,6 +1323,20 @@ class AttendanceController extends Controller
                 // Skip if no work schedule
                 if (!$attendance->employee || !$attendance->employee->workSchedule) {
                     $skipped++;
+                    continue;
+                }
+
+                // Weekday overtime hanya untuk Staff dan Operator
+                $isWeekday = Carbon::parse($attendance->attendance_date)->isWeekday();
+                if ($isWeekday && !$attendance->employee->isEligibleForWeekdayOvertime()) {
+                    // Jabatan non-eligible: set overtime ke 0 jika sebelumnya ada
+                    if ($attendance->overtime_minutes != 0) {
+                        $attendance->overtime_minutes = 0;
+                        $attendance->save();
+                        $updated++;
+                    } else {
+                        $skipped++;
+                    }
                     continue;
                 }
 

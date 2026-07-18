@@ -198,7 +198,8 @@ class FingerspotWebhookController extends Controller
     protected function findEmployeeByPin(string $pin): ?Employee
     {
         // First try direct match with fingerspot_pin or employee_code
-        $employee = Employee::where('fingerspot_pin', $pin)
+        $employee = Employee::with('workSchedule')
+            ->where('fingerspot_pin', $pin)
             ->orWhere('employee_code', $pin)
             ->first();
 
@@ -208,7 +209,7 @@ class FingerspotWebhookController extends Controller
 
         // Try matching with employee_code prefix patterns
         // Fingerspot PIN only supports numbers, but employee_code may have prefix like "EMP003" or "MIF-0233"
-        return Employee::where(function ($query) use ($pin) {
+        return Employee::with('workSchedule')->where(function ($query) use ($pin) {
             // Match EMP + pin (case insensitive), e.g., EMP003 matches PIN 003
             $query->whereRaw('LOWER(employee_code) = ?', ['emp' . $pin])
                 // Match MIF- + pin (case insensitive)
@@ -1081,6 +1082,18 @@ class FingerspotWebhookController extends Controller
                 'sample_record' => $attlogs[0] ?? null,
             ]);
 
+            // Optimize duplicate checking: fetch all existing logs for the sync date
+            $targetDate = $syncDate ? Carbon::parse($syncDate) : now();
+            $existingLogsMap = \App\Models\FingerspotLog::whereBetween('scan_time', [
+                $targetDate->copy()->startOfDay(),
+                $targetDate->copy()->endOfDay()
+            ])
+            ->get(['pin', 'scan_time'])
+            ->mapWithKeys(function ($log) {
+                return [$log->pin . '_' . $log->scan_time->format('Y-m-d H:i:s') => true];
+            })
+            ->toArray();
+
             $processed = 0;
             $failed = 0;
             $skipped = 0;
@@ -1120,16 +1133,19 @@ class FingerspotWebhookController extends Controller
 
                     // Check if this scan already exists in our logs (avoid duplicates)
                     $pin = $attlogData['pin'] ?? null;
-                    $scanTime = $attlogData['scan'] ?? $attlogData['datetime'] ?? $attlogData['scan_date'] ?? $attlogData['date_time'] ?? null;
+                    $scanTimeRaw = $attlogData['scan'] ?? $attlogData['datetime'] ?? $attlogData['scan_date'] ?? $attlogData['date_time'] ?? null;
 
-                    if ($pin && $scanTime) {
-                        $existingLog = FingerspotLog::where('pin', $pin)
-                            ->where('scan_time', Carbon::parse($scanTime))
-                            ->first();
+                    if ($pin && $scanTimeRaw) {
+                        try {
+                            $scanTimeParsed = Carbon::parse($scanTimeRaw)->format('Y-m-d H:i:s');
+                            $key = $pin . '_' . $scanTimeParsed;
 
-                        if ($existingLog) {
-                            $skipped++;
-                            continue; // Skip duplicate
+                            if (isset($existingLogsMap[$key])) {
+                                $skipped++;
+                                continue; // Skip duplicate
+                            }
+                        } catch (\Exception $e) {
+                            // If parsing fails, fall back to processAttlog
                         }
                     }
 

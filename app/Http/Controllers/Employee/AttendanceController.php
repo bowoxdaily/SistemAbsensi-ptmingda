@@ -469,8 +469,10 @@ class AttendanceController extends Controller
             $photoPath = $this->saveBase64Image($request->photo, 'attendance/check-out');
 
             // Calculate overtime if applicable
+            // Weekday overtime hanya untuk Staff dan Operator
             $overtimeMinutes = 0;
-            if (in_array($attendance->status, ['hadir', 'terlambat'])) {
+            $isWeekday = Carbon::today()->isWeekday();
+            if (in_array($attendance->status, ['hadir', 'terlambat']) && (!$isWeekday || $employee->isEligibleForWeekdayOvertime())) {
                 try {
                     $checkOutTime = Carbon::now();
                     // WorkSchedule end_time is already a Carbon object (datetime:H:i:s cast)

@@ -155,6 +155,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Warning Letters Management (View only - API handles POST/PUT/DELETE)
         Route::get('/admin/warning-letters', [WarningLetterController::class, 'index'])->name('admin.warning-letters.index');
+        Route::get('/admin/warning-letters/export', [WarningLetterController::class, 'export'])->name('admin.warning-letters.export');
 
         // Calendar Agenda & Birthday (View only)
         Route::get('/admin/calendar', [EmployeeCalendarController::class, 'index'])->name('admin.calendar.index');

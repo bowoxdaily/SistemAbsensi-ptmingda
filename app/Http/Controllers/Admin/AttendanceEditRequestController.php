@@ -244,8 +244,14 @@ class AttendanceEditRequestController extends Controller
         }
 
         // Hitung overtime_minutes
+        // Weekday overtime hanya untuk Staff dan Operator
         $overtimeMinutes = 0;
-        if (in_array($newStatus, ['hadir', 'terlambat']) && $schedule && $newCheckOut) {
+        $isWeekday = $newDate ? Carbon::parse($newDate)->isWeekday() : true;
+        $employee = $attendance->employee;
+        if (!$employee->relationLoaded('position')) {
+            $employee->load('position');
+        }
+        if (in_array($newStatus, ['hadir', 'terlambat']) && $schedule && $newCheckOut && (!$isWeekday || $employee->isEligibleForWeekdayOvertime())) {
             try {
                 $checkOutTime = Carbon::createFromFormat('Y-m-d H:i', $newDate . ' ' . $newCheckOut);
                 $endTime      = $schedule->end_time;

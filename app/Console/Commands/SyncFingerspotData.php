@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Http\Controllers\Api\FingerspotWebhookController;
 use App\Models\FingerspotSetting;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -15,7 +16,11 @@ class SyncFingerspotData extends Command
      *
      * @var string
      */
-    protected $signature = 'fingerspot:sync {--setting-id= : Specific setting ID to sync}';
+    protected $signature = 'fingerspot:sync
+                            {--setting-id= : Specific setting ID to sync}
+                            {--sync-date= : Sync data for specific date (Y-m-d)}
+                            {--days-back=0 : Sync from N days back (0=today, 1=yesterday)}
+                            {--no-date-filter : Disable date filter and fetch all data}';
 
     /**
      * The console command description.
@@ -30,6 +35,26 @@ class SyncFingerspotData extends Command
     public function handle()
     {
         $settingId = $this->option('setting-id');
+        $syncDateOption = $this->option('sync-date');
+        $daysBackOption = (int) $this->option('days-back');
+        $disableDateFilter = (bool) $this->option('no-date-filter');
+
+        // Default behavior for scheduled runs: sync only current date to avoid heavy full-history fetches.
+        // For backfill/debug, user can pass --sync-date, --days-back, or --no-date-filter.
+        $syncDate = null;
+        if (!$disableDateFilter) {
+            if (!empty($syncDateOption)) {
+                try {
+                    $syncDate = Carbon::parse($syncDateOption)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    $this->error("Invalid --sync-date format. Use Y-m-d, contoh: 2026-07-18");
+                    return 1;
+                }
+            } else {
+                $daysBack = max(0, $daysBackOption);
+                $syncDate = now()->subDays($daysBack)->format('Y-m-d');
+            }
+        }
 
         // Get settings with auto_sync enabled and api_url configured
         $query = FingerspotSetting::where('is_active', true)
@@ -52,11 +77,19 @@ class SyncFingerspotData extends Command
 
         foreach ($settings as $setting) {
             $this->info("Syncing from: {$setting->name} ({$setting->api_url})");
+            if ($syncDate) {
+                $this->info("  Date filter: {$syncDate}");
+            } else {
+                $this->warn('  Date filter: DISABLED (full data fetch)');
+            }
 
             try {
-                $request = Request::create('/api/fingerspot/fetch', 'POST', [
-                    'api_url' => $setting->api_url
-                ]);
+                $payload = ['api_url' => $setting->api_url];
+                if ($syncDate) {
+                    $payload['sync_date'] = $syncDate;
+                }
+
+                $request = Request::create('/api/fingerspot/fetch', 'POST', $payload);
 
                 $response = $controller->fetchFromApi($request);
                 $result = json_decode($response->getContent(), true);
