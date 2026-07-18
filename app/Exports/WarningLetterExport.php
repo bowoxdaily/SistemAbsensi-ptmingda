@@ -76,7 +76,7 @@ class WarningLetterExport implements FromCollection, WithHeadings, WithMapping, 
             'Jenis SP',
             'Nomor SP',
             'Tanggal Dikeluarkan',
-            'Berlaku Sampai',
+            'Tanggal Berlaku',
             'Pelanggaran',
             'Deskripsi',
             'Status',
@@ -129,7 +129,7 @@ class WarningLetterExport implements FromCollection, WithHeadings, WithMapping, 
             'F' => 25,  // Jenis SP
             'G' => 25,  // Nomor SP
             'H' => 20,  // Tanggal Dikeluarkan
-            'I' => 20,  // Berlaku Sampai
+            'I' => 20,  // Tanggal Berlaku
             'J' => 30,  // Pelanggaran
             'K' => 40,  // Deskripsi
             'L' => 15,  // Status
