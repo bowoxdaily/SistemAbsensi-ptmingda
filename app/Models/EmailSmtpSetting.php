@@ -28,6 +28,8 @@ class EmailSmtpSetting extends Model
         'join_call_subject_template',
         'join_call_body_template',
         'is_active',
+        'mailgun_api_key',
+        'mailgun_domain',
     ];
 
     protected $casts = [
@@ -45,6 +47,31 @@ class EmailSmtpSetting extends Model
 
     public function getSmtpPasswordAttribute($value): ?string
     {
+        if (empty($value)) {
+            return null;
+        }
+
+        try {
+            return Crypt::decryptString($value);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    public function setMailgunApiKeyAttribute($value): void
+    {
+        if ($value === null || $value === '') {
+            $this->attributes['mailgun_api_key'] = null;
+            return;
+        }
+
+        $this->attributes['mailgun_api_key'] = Crypt::encryptString((string) $value);
+    }
+
+    public function getMailgunApiKeyDecrypted(): ?string
+    {
+        $value = $this->attributes['mailgun_api_key'] ?? null;
+
         if (empty($value)) {
             return null;
         }

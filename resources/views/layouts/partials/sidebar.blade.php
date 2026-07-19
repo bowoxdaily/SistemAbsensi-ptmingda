@@ -276,6 +276,11 @@
                             <div data-i18n="SMTP Email">SMTP Email</div>
                         </a>
                     </li>
+                    <li class="menu-item {{ request()->routeIs('admin.settings.email-logs*') ? 'active' : '' }}">
+                        <a href="{{ route('admin.settings.email-logs') }}" class="menu-link">
+                            <div data-i18n="Log Mailgun">Log Mailgun</div>
+                        </a>
+                    </li>
                 </ul>
             </li>
 

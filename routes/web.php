@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\RekapitulasiController;
 use App\Http\Controllers\Admin\WarningLetterController;
 use App\Http\Controllers\Admin\EmailWarmupController;
 use App\Http\Controllers\Admin\EmailSmtpSettingController;
+use App\Http\Controllers\Admin\MailgunLogController;
 use App\Http\Controllers\InterviewScanController;
 use App\Http\Controllers\JoinCallScanController;
 use Illuminate\Support\Facades\Route;
@@ -103,6 +104,9 @@ Route::middleware(['auth'])->group(function () {
 
         // Email SMTP Settings (View only - API handles POST)
         Route::get('/admin/settings/email-smtp', [EmailSmtpSettingController::class, 'index'])->name('admin.settings.email-smtp');
+
+        // Mailgun Log Viewer
+        Route::get('/admin/settings/email-logs', [MailgunLogController::class, 'index'])->name('admin.settings.email-logs');
 
         // Leave Management (View only - API handles POST/DELETE)
         Route::get('/admin/leave', [\App\Http\Controllers\Admin\LeaveController::class, 'index'])->name('admin.leave.index');

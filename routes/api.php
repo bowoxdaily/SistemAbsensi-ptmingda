@@ -312,6 +312,13 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('settings/email-smtp')->grou
     Route::post('/{context}/test', [EmailSmtpSettingController::class, 'test']);
 });
 
+// Mailgun Log API
+Route::middleware(['web', 'auth', 'admin'])->prefix('settings/mailgun-logs')->group(function () {
+    Route::get('/events', [\App\Http\Controllers\Admin\MailgunLogController::class, 'events']);
+    Route::post('/config/{context}', [\App\Http\Controllers\Admin\MailgunLogController::class, 'saveConfig']);
+    Route::post('/test/{context}', [\App\Http\Controllers\Admin\MailgunLogController::class, 'testConnection']);
+});
+
 // Leave Management API (Admin)
 Route::middleware(['web', 'auth', 'admin'])->prefix('leave')->group(function () {
     Route::get('/', [\App\Http\Controllers\Admin\LeaveController::class, 'index']);
