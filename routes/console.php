@@ -34,11 +34,12 @@ Schedule::command('attendance:generate-absent')
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/generate-absent.log'));
 
-// Schedule: Auto sync Fingerspot data every 5 minutes - hanya saat jam kerja (06:00-22:00)
-// Mengambil data attlog dari API Fingerspot dan memproses ke attendance
-// Cron: setiap 5 menit antara jam 06-21 (tidak jalan tengah malam)
+// Schedule: Auto sync Fingerspot data
+// JADWAL DIOPTIMASI: Tidak jalan saat jam puncak absen masuk (07:00-08:30)
+// dan jam puncak absen pulang (16:30-18:00) — menghindari kompetisi disk I/O
+// Jalan: 06:00-06:59 (sebelum rush), 09:00-16:29 (siang), 18:01-21:00 (malam)
 Schedule::command('fingerspot:sync')
-    ->cron('*/5 6-21 * * *')
+    ->cron('*/5 6,9-16,18-21 * * *')  // skip jam 7,8,17 (peak attendance hours)
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/fingerspot-sync.log'));
@@ -52,10 +53,11 @@ Schedule::command('attendance:recalculate-overtime', ['--from' => now()->format(
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/overtime-recalculate.log'));
 
-// Schedule: Queue worker — proses jobs (email broadcast, notifikasi, dll) setiap menit
-// Menggunakan --stop-when-empty agar tidak berjalan terus-menerus (hemat resource)
-// Setiap menit scheduler memanggil queue:work sekali, memproses semua job yang ada lalu berhenti
-Schedule::command('queue:work', ['--stop-when-empty', '--max-time=55'])
+// Schedule: Queue worker — proses jobs (email broadcast, notifikasi, dll)
+// --sleep=3 : tunggu 3 detik sebelum poll ulang jika queue kosong (kurangi DB polling)
+// --max-time=50 : berhenti setelah 50 detik (memberi jeda antar run)
+// --stop-when-empty : berhenti segera jika queue sudah kosong
+Schedule::command('queue:work', ['--stop-when-empty', '--max-time=50', '--sleep=3'])
     ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground()
@@ -68,3 +70,15 @@ Schedule::command('email:dispatch-warmup')
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/warmup-emails.log'));
+
+// Schedule: Bersihkan session file expired setiap tengah malam
+// Mencegah folder storage/framework/sessions membengkak (SESSION_DRIVER=file)
+Schedule::command('session:cleanup')
+    ->dailyAt('00:30')
+    ->appendOutputTo(storage_path('logs/session-cleanup.log'));
+
+// Schedule: Bersihkan cache file expired setiap hari jam 01:00
+// Mencegah storage/framework/cache membengkak
+Schedule::command('cache:prune-stale-tags')
+    ->dailyAt('01:00')
+    ->appendOutputTo(storage_path('logs/cache-cleanup.log'));
