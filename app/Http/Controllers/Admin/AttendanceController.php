@@ -477,44 +477,23 @@ class AttendanceController extends Controller
                 $checkOutTime = now();
             }
 
-            // Calculate overtime if applicable
-            // Weekday overtime hanya untuk Staff dan Operator
+            // Calculate overtime with weekly cap
             $overtimeMinutes = 0;
             if (in_array($attendance->status, ['hadir', 'terlambat'])) {
                 try {
                     $employee = Karyawans::with(['workSchedule', 'position'])->find($request->employee_id);
-                    $isWeekday = Carbon::parse($dateString)->isWeekday();
-                    if ($employee && $employee->workSchedule && (!$isWeekday || $employee->isEligibleForWeekdayOvertime())) {
-                        $schedule = $employee->workSchedule;
-                        // WorkSchedule end_time is already a Carbon object (datetime:H:i:s cast)
-                        $endTime = $schedule->end_time;
-                        
-                        // Handle if it's a Carbon object or string
-                        if ($endTime instanceof \Carbon\Carbon) {
-                            $endHour = $endTime->hour;
-                            $endMinute = $endTime->minute;
-                        } else {
-                            preg_match('/(\d{1,2}):(\d{2})/', (string) $endTime, $match);
-                            $endHour = $match ? (int) $match[1] : 17;
-                            $endMinute = $match ? (int) $match[2] : 0;
-                        }
-                        
-                        $overtimeThreshold = $schedule->overtime_threshold ?? 50;
+                    $schedule = $employee?->workSchedule;
 
-                        // Create scheduled end time
-                        $scheduledEndTime = Carbon::parse($dateString)
-                            ->setTime($endHour, $endMinute, 0);
-
-                        // Calculate threshold time (end_time + overtime_threshold minutes)
-                        $thresholdTime = Carbon::parse($dateString)
-                            ->setTime($endHour, $endMinute, 0)
-                            ->addMinutes($overtimeThreshold);
-
-                        // Only calculate overtime if checkout is after threshold time
-                        // But calculate from end_time, not from threshold
-                        if ($checkOutTime->greaterThan($thresholdTime)) {
-                            $overtimeMinutes = $scheduledEndTime->diffInMinutes($checkOutTime);
-                        }
+                    if ($employee && $schedule) {
+                        $checkInTime = Carbon::parse($dateString . ' ' . ($attendance->check_in instanceof Carbon ? $attendance->check_in->format('H:i:s') : $attendance->check_in));
+                        $overtimeMinutes = app(\App\Services\OvertimeCalculator::class)->calculate(
+                            $attendance,
+                            Carbon::parse($dateString),
+                            $checkInTime,
+                            $checkOutTime,
+                            $schedule,
+                            $employee->isEligibleForWeekdayOvertime()
+                        );
                     }
                 } catch (\Exception $e) {
                     \Log::warning('Failed to calculate overtime: ' . $e->getMessage());
@@ -941,48 +920,25 @@ class AttendanceController extends Controller
                 $lateMinutes = $request->late_minutes ?? 0;
             }
 
-            // Calculate overtime minutes if check_out is provided
-            // Weekday overtime hanya untuk Staff dan Operator
+            // Calculate overtime with weekly cap
             $overtimeMinutes = 0;
-            $isWeekday = Carbon::parse($request->attendance_date)->isWeekday();
             $employee = $attendance->employee;
             if (!$employee->relationLoaded('position')) {
                 $employee->load('position');
             }
-            if (in_array($request->status, ['hadir', 'terlambat']) && $schedule && $request->check_out && (!$isWeekday || $employee->isEligibleForWeekdayOvertime())) {
+            if (in_array($request->status, ['hadir', 'terlambat']) && $schedule && $request->check_out) {
                 try {
-                    // Parse check-out time
+                    $checkInTime = Carbon::parse($request->attendance_date . ' ' . $request->check_in);
                     $checkOutTime = Carbon::createFromFormat('Y-m-d H:i', $request->attendance_date . ' ' . $request->check_out);
 
-                    // WorkSchedule end_time is already a Carbon object (datetime:H:i:s cast)
-                    $endTime = $schedule->end_time;
-                    
-                    // Handle if it's a Carbon object or string
-                    if ($endTime instanceof \Carbon\Carbon) {
-                        $endHour = $endTime->hour;
-                        $endMinute = $endTime->minute;
-                    } else {
-                        preg_match('/(\d{1,2}):(\d{2})/', (string) $endTime, $match);
-                        $endHour = $match ? (int) $match[1] : 17;
-                        $endMinute = $match ? (int) $match[2] : 0;
-                    }
-                    
-                    $overtimeThreshold = $schedule->overtime_threshold ?? 50;
-
-                    // Create scheduled end time
-                    $scheduledEndTime = Carbon::parse($request->attendance_date)
-                        ->setTime($endHour, $endMinute, 0);
-
-                    // Calculate threshold time (end_time + overtime_threshold minutes)
-                    $thresholdTime = Carbon::parse($request->attendance_date)
-                        ->setTime($endHour, $endMinute, 0)
-                        ->addMinutes($overtimeThreshold);
-
-                    // Only calculate overtime if checkout is after threshold time
-                    // But calculate from end_time, not from threshold
-                    if ($checkOutTime->greaterThan($thresholdTime)) {
-                        $overtimeMinutes = $scheduledEndTime->diffInMinutes($checkOutTime);
-                    }
+                    $overtimeMinutes = app(\App\Services\OvertimeCalculator::class)->calculate(
+                        $attendance,
+                        Carbon::parse($request->attendance_date),
+                        $checkInTime,
+                        $checkOutTime,
+                        $schedule,
+                        $employee->isEligibleForWeekdayOvertime()
+                    );
                 } catch (\Exception $e) {
                     \Log::warning('Failed to calculate overtime in update: ' . $e->getMessage());
                     $overtimeMinutes = 0;
@@ -1122,31 +1078,21 @@ class AttendanceController extends Controller
                 $checkOutTime = \Carbon\Carbon::parse($log->scan_time)->format('H:i:s');
                 $schedule     = $employee->workSchedule ?? null;
 
-                // Calculate overtime
-                // Weekday overtime hanya untuk Staff dan Operator
+                // Calculate overtime with weekly cap
                 $overtimeMinutes = 0;
-                $isWeekday = Carbon::parse($request->date)->isWeekday();
-                if ($schedule && (!$isWeekday || $employee->isEligibleForWeekdayOvertime())) {
+                if ($schedule) {
                     try {
-                        $endTime = $schedule->end_time;
-                        
-                        if ($endTime instanceof \Carbon\Carbon) {
-                            $endHour = $endTime->hour;
-                            $endMinute = $endTime->minute;
-                        } else {
-                            preg_match('/(\d{1,2}):(\d{2})/', (string) $endTime, $match);
-                            $endHour = $match ? (int) $match[1] : 17;
-                            $endMinute = $match ? (int) $match[2] : 0;
-                        }
-                        
-                        $threshold     = $schedule->overtime_threshold ?? 50;
-                        $scheduledEnd  = \Carbon\Carbon::parse($request->date)->setTime($endHour, $endMinute, 0);
-                        $thresholdTime = (clone $scheduledEnd)->addMinutes($threshold);
-                        $actualOut     = \Carbon\Carbon::parse($request->date . ' ' . $checkOutTime);
+                        $checkInTime = Carbon::parse($request->date . ' ' . ($attendance->check_in instanceof Carbon ? $attendance->check_in->format('H:i:s') : $attendance->check_in));
+                        $actualOut = Carbon::parse($request->date . ' ' . $checkOutTime);
 
-                        if ($actualOut->greaterThan($thresholdTime)) {
-                            $overtimeMinutes = $scheduledEnd->diffInMinutes($actualOut);
-                        }
+                        $overtimeMinutes = app(\App\Services\OvertimeCalculator::class)->calculate(
+                            $attendance,
+                            Carbon::parse($request->date),
+                            $checkInTime,
+                            $actualOut,
+                            $schedule,
+                            $employee->isEligibleForWeekdayOvertime()
+                        );
                     } catch (\Exception $e) {
                         \Log::warning('Bulk checkout overtime calc error', [
                             'employee_id' => $employee->id,
@@ -1303,7 +1249,7 @@ class AttendanceController extends Controller
                 $query->whereDate('attendance_date', '<=', $to);
             }
 
-            $attendances = $query->get();
+            $attendances = $query->orderBy('employee_id')->orderBy('attendance_date')->orderBy('id')->get();
             $total = $attendances->count();
 
             if ($total === 0) {
@@ -1317,6 +1263,7 @@ class AttendanceController extends Controller
             $updated = 0;
             $skipped = 0;
 
+            $weeklyUsage = [];
             foreach ($attendances as $attendance) {
                 $processed++;
 
@@ -1326,67 +1273,41 @@ class AttendanceController extends Controller
                     continue;
                 }
 
-                // Weekday overtime hanya untuk Staff dan Operator
-                $isWeekday = Carbon::parse($attendance->attendance_date)->isWeekday();
-                if ($isWeekday && !$attendance->employee->isEligibleForWeekdayOvertime()) {
-                    // Jabatan non-eligible: set overtime ke 0 jika sebelumnya ada
-                    if ($attendance->overtime_minutes != 0) {
-                        $attendance->overtime_minutes = 0;
-                        $attendance->save();
-                        $updated++;
-                    } else {
-                        $skipped++;
-                    }
-                    continue;
-                }
-
                 $schedule = $attendance->employee->workSchedule;
 
                 try {
+                    $attendanceDate = Carbon::parse($attendance->attendance_date);
+                    $weekKey = $attendance->employee_id . '|' . $attendanceDate->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
+                    $currentWeeklyUsed = $weeklyUsage[$weekKey] ?? 0;
+
                     // Parse check-out time
                     $checkOutTimeStr = $attendance->check_out;
 
                     if ($checkOutTimeStr instanceof \Carbon\Carbon) {
-                        $checkOutTime = Carbon::parse($attendance->attendance_date->format('Y-m-d') . ' ' . $checkOutTimeStr->format('H:i:s'));
+                        $checkOutTime = Carbon::parse($attendanceDate->format('Y-m-d') . ' ' . $checkOutTimeStr->format('H:i:s'));
                     } else {
-                        $checkOutTime = Carbon::parse($attendance->attendance_date->format('Y-m-d') . ' ' . $checkOutTimeStr);
+                        $checkOutTime = Carbon::parse($attendanceDate->format('Y-m-d') . ' ' . $checkOutTimeStr);
                     }
 
-                    // WorkSchedule end_time is already a Carbon object (datetime:H:i:s cast)
-                    $endTime = $schedule->end_time;
-                    
-                    // Handle if it's a Carbon object or string
-                    if ($endTime instanceof \Carbon\Carbon) {
-                        $endHour = $endTime->hour;
-                        $endMinute = $endTime->minute;
-                    } else {
-                        preg_match('/(\d{1,2}):(\d{2})/', (string) $endTime, $match);
-                        $endHour = $match ? (int) $match[1] : 17;
-                        $endMinute = $match ? (int) $match[2] : 0;
-                    }
-                    
-                    $overtimeThreshold = $schedule->overtime_threshold ?? 50;
-
-                    // Create scheduled end time
-                    $scheduledEndTime = Carbon::parse($attendance->attendance_date->format('Y-m-d'))
-                        ->setTime($endHour, $endMinute, 0);
-
-                    // Calculate threshold time
-                    $thresholdTime = Carbon::parse($attendance->attendance_date->format('Y-m-d'))
-                        ->setTime($endHour, $endMinute, 0)
-                        ->addMinutes($overtimeThreshold);
-
-                    // Calculate overtime
-                    $overtimeMinutes = 0;
-                    if ($checkOutTime->greaterThan($thresholdTime)) {
-                        $overtimeMinutes = $scheduledEndTime->diffInMinutes($checkOutTime);
-                    }
+                    $checkInTime = Carbon::parse($attendanceDate->format('Y-m-d') . ' ' . ($attendance->check_in instanceof Carbon ? $attendance->check_in->format('H:i:s') : $attendance->check_in));
+                    $overtimeMinutes = app(\App\Services\OvertimeCalculator::class)->calculate(
+                        $attendance,
+                        $attendanceDate,
+                        $checkInTime,
+                        $checkOutTime,
+                        $schedule,
+                        $attendance->employee->isEligibleForWeekdayOvertime(),
+                        $currentWeeklyUsed
+                    );
 
                     // Update if different from current value
                     if ($attendance->overtime_minutes != $overtimeMinutes) {
                         $attendance->overtime_minutes = $overtimeMinutes;
                         $attendance->save();
                         $updated++;
+                        $weeklyUsage[$weekKey] = $currentWeeklyUsed + $overtimeMinutes;
+                    } else {
+                        $weeklyUsage[$weekKey] = $currentWeeklyUsed + $overtimeMinutes;
                     }
                 } catch (\Exception $e) {
                     $skipped++;

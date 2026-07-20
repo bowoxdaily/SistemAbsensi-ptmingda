@@ -112,12 +112,11 @@
                     <input type="date" class="form-control" id="filter-end">
                 </div>
                 <div class="col-12 col-md-2">
-                    <label class="form-label">Jumlah</label>
+                    <label class="form-label">Per Halaman</label>
                     <select class="form-select" id="filter-limit">
-                        <option value="25">25</option>
-                        <option value="50" selected>50</option>
-                        <option value="100">100</option>
-                        <option value="300">300</option>
+                        <option value="15">15</option>
+                        <option value="25" selected>25</option>
+                        <option value="45">45</option>
                     </select>
                 </div>
                 <div class="col-12 col-md-4">
@@ -164,25 +163,11 @@
             </table>
         </div>
 
-        <div class="card-footer d-flex justify-content-between align-items-center py-2" id="log-footer" hidden>
-            <div class="text-muted" id="log-page-info" style="font-size:0.875rem"></div>
-            <nav>
-                <ul class="pagination pagination-sm mb-0">
-                    <li class="page-item" id="pg-prev">
-                        <button class="page-link" id="btn-prev-page" disabled>
-                            <i class="bx bx-chevron-left"></i> Sebelumnya
-                        </button>
-                    </li>
-                    <li class="page-item active" id="pg-num">
-                        <span class="page-link" id="page-num-label">1</span>
-                    </li>
-                    <li class="page-item" id="pg-next">
-                        <button class="page-link" id="btn-next-page" disabled>
-                            Berikutnya <i class="bx bx-chevron-right"></i>
-                        </button>
-                    </li>
-                </ul>
-            </nav>
+        <div class="card-footer" id="paginationContainer" style="display:none;">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="text-muted small" id="paginationInfo"></div>
+                <div id="paginationLinks"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -267,22 +252,16 @@
     });
 
     // ── Fetch Logs ────────────────────────────────────────────────────
-    const btnFetch    = document.getElementById('btn-fetch-logs');
-    const tbody       = document.getElementById('log-tbody');
-    const totalBadge  = document.getElementById('total-badge');
-    const alertBox    = document.getElementById('log-alert-container');
-    const logFooter   = document.getElementById('log-footer');
-    const btnPrev     = document.getElementById('btn-prev-page');
-    const btnNext     = document.getElementById('btn-next-page');
-    const pageLabel   = document.getElementById('page-num-label');
-    const pageInfo    = document.getElementById('log-page-info');
+    const btnFetch   = document.getElementById('btn-fetch-logs');
+    const tbody      = document.getElementById('log-tbody');
+    const totalBadge = document.getElementById('total-badge');
+    const alertBox   = document.getElementById('log-alert-container');
 
-    // Pagination state
-    let currentPage    = 1;
-    let nextCursor     = null;
-    let prevCursor     = null;
-    // Stack of previous-page cursors so "Prev" can go backwards
-    let cursorStack    = [];  // [{next, prev}] per page visited
+    // Pagination state (cursor-based — Mailgun doesn't return total pages)
+    let currentPage = 1;
+    let nextCursor  = null;
+    let prevCursor  = null;
+    let cursorStack = []; // stack of next-cursor per visited page
 
     const EVENT_BADGES = {
         delivered:    'bg-success',
@@ -317,9 +296,9 @@
 
         tbody.innerHTML = items.map(item => {
             const eventClass = EVENT_BADGES[item.event] || 'bg-secondary';
-            const ctx = item._context || '';
-            const ctxBadge = CONTEXT_LABELS[ctx] || `<span class="badge bg-secondary">${escHtml(ctx)}</span>`;
-            const reason = [item.reason, item.description].filter(Boolean).join(' — ');
+            const ctx        = item._context || '';
+            const ctxBadge   = CONTEXT_LABELS[ctx] || `<span class="badge bg-secondary">${escHtml(ctx)}</span>`;
+            const reason     = [item.reason, item.description].filter(Boolean).join(' — ');
 
             return `<tr>
                 <td class="text-nowrap" style="font-size:0.8rem">${escHtml(item.datetime)}</td>
@@ -335,23 +314,72 @@
         }).join('');
     }
 
-    function updatePagination(data) {
-        nextCursor = data.next_cursor || null;
-        prevCursor = data.prev_cursor || null;
+    function renderPagination(total, nCursor, pCursor) {
+        nextCursor = nCursor || null;
+        prevCursor = pCursor || null;
 
-        btnNext.disabled = !nextCursor;
-        btnPrev.disabled = currentPage <= 1;
+        const hasPrev = currentPage > 1;
+        const hasNext = !!nextCursor;
 
-        pageLabel.textContent = currentPage;
-        pageInfo.textContent  = `Halaman ${currentPage} · ${data.total ?? 0} item`;
+        // Always show footer when there is data
+        if (total === 0 && !hasPrev) {
+            $('#paginationContainer').hide();
+            return;
+        }
 
-        // Show/hide footer: show when pagination is available or page > 1
-        const hasPaging = nextCursor || currentPage > 1;
-        logFooter.hidden = !hasPaging;
+        const limit = parseInt(document.getElementById('filter-limit').value, 10) || 25;
+        const from  = (currentPage - 1) * limit + 1;
+        const to    = (currentPage - 1) * limit + total;
+
+        $('#paginationInfo').text(`Menampilkan ${from}–${to} item · Halaman ${currentPage}`);
+
+        let links = '<ul class="pagination pagination-sm mb-0">';
+
+        // Previous
+        links += `<li class="page-item ${!hasPrev ? 'disabled' : ''}">
+            <a class="page-link" href="#" id="pg-prev-link">&#8249;</a></li>`;
+
+        // Current page badge
+        links += `<li class="page-item active">
+            <span class="page-link">${currentPage}</span></li>`;
+
+        // Next
+        links += `<li class="page-item ${!hasNext ? 'disabled' : ''}">
+            <a class="page-link" href="#" id="pg-next-link">&#8250;</a></li>`;
+
+        links += '</ul>';
+
+        $('#paginationLinks').html(links);
+        $('#paginationContainer').show();
+
+        // Bind nav buttons after render
+        if (hasPrev) {
+            $('#pg-prev-link').off('click').on('click', function (e) {
+                e.preventDefault();
+                cursorStack.pop();
+                currentPage--;
+                const params = buildBaseParams();
+                if (currentPage > 1 && cursorStack.length > 0) {
+                    params.set('cursor', cursorStack[cursorStack.length - 1]);
+                }
+                doFetch(params, false);
+            });
+        }
+
+        if (hasNext) {
+            $('#pg-next-link').off('click').on('click', function (e) {
+                e.preventDefault();
+                cursorStack.push(nextCursor);
+                currentPage++;
+                const params = buildBaseParams();
+                params.set('cursor', nextCursor);
+                doFetch(params, false);
+            });
+        }
     }
 
     function buildBaseParams() {
-        const params = new URLSearchParams();
+        const params    = new URLSearchParams();
         const context   = document.getElementById('filter-context').value;
         const event     = document.getElementById('filter-event').value;
         const begin     = document.getElementById('filter-begin').value;
@@ -369,15 +397,15 @@
         return params;
     }
 
-    async function doFetch(params, isLoading = true) {
-        if (isLoading) {
-            btnFetch.disabled = true;
-            btnFetch.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Memuat...';
-            btnPrev.disabled  = true;
-            btnNext.disabled  = true;
-        }
+    async function doFetch(params, resetPagination = true) {
+        btnFetch.disabled = true;
+        btnFetch.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Memuat...';
         alertBox.innerHTML = '';
         tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4"><span class="spinner-border spinner-border-sm me-2"></span>Mengambil data dari Mailgun...</td></tr>';
+
+        if (resetPagination) {
+            $('#paginationContainer').hide();
+        }
 
         try {
             const res  = await fetch(`/api/settings/mailgun-logs/events?${params.toString()}`, {
@@ -389,7 +417,7 @@
                 alertBox.innerHTML = `<div class="alert alert-danger m-3">${escHtml(data.message || 'Gagal mengambil log')}</div>`;
                 tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Gagal memuat data.</td></tr>';
                 totalBadge.textContent = '0';
-                logFooter.hidden = true;
+                $('#paginationContainer').hide();
                 return;
             }
 
@@ -397,9 +425,9 @@
                 alertBox.innerHTML = `<div class="alert alert-warning m-3">${escHtml(data.warning)}</div>`;
             }
 
-            totalBadge.textContent = data.total ?? data.data?.length ?? 0;
+            totalBadge.textContent = data.total ?? 0;
             renderRows(data.data || []);
-            updatePagination(data);
+            renderPagination(data.total ?? 0, data.next_cursor ?? null, data.prev_cursor ?? null);
         } catch (err) {
             alertBox.innerHTML = `<div class="alert alert-danger m-3">Terjadi kesalahan: ${escHtml(err.message)}</div>`;
             tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Error.</td></tr>';
@@ -409,48 +437,22 @@
         }
     }
 
-    // First-page / filter reset fetch
+    // First load / filter reset
     btnFetch.addEventListener('click', function () {
-        currentPage  = 1;
-        nextCursor   = null;
-        prevCursor   = null;
-        cursorStack  = [];
-        logFooter.hidden = true;
-        doFetch(buildBaseParams());
+        currentPage = 1;
+        nextCursor  = null;
+        prevCursor  = null;
+        cursorStack = [];
+        doFetch(buildBaseParams(), true);
     });
 
-    // Next page
-    btnNext.addEventListener('click', function () {
-        if (!nextCursor) return;
-        // Save current cursors so we can go back
-        cursorStack.push({ next: nextCursor, prev: prevCursor });
-        currentPage++;
-        const params = buildBaseParams();
-        params.set('cursor', nextCursor);
-        doFetch(params, false);
-    });
-
-    // Previous page
-    btnPrev.addEventListener('click', function () {
-        if (currentPage <= 1) return;
-        cursorStack.pop();
-        currentPage--;
-        const params = buildBaseParams();
-        if (currentPage > 1 && cursorStack.length > 0) {
-            // Use the saved "next" cursor of the previous page
-            params.set('cursor', cursorStack[cursorStack.length - 1].next);
-        }
-        // page 1 has no cursor — just fetch fresh
-        doFetch(params, false);
-    });
-
-    // Reset pagination when any filter changes
+    // Reset pagination counter when filter values change
     ['filter-context','filter-event','filter-begin','filter-end','filter-limit','filter-recipient']
         .forEach(id => {
             const el = document.getElementById(id);
             if (el) el.addEventListener('change', () => {
                 currentPage = 1; nextCursor = null; prevCursor = null; cursorStack = [];
-                logFooter.hidden = true;
+                $('#paginationContainer').hide();
             });
         });
 })();

@@ -136,6 +136,46 @@
                         </div>
                     </div>
                 </div>
+                <div class="col-12 mb-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-start justify-content-between mb-3">
+                                <div>
+                                    <span class="d-block fw-semibold">Jam Kerja Minggu Ini</span>
+                                    <small class="text-muted">Batas maksimum 60 jam/minggu</small>
+                                </div>
+                                <span class="badge rounded-pill {{ ($weeklyWorkSummary['is_over_limit'] ?? false) ? 'bg-danger' : 'bg-success' }}">
+                                    {{ ($weeklyWorkSummary['is_over_limit'] ?? false) ? 'Lewat Batas' : 'Aman' }}
+                                </span>
+                            </div>
+
+                            <h3 class="card-title mb-1">{{ $weeklyWorkSummary['formatted_hours'] ?? '0 jam 00 menit' }}</h3>
+                            <p class="mb-3 text-muted">
+                                Dari batas <strong>60 jam</strong>, sisa
+                                <strong>{{ number_format($weeklyWorkSummary['remaining_hours'] ?? 60, 2) }} jam</strong>
+                            </p>
+
+                            <div class="progress mb-2" style="height: 10px;">
+                                <div class="progress-bar {{ ($weeklyWorkSummary['is_over_limit'] ?? false) ? 'bg-danger' : 'bg-primary' }}"
+                                    role="progressbar"
+                                    style="width: {{ $weeklyWorkSummary['progress_percent'] ?? 0 }}%"
+                                    aria-valuenow="{{ $weeklyWorkSummary['progress_percent'] ?? 0 }}"
+                                    aria-valuemin="0"
+                                    aria-valuemax="100">
+                                </div>
+                            </div>
+
+                            <small class="text-muted d-block">
+                                Periode: {{ isset($weeklyWorkSummary['week_start']) ? $weeklyWorkSummary['week_start']->translatedFormat('d M') : '-' }}
+                                - {{ isset($weeklyWorkSummary['week_end']) ? $weeklyWorkSummary['week_end']->translatedFormat('d M Y') : '-' }}
+                            </small>
+
+                            <a href="{{ route('admin.weekly-hours') }}" class="btn btn-sm btn-outline-primary mt-3">
+                                Lihat Detail Mingguan
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

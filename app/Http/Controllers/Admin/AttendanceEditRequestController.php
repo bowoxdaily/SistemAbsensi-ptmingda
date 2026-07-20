@@ -243,35 +243,25 @@ class AttendanceEditRequestController extends Controller
             }
         }
 
-        // Hitung overtime_minutes
-        // Weekday overtime hanya untuk Staff dan Operator
+        // Hitung overtime_minutes dengan batas mingguan
         $overtimeMinutes = 0;
-        $isWeekday = $newDate ? Carbon::parse($newDate)->isWeekday() : true;
         $employee = $attendance->employee;
         if (!$employee->relationLoaded('position')) {
             $employee->load('position');
         }
-        if (in_array($newStatus, ['hadir', 'terlambat']) && $schedule && $newCheckOut && (!$isWeekday || $employee->isEligibleForWeekdayOvertime())) {
+        if (in_array($newStatus, ['hadir', 'terlambat']) && $schedule && $newCheckOut) {
             try {
+                $checkInTime = Carbon::parse($newDate . ' ' . $newCheckIn);
                 $checkOutTime = Carbon::createFromFormat('Y-m-d H:i', $newDate . ' ' . $newCheckOut);
-                $endTime      = $schedule->end_time;
 
-                if ($endTime instanceof Carbon) {
-                    $endHour   = $endTime->hour;
-                    $endMinute = $endTime->minute;
-                } else {
-                    preg_match('/(\d{1,2}):(\d{2})/', (string) $endTime, $match);
-                    $endHour   = $match ? (int) $match[1] : 17;
-                    $endMinute = $match ? (int) $match[2] : 0;
-                }
-
-                $overtimeThreshold = $schedule->overtime_threshold ?? 50;
-                $scheduledEndTime  = Carbon::parse($newDate)->setTime($endHour, $endMinute, 0);
-                $thresholdTime     = Carbon::parse($newDate)->setTime($endHour, $endMinute, 0)->addMinutes($overtimeThreshold);
-
-                if ($checkOutTime->greaterThan($thresholdTime)) {
-                    $overtimeMinutes = $scheduledEndTime->diffInMinutes($checkOutTime);
-                }
+                $overtimeMinutes = app(\App\Services\OvertimeCalculator::class)->calculate(
+                    $attendance,
+                    Carbon::parse($newDate),
+                    $checkInTime,
+                    $checkOutTime,
+                    $schedule,
+                    $employee->isEligibleForWeekdayOvertime()
+                );
             } catch (\Exception $e) {
                 $overtimeMinutes = 0;
             }

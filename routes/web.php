@@ -137,6 +137,9 @@ Route::middleware(['auth'])->group(function () {
 
     // Viewer Routes (accessible by admin, manager, viewer)
     Route::middleware(['viewer'])->group(function () {
+        // Weekly work-hours summary
+        Route::get('/admin/weekly-hours', [DashboardController::class, 'weeklyWorkHours'])->name('admin.weekly-hours');
+
         // Karyawan - Read Only
         Route::get('/admin/karyawan', [KaryawanController::class, 'dashboard'])->name('admin.karyawan.index');
         Route::get('/admin/karyawan/export', [KaryawanController::class, 'export'])->name('admin.karyawan.export');

@@ -468,41 +468,21 @@ class AttendanceController extends Controller
             // Save photo
             $photoPath = $this->saveBase64Image($request->photo, 'attendance/check-out');
 
-            // Calculate overtime if applicable
-            // Weekday overtime hanya untuk Staff dan Operator
+            // Calculate overtime with weekly cap
             $overtimeMinutes = 0;
-            $isWeekday = Carbon::today()->isWeekday();
-            if (in_array($attendance->status, ['hadir', 'terlambat']) && (!$isWeekday || $employee->isEligibleForWeekdayOvertime())) {
+            if (in_array($attendance->status, ['hadir', 'terlambat'])) {
                 try {
                     $checkOutTime = Carbon::now();
-                    // WorkSchedule end_time is already a Carbon object (datetime:H:i:s cast)
-                    $endTime = $schedule->end_time;
-                    
-                    // Handle if it's a Carbon object or string
-                    if ($endTime instanceof \Carbon\Carbon) {
-                        $endHour = $endTime->hour;
-                        $endMinute = $endTime->minute;
-                    } else {
-                        preg_match('/(\d{1,2}):(\d{2})/', (string) $endTime, $match);
-                        $endHour = $match ? (int) $match[1] : 17;
-                        $endMinute = $match ? (int) $match[2] : 0;
-                    }
-                    
-                    $overtimeThreshold = $schedule->overtime_threshold ?? 50;
+                    $checkInTime = Carbon::parse(Carbon::today()->format('Y-m-d') . ' ' . ($attendance->check_in instanceof Carbon ? $attendance->check_in->format('H:i:s') : $attendance->check_in));
 
-                    // Create end time for today
-                    $scheduledEndTime = Carbon::today()->setTime($endHour, $endMinute, 0);
-
-                    // Calculate threshold time (end_time + overtime_threshold minutes)
-                    $thresholdTime = Carbon::today()
-                        ->setTime($endHour, $endMinute, 0)
-                        ->addMinutes($overtimeThreshold);
-
-                    // Only calculate overtime if checkout is after threshold time
-                    // But calculate from end_time, not from threshold
-                    if ($checkOutTime->greaterThan($thresholdTime)) {
-                        $overtimeMinutes = $scheduledEndTime->diffInMinutes($checkOutTime);
-                    }
+                    $overtimeMinutes = app(\App\Services\OvertimeCalculator::class)->calculate(
+                        $attendance,
+                        Carbon::today(),
+                        $checkInTime,
+                        $checkOutTime,
+                        $schedule,
+                        $employee->isEligibleForWeekdayOvertime()
+                    );
                 } catch (\Exception $e) {
                     Log::warning('Failed to calculate overtime: ' . $e->getMessage());
                     $overtimeMinutes = 0;

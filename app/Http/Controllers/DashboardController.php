@@ -66,6 +66,7 @@ class DashboardController extends Controller
                 ->take(5)
                 ->get(),
             'statistikMingguIni' => $this->getWeeklyStats(),
+            'weeklyWorkSummary' => $this->getWeeklyWorkSummary(),
         ];
 
         return view('dashboard.admin', $data);
@@ -106,9 +107,29 @@ class DashboardController extends Controller
                 ->take(8)
                 ->get(),
             'statistikMingguIni' => $this->getWeeklyStats(),
+            'weeklyWorkSummary' => $this->getWeeklyWorkSummary(),
         ];
 
         return view('dashboard.viewer', $data);
+    }
+
+    /**
+     * Halaman detail jam kerja mingguan.
+     */
+    public function weeklyWorkHours(Request $request)
+    {
+        $period = $this->resolveWorkPeriod($request);
+        $employeesOverLimit = $this->getEmployeesOverLimit($period['start'], $period['end']);
+        $weekAnchor = $period['anchor_date']->format('Y-m-d');
+
+        return view('dashboard.weekly-hours', [
+            'employeesOverLimit' => $employeesOverLimit,
+            'overLimitCount' => $employeesOverLimit->count(),
+            'period' => $period,
+            'filters' => [
+                'week_date' => $weekAnchor,
+            ],
+        ]);
     }
 
     /**
@@ -190,6 +211,141 @@ class DashboardController extends Controller
         }
 
         return $stats;
+    }
+
+    /**
+     * Hitung total jam kerja 7 hari terakhir dan bandingkan dengan limit 60 jam.
+     */
+    private function getWeeklyWorkSummary(): array
+    {
+        $weekStart = Carbon::today()->startOfWeek(Carbon::MONDAY)->startOfDay();
+        $weekEnd = Carbon::today()->endOfWeek(Carbon::SUNDAY)->endOfDay();
+
+        return $this->getWorkSummaryForRange($weekStart, $weekEnd);
+    }
+
+    /**
+     * Hitung total jam kerja untuk rentang tanggal apa pun dan bandingkan dengan limit 60 jam.
+     */
+    private function getWorkSummaryForRange(Carbon $startDate, Carbon $endDate): array
+    {
+        $rangeStart = $startDate->copy()->startOfDay();
+        $rangeEnd = $endDate->copy()->endOfDay();
+
+        $attendances = Attendance::query()
+            ->whereBetween('attendance_date', [$rangeStart->toDateString(), $rangeEnd->toDateString()])
+            ->whereNotNull('check_in')
+            ->whereNotNull('check_out')
+            ->whereIn('status', ['hadir', 'terlambat', 'lembur'])
+            ->get();
+
+        $totalMinutes = 0;
+
+        foreach ($attendances as $attendance) {
+            try {
+                $attendanceDate = Carbon::parse($attendance->attendance_date);
+                $checkInTime = Carbon::parse($attendanceDate->format('Y-m-d') . ' ' . (string) $attendance->check_in);
+                $checkOutTime = Carbon::parse($attendanceDate->format('Y-m-d') . ' ' . (string) $attendance->check_out);
+
+                if ($checkOutTime->greaterThan($checkInTime)) {
+                    $totalMinutes += $checkInTime->diffInMinutes($checkOutTime);
+                }
+            } catch (\Throwable $e) {
+                continue;
+            }
+        }
+
+        $limitMinutes = 60 * 60;
+        $remainingMinutes = max(0, $limitMinutes - $totalMinutes);
+
+        return [
+            'total_minutes' => $totalMinutes,
+            'total_hours' => round($totalMinutes / 60, 2),
+            'formatted_hours' => intdiv($totalMinutes, 60) . ' jam ' . str_pad((string) ($totalMinutes % 60), 2, '0', STR_PAD_LEFT) . ' menit',
+            'limit_minutes' => $limitMinutes,
+            'limit_hours' => 60,
+            'remaining_minutes' => $remainingMinutes,
+            'remaining_hours' => round($remainingMinutes / 60, 2),
+            'is_over_limit' => $totalMinutes > $limitMinutes,
+            'progress_percent' => min(100, (int) round(($totalMinutes / $limitMinutes) * 100)),
+            'week_start' => $rangeStart,
+            'week_end' => $rangeEnd,
+        ];
+    }
+
+    /**
+     * Tentukan periode laporan dari filter bulan atau tanggal.
+     */
+    private function resolveWorkPeriod(Request $request): array
+    {
+        $anchorDate = $request->filled('week_date')
+            ? Carbon::parse($request->get('week_date'))
+            : Carbon::today();
+
+        $start = $anchorDate->copy()->startOfWeek(Carbon::MONDAY)->startOfDay();
+        $end = $anchorDate->copy()->endOfWeek(Carbon::SUNDAY)->endOfDay();
+
+        return [
+            'mode' => 'week',
+            'start' => $start,
+            'end' => $end,
+            'anchor_date' => $anchorDate->copy()->startOfDay(),
+        ];
+    }
+
+    /**
+     * List karyawan yang melebihi 60 jam pada rentang tertentu.
+     */
+    private function getEmployeesOverLimit(Carbon $startDate, Carbon $endDate)
+    {
+        $attendances = Attendance::with('employee')
+            ->whereBetween('attendance_date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->whereNotNull('check_in')
+            ->whereNotNull('check_out')
+            ->whereIn('status', ['hadir', 'terlambat', 'lembur'])
+            ->get();
+
+        $grouped = $attendances->groupBy('employee_id');
+
+        return $grouped->map(function ($items) use ($startDate, $endDate) {
+            $employee = $items->first()->employee;
+            $totalMinutes = $this->sumWorkMinutes($items);
+
+            return [
+                'employee' => $employee,
+                'total_minutes' => $totalMinutes,
+                'total_hours' => round($totalMinutes / 60, 2),
+                'formatted_hours' => intdiv($totalMinutes, 60) . ' jam ' . str_pad((string) ($totalMinutes % 60), 2, '0', STR_PAD_LEFT) . ' menit',
+                'is_over_limit' => $totalMinutes > 3600,
+                'remaining_hours' => round(max(0, 3600 - $totalMinutes) / 60, 2),
+                'week_start' => $startDate->copy()->startOfDay(),
+                'week_end' => $endDate->copy()->endOfDay(),
+            ];
+        })->sortByDesc('total_minutes')->values();
+    }
+
+    /**
+     * Hitung total menit kerja dari koleksi attendance.
+     */
+    private function sumWorkMinutes($attendances): int
+    {
+        $totalMinutes = 0;
+
+        foreach ($attendances as $attendance) {
+            try {
+                $attendanceDate = Carbon::parse($attendance->attendance_date);
+                $checkInTime = Carbon::parse($attendanceDate->format('Y-m-d') . ' ' . (string) $attendance->check_in);
+                $checkOutTime = Carbon::parse($attendanceDate->format('Y-m-d') . ' ' . (string) $attendance->check_out);
+
+                if ($checkOutTime->greaterThan($checkInTime)) {
+                    $totalMinutes += $checkInTime->diffInMinutes($checkOutTime);
+                }
+            } catch (\Throwable $e) {
+                continue;
+            }
+        }
+
+        return $totalMinutes;
     }
 
     /**
