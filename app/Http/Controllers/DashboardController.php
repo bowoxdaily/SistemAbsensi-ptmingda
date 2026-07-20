@@ -248,7 +248,7 @@ class DashboardController extends Controller
                 $checkOutTime = Carbon::parse($attendanceDate->format('Y-m-d') . ' ' . (string) $attendance->check_out);
 
                 if ($checkOutTime->greaterThan($checkInTime)) {
-                    $totalMinutes += $checkInTime->diffInMinutes($checkOutTime);
+                    $totalMinutes += $this->calculateNetWorkMinutes($attendanceDate, $checkInTime, $checkOutTime);
                 }
             } catch (\Throwable $e) {
                 continue;
@@ -338,7 +338,7 @@ class DashboardController extends Controller
                 $checkOutTime = Carbon::parse($attendanceDate->format('Y-m-d') . ' ' . (string) $attendance->check_out);
 
                 if ($checkOutTime->greaterThan($checkInTime)) {
-                    $totalMinutes += $checkInTime->diffInMinutes($checkOutTime);
+                    $totalMinutes += $this->calculateNetWorkMinutes($attendanceDate, $checkInTime, $checkOutTime);
                 }
             } catch (\Throwable $e) {
                 continue;
@@ -346,6 +346,43 @@ class DashboardController extends Controller
         }
 
         return $totalMinutes;
+    }
+
+    /**
+     * Hitung menit kerja bersih dengan mengurangi waktu istirahat yang terpotong dalam interval kerja.
+     */
+    private function calculateNetWorkMinutes(Carbon $attendanceDate, Carbon $checkInTime, Carbon $checkOutTime): int
+    {
+        $totalMinutes = $checkInTime->diffInMinutes($checkOutTime);
+        $breakMinutes = $this->calculateBreakMinutes($attendanceDate, $checkInTime, $checkOutTime);
+
+        return max(0, $totalMinutes - $breakMinutes);
+    }
+
+    /**
+     * Hitung durasi istirahat yang overlap dengan jam kerja.
+     */
+    private function calculateBreakMinutes(Carbon $attendanceDate, Carbon $checkInTime, Carbon $checkOutTime): int
+    {
+        $breakStart = $attendanceDate->copy()->setTime(12, 0, 0);
+        $breakEnd = $attendanceDate->copy()->setTime(13, 0, 0);
+
+        if ($attendanceDate->isFriday()) {
+            $breakStart = $attendanceDate->copy()->setTime(11, 30, 0);
+        }
+
+        if ($checkOutTime->lessThanOrEqualTo($breakStart) || $checkInTime->greaterThanOrEqualTo($breakEnd)) {
+            return 0;
+        }
+
+        $overlapStart = $checkInTime->greaterThan($breakStart) ? $checkInTime->copy() : $breakStart;
+        $overlapEnd = $checkOutTime->lessThan($breakEnd) ? $checkOutTime->copy() : $breakEnd;
+
+        if ($overlapEnd->lessThanOrEqualTo($overlapStart)) {
+            return 0;
+        }
+
+        return $overlapStart->diffInMinutes($overlapEnd);
     }
 
     /**
