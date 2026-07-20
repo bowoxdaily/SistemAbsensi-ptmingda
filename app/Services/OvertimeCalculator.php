@@ -33,8 +33,9 @@ class OvertimeCalculator
 
         $usedMinutes = $weeklyUsedMinutes ?? $this->getWeeklyUsedOvertimeMinutes($attendance);
         $remainingMinutes = max(0, self::WEEKLY_MAX_MINUTES - $usedMinutes);
+        $countedMinutes = min($rawMinutes, $remainingMinutes);
 
-        return min($rawMinutes, $remainingMinutes);
+        return $this->roundDownToHour($countedMinutes);
     }
 
     private function calculateRawMinutes(
@@ -99,5 +100,10 @@ class OvertimeCalculator
             $match ? (int) $match[1] : $defaultHour,
             $match ? (int) $match[2] : $defaultMinute,
         ];
+    }
+
+    private function roundDownToHour(int $minutes): int
+    {
+        return intdiv(max(0, $minutes), 60) * 60;
     }
 }

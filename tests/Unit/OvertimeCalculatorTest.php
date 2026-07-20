@@ -28,7 +28,7 @@ it('caps weekday overtime at the remaining weekly limit', function () {
         3560
     );
 
-    expect($minutes)->toBe(40);
+    expect($minutes)->toBe(0);
 });
 
 it('treats weekend work as overtime and still caps the weekly total', function () {
@@ -81,4 +81,30 @@ it('returns zero for weekday overtime when the role is not eligible', function (
     );
 
     expect($minutes)->toBe(0);
+});
+
+it('rounds overtime down to full hour blocks', function () {
+    $calculator = new OvertimeCalculator();
+
+    $attendance = new Attendance([
+        'employee_id' => 1,
+    ]);
+    $attendance->id = 13;
+    $attendance->exists = true;
+
+    $schedule = new WorkSchedule();
+    $schedule->end_time = Carbon::create(2026, 7, 18, 17, 0, 0);
+    $schedule->overtime_threshold = 50;
+
+    $minutes = $calculator->calculate(
+        $attendance,
+        Carbon::parse('2026-07-18'),
+        Carbon::parse('2026-07-18 08:00:00'),
+        Carbon::parse('2026-07-18 10:10:00'),
+        $schedule,
+        true,
+        0
+    );
+
+    expect($minutes)->toBe(120);
 });

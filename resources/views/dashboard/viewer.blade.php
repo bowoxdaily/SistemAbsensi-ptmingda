@@ -5,42 +5,6 @@
 @section('content')
     <div class="row">
         <!-- Welcome Card -->
-        <div class="col-lg-8 mb-4 order-0">
-            <div class="card">
-                <div class="d-flex align-items-end row">
-                    <div class="col-sm-7">
-                        <div class="card-body">
-                            <h5 class="card-title text-primary">Selamat Datang! 👋</h5>
-                            <p class="mb-4">
-                                Hari ini adalah <span
-                                    class="fw-bold">{{ \Carbon\Carbon::now()->translatedFormat('l, d F Y') }}</span>.
-                                Anda dapat memantau data absensi dan karyawan.
-                            </p>
-                            <a href="{{ route('admin.attendance.index') }}" class="btn btn-sm btn-outline-primary">
-                                Lihat Semua Absensi
-                            </a>
-                        </div>
-                    </div>
-                    <div class="col-sm-5 text-center text-sm-left">
-                        <div class="card-body pb-0 px-0 px-md-4">
-                            <img src="{{ asset('sneat-1.0.0/assets/img/illustrations/man-with-laptop-light.png') }}"
-                                width="200" height="140" alt="Viewer Dashboard" decoding="async" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Statistik Hari Ini -->
-        <div class="col-lg-4 col-md-4 order-1">
-            <div class="row">
-                <div class="col-lg-6 col-md-12 col-6 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="card-title d-flex align-items-start justify-content-between">
-                                <div class="avatar flex-shrink-0">
-                                    <i class="bx bx-user-check bx-md text-success"></i>
-                                </div>
                             </div>
                             <span class="fw-semibold d-block mb-1">Hadir Hari Ini</span>
                             <h3 class="card-title mb-2">{{ $hadirHariIni }}</h3>
@@ -144,10 +108,6 @@
                                 Periode: {{ isset($weeklyWorkSummary['week_start']) ? $weeklyWorkSummary['week_start']->translatedFormat('d M') : '-' }}
                                 - {{ isset($weeklyWorkSummary['week_end']) ? $weeklyWorkSummary['week_end']->translatedFormat('d M Y') : '-' }}
                             </small>
-
-                            <a href="{{ route('admin.weekly-hours') }}" class="btn btn-sm btn-outline-primary mt-3">
-                                Lihat Detail Mingguan
-                            </a>
                         </div>
                     </div>
                 </div>
