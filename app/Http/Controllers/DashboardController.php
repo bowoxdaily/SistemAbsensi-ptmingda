@@ -9,6 +9,8 @@ use App\Models\Leave;
 use App\Models\AttendanceEditRequest;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -41,32 +43,59 @@ class DashboardController extends Controller
      */
     private function adminDashboard()
     {
+        $todayStr = today()->toDateString();
+
         $data = [
-            'totalKaryawan' => Employee::where('status', 'active')->count(),
-            'totalResign' => Employee::where('status', 'resign')->count(),
-            'hadirHariIni' => Attendance::whereDate('attendance_date', today())
-                ->whereIn('status', ['hadir', 'terlambat'])->count(),
-            'tidakHadirHariIni' => Attendance::whereDate('attendance_date', today())
-                ->where('status', 'alpha')->count(),
-            'totalCutiPending' => Leave::where('status', 'pending')->count(),
-            'totalEditRequestPending' => AttendanceEditRequest::where('status', 'pending')->count(),
-            'absensiTerbaru' => Attendance::with(['employee.department', 'employee.position'])
-                ->whereDate('attendance_date', today())
+            // Counter karyawan: cache 5 menit (jarang berubah)
+            'totalKaryawan'           => Cache::remember('dash_total_active', 300, fn () =>
+                Employee::where('status', 'active')->count()
+            ),
+            'totalResign'             => Cache::remember('dash_total_resign', 300, fn () =>
+                Employee::where('status', 'resign')->count()
+            ),
+
+            // Counter hari ini: cache 60 detik
+            'hadirHariIni'            => Cache::remember('dash_hadir_'.$todayStr, 60, fn () =>
+                Attendance::whereDate('attendance_date', $todayStr)
+                    ->whereIn('status', ['hadir', 'terlambat'])->count()
+            ),
+            'tidakHadirHariIni'       => Cache::remember('dash_alpha_'.$todayStr, 60, fn () =>
+                Attendance::whereDate('attendance_date', $todayStr)
+                    ->where('status', 'alpha')->count()
+            ),
+
+            // Pending items: cache 2 menit
+            'totalCutiPending'        => Cache::remember('dash_cuti_pending', 120, fn () =>
+                Leave::where('status', 'pending')->count()
+            ),
+            'totalEditRequestPending' => Cache::remember('dash_editreq_pending', 120, fn () =>
+                AttendanceEditRequest::where('status', 'pending')->count()
+            ),
+
+            // List terbaru: tidak di-cache (perlu real-time)
+            'absensiTerbaru'          => Attendance::with(['employee.department', 'employee.position'])
+                ->whereDate('attendance_date', $todayStr)
                 ->latest()
                 ->take(5)
                 ->get(),
-            'cutiPending' => Leave::with(['employee'])
+            'cutiPending'             => Leave::with(['employee'])
                 ->where('status', 'pending')
                 ->latest()
                 ->take(5)
                 ->get(),
-            'editRequestsPending' => AttendanceEditRequest::with(['attendance.employee'])
+            'editRequestsPending'     => AttendanceEditRequest::with(['attendance.employee'])
                 ->where('status', 'pending')
                 ->latest()
                 ->take(5)
                 ->get(),
-            'statistikMingguIni' => $this->getWeeklyStats(),
-            'weeklyWorkSummary' => $this->getWeeklyWorkSummary(),
+
+            // Chart & summary: cache 5 menit
+            'statistikMingguIni'      => Cache::remember('dash_weekly_stats', 300, fn () =>
+                $this->getWeeklyStats()
+            ),
+            'weeklyWorkSummary'       => Cache::remember('dash_weekly_work_'.today()->startOfWeek()->toDateString(), 300, fn () =>
+                $this->getWeeklyWorkSummary()
+            ),
         ];
 
         return view('dashboard.admin', $data);
@@ -88,26 +117,39 @@ class DashboardController extends Controller
      */
     private function viewerDashboard()
     {
+        $todayStr = today()->toDateString();
+
+        // Ambil semua status absensi hari ini dalam 1 query
+        $todayStats = Cache::remember('dash_today_stats_'.$todayStr, 60, function () use ($todayStr) {
+            return Attendance::whereDate('attendance_date', $todayStr)
+                ->select('status', DB::raw('COUNT(*) as total'))
+                ->groupBy('status')
+                ->pluck('total', 'status');
+        });
+
         $data = [
-            'totalKaryawan'    => Employee::where('status', 'active')->count(),
-            'totalResign'      => Employee::where('status', 'resign')->count(),
-            'hadirHariIni'     => Attendance::whereDate('attendance_date', today())
-                ->whereIn('status', ['hadir', 'terlambat'])->count(),
-            'terlambatHariIni' => Attendance::whereDate('attendance_date', today())
-                ->where('status', 'terlambat')->count(),
-            'tidakHadirHariIni'=> Attendance::whereDate('attendance_date', today())
-                ->where('status', 'alpha')->count(),
-            'alphaHariIni'     => Attendance::whereDate('attendance_date', today())
-                ->where('status', 'alpha')->count(),
-            'izinHariIni'      => Attendance::whereDate('attendance_date', today())
-                ->whereIn('status', ['izin', 'sakit', 'cuti'])->count(),
+            'totalKaryawan'    => Cache::remember('dash_total_active', 300, fn () =>
+                Employee::where('status', 'active')->count()
+            ),
+            'totalResign'      => Cache::remember('dash_total_resign', 300, fn () =>
+                Employee::where('status', 'resign')->count()
+            ),
+            'hadirHariIni'     => ($todayStats->get('hadir', 0) + $todayStats->get('terlambat', 0)),
+            'terlambatHariIni' => $todayStats->get('terlambat', 0),
+            'tidakHadirHariIni'=> $todayStats->get('alpha', 0),
+            'alphaHariIni'     => $todayStats->get('alpha', 0),
+            'izinHariIni'      => ($todayStats->get('izin', 0) + $todayStats->get('sakit', 0) + $todayStats->get('cuti', 0)),
             'absensiTerbaru'   => Attendance::with(['employee.department', 'employee.position'])
-                ->whereDate('attendance_date', today())
+                ->whereDate('attendance_date', $todayStr)
                 ->latest()
                 ->take(8)
                 ->get(),
-            'statistikMingguIni' => $this->getWeeklyStats(),
-            'weeklyWorkSummary' => $this->getWeeklyWorkSummary(),
+            'statistikMingguIni' => Cache::remember('dash_weekly_stats', 300, fn () =>
+                $this->getWeeklyStats()
+            ),
+            'weeklyWorkSummary'  => Cache::remember('dash_weekly_work_'.today()->startOfWeek()->toDateString(), 300, fn () =>
+                $this->getWeeklyWorkSummary()
+            ),
         ];
 
         return view('dashboard.viewer', $data);
@@ -196,18 +238,32 @@ class DashboardController extends Controller
      */
     private function getWeeklyStats()
     {
-        $stats = [];
         $days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+        $dateFrom = Carbon::today()->subDays(6)->toDateString();
+        $dateTo   = Carbon::today()->toDateString();
+
+        // 1 query saja menggantikan 14 query loop
+        $rows = Attendance::whereBetween('attendance_date', [$dateFrom, $dateTo])
+            ->whereIn('status', ['hadir', 'terlambat', 'alpha', 'izin', 'sakit'])
+            ->select('attendance_date', 'status', DB::raw('COUNT(*) as total'))
+            ->groupBy('attendance_date', 'status')
+            ->get()
+            ->groupBy(fn ($r) => Carbon::parse($r->attendance_date)->toDateString());
+
+        $stats = ['labels' => [], 'hadir' => [], 'tidak_hadir' => []];
 
         for ($i = 6; $i >= 0; $i--) {
-            $date = Carbon::today()->subDays($i);
+            $date    = Carbon::today()->subDays($i);
+            $dateStr = $date->toDateString();
             $dayName = $days[$date->dayOfWeek] ?? $date->format('l');
+            $group   = $rows->get($dateStr, collect());
 
-            $stats['labels'][] = $dayName;
-            $stats['hadir'][] = Attendance::whereDate('attendance_date', $date)
-                ->whereIn('status', ['hadir', 'terlambat'])->count();
-            $stats['tidak_hadir'][] = Attendance::whereDate('attendance_date', $date)
-                ->whereIn('status', ['alpha', 'izin', 'sakit'])->count();
+            $hadir      = $group->whereIn('status', ['hadir', 'terlambat'])->sum('total');
+            $tidakHadir = $group->whereIn('status', ['alpha', 'izin', 'sakit'])->sum('total');
+
+            $stats['labels'][]      = $dayName;
+            $stats['hadir'][]       = (int) $hadir;
+            $stats['tidak_hadir'][] = (int) $tidakHadir;
         }
 
         return $stats;

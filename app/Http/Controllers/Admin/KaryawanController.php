@@ -666,25 +666,21 @@ class KaryawanController extends Controller
             ->when($joinFrom, fn($q) => $q->whereDate('join_date', '>=', $joinFrom))
             ->when($joinTo, fn($q) => $q->whereDate('join_date', '<=', $joinTo));
 
-        // Summary counts (apply same filters except status)
-        $summaryQuery = Karyawans::when($search, fn($q) => $q->where(function ($q2) use ($search) {
-                $q2->where('name', 'like', "%{$search}%")
-                   ->orWhere('employee_code', 'like', "%{$search}%")
-                   ->orWhere('nik', 'like', "%{$search}%");
-            }))
-            ->when($departmentId, fn($q) => $q->where('department_id', $departmentId))
-            ->when($joinFrom, fn($q) => $q->whereDate('join_date', '>=', $joinFrom))
-            ->when($joinTo, fn($q) => $q->whereDate('join_date', '<=', $joinTo));
+        // Summary counts: 1 query groupBy (bukan 7 clone count terpisah)
+        $statusCounts = (clone $summaryQuery)
+            ->select('status', DB::raw('COUNT(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status');
 
         $summary = [
-            'total'            => (clone $summaryQuery)->count(),
-            'active'           => (clone $summaryQuery)->where('status', 'active')->count(),
-            'inactive'         => (clone $summaryQuery)->where('status', 'inactive')->count(),
-            'resign'           => (clone $summaryQuery)->where('status', 'resign')->count(),
-            'mangkir'          => (clone $summaryQuery)->where('status', 'mangkir')->count(),
-            'gagal_probation'  => (clone $summaryQuery)->where('status', 'gagal_probation')->count(),
-            'pending'          => (clone $summaryQuery)->where('status', 'pending')->count(),
-            'phk'              => (clone $summaryQuery)->where('status', 'phk')->count(),
+            'total'           => $statusCounts->sum(),
+            'active'          => (int) $statusCounts->get('active', 0),
+            'inactive'        => (int) $statusCounts->get('inactive', 0),
+            'resign'          => (int) $statusCounts->get('resign', 0),
+            'mangkir'         => (int) $statusCounts->get('mangkir', 0),
+            'gagal_probation' => (int) $statusCounts->get('gagal_probation', 0),
+            'pending'         => (int) $statusCounts->get('pending', 0),
+            'phk'             => (int) $statusCounts->get('phk', 0),
         ];
 
         if ($perPage === 'all') {

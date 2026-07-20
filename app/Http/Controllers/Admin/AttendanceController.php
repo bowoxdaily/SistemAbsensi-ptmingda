@@ -23,15 +23,15 @@ class AttendanceController extends Controller
     public function index(Request $request)
     {
         // Get filter parameters
-        $search = $request->get('search');
-        $dateFrom = $request->get('date_from', now()->format('Y-m-d'));
-        $dateTo = $request->get('date_to', now()->format('Y-m-d'));
-        $status = $request->get('status');
-        $department = $request->get('department');
+        $search        = $request->get('search');
+        $dateFrom      = $request->get('date_from', now()->format('Y-m-d'));
+        $dateTo        = $request->get('date_to', now()->format('Y-m-d'));
+        $status        = $request->get('status');
+        $department    = $request->get('department');
         $subDepartment = $request->get('sub_department');
-        $perPage = $request->get('per_page', 10);
+        $perPage       = $request->get('per_page', 10);
 
-        // Build query
+        // Build base query
         $query = Attendance::with(['employee.department', 'employee.subDepartment', 'employee.position', 'employee.workSchedule']);
 
         // Apply filters
@@ -60,53 +60,72 @@ class AttendanceController extends Controller
 
         $query->whereBetween('attendance_date', [$dateFrom, $dateTo]);
 
-        // Get all data first (for Sunday placeholder generation)
-        $allAttendances = $query->orderBy('attendance_date', 'desc')
-            ->orderBy('check_in', 'desc')
-            ->get();
-
-        // Generate Sunday placeholders if there's a search filter (viewing specific employee)
+        // Jika ada search spesifik (1 karyawan), gunakan mode placeholder Sabtu/Minggu
         if ($search) {
+            $allAttendances = $query->orderBy('attendance_date', 'desc')
+                ->orderBy('check_in', 'desc')
+                ->get();
+
             $sundayPlaceholders = $this->generateSundayPlaceholders($dateFrom, $dateTo, $allAttendances, $search);
-            $allAttendances = $allAttendances->concat($sundayPlaceholders)->sortByDesc('attendance_date');
-        }
+            $allAttendances     = $allAttendances->concat($sundayPlaceholders)->sortByDesc('attendance_date')->values();
 
-        // Manual pagination
-        if ($perPage === 'all') {
-            $attendances = new \Illuminate\Pagination\LengthAwarePaginator(
-                $allAttendances,
-                $allAttendances->count(),
-                $allAttendances->count(),
-                1,
-                ['path' => $request->url(), 'query' => $request->query()]
-            );
+            if ($perPage === 'all') {
+                $attendances = new \Illuminate\Pagination\LengthAwarePaginator(
+                    $allAttendances,
+                    $allAttendances->count(),
+                    $allAttendances->count(),
+                    1,
+                    ['path' => $request->url(), 'query' => $request->query()]
+                );
+            } else {
+                $currentPage     = \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPage();
+                $perPageInt      = (int) $perPage;
+                $currentPageData = $allAttendances->slice(($currentPage - 1) * $perPageInt, $perPageInt)->values();
+
+                $attendances = new \Illuminate\Pagination\LengthAwarePaginator(
+                    $currentPageData,
+                    $allAttendances->count(),
+                    $perPageInt,
+                    $currentPage,
+                    ['path' => $request->url(), 'query' => $request->query()]
+                );
+            }
         } else {
-            $currentPage = \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPage();
-            $perPageInt = (int)$perPage;
-            $currentPageData = $allAttendances->slice(($currentPage - 1) * $perPageInt, $perPageInt)->values();
+            // Kasus umum (tanpa search): paginate langsung dari DB — tidak load semua record ke memory
+            $orderedQuery = $query->orderBy('attendance_date', 'desc')->orderBy('check_in', 'desc');
 
-            $attendances = new \Illuminate\Pagination\LengthAwarePaginator(
-                $currentPageData,
-                $allAttendances->count(),
-                $perPageInt,
-                $currentPage,
-                ['path' => $request->url(), 'query' => $request->query()]
-            );
+            if ($perPage === 'all') {
+                $allData     = $orderedQuery->get();
+                $attendances = new \Illuminate\Pagination\LengthAwarePaginator(
+                    $allData,
+                    $allData->count(),
+                    $allData->count(),
+                    1,
+                    ['path' => $request->url(), 'query' => $request->query()]
+                );
+            } else {
+                $attendances = $orderedQuery->paginate((int) $perPage);
+            }
         }
 
-        // Get statistics
+        // Statistik: 1 query groupBy menggantikan 5 count query terpisah
+        $statusCounts = Attendance::whereBetween('attendance_date', [$dateFrom, $dateTo])
+            ->select('status', \Illuminate\Support\Facades\DB::raw('COUNT(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
         $stats = [
-            'total' => Attendance::whereBetween('attendance_date', [$dateFrom, $dateTo])->count(),
-            'hadir' => Attendance::where('status', 'hadir')->whereBetween('attendance_date', [$dateFrom, $dateTo])->count(),
-            'terlambat' => Attendance::where('status', 'terlambat')->whereBetween('attendance_date', [$dateFrom, $dateTo])->count(),
-            'izin' => Attendance::where('status', 'izin')->whereBetween('attendance_date', [$dateFrom, $dateTo])->count(),
-            'alpha' => Attendance::where('status', 'alpha')->whereBetween('attendance_date', [$dateFrom, $dateTo])->count(),
+            'total'     => $statusCounts->sum(),
+            'hadir'     => (int) ($statusCounts->get('hadir', 0)),
+            'terlambat' => (int) ($statusCounts->get('terlambat', 0)),
+            'izin'      => (int) ($statusCounts->get('izin', 0)),
+            'alpha'     => (int) ($statusCounts->get('alpha', 0)),
         ];
 
         // Get departments for filter
         $departments = \App\Models\Department::orderBy('name')->get();
 
-        // Get sub departments for filter (filtered by selected department if any)
+        // Get sub departments for filter
         $subDepartments = \App\Models\SubDepartment::where('is_active', true)
             ->when($department, function ($q) use ($department) {
                 return $q->where('department_id', $department);

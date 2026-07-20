@@ -42,22 +42,6 @@ class RekapitulasiController extends Controller
         $joinDateFrom = $request->get('join_date_from');
         $joinDateTo = $request->get('join_date_to');
 
-        Log::info('RekapitulasiController::getData called', [
-            'period_type' => $periodType,
-            'month' => $month,
-            'quarter' => $quarter,
-            'year' => $year,
-            'range_from_month' => $rangeFromMonth,
-            'range_from_year' => $rangeFromYear,
-            'range_to_month' => $rangeToMonth,
-            'range_to_year' => $rangeToYear,
-            'department_id' => $departmentId,
-            'position_id' => $positionId,
-            'employee_id' => $employeeId,
-            'join_date_from' => $joinDateFrom,
-            'join_date_to' => $joinDateTo,
-        ]);
-
         // Get all active employees with filters
         $employees = Karyawans::where('status', 'active')
             ->with(['department', 'position', 'workSchedule'])
@@ -80,116 +64,143 @@ class RekapitulasiController extends Controller
             ->get();
 
         // Calculate date range based on period type
+        [$startDate, $endDate] = $this->resolveDateRange($periodType, $month, $quarter, $year, $rangeFromMonth, $rangeFromYear, $rangeToMonth, $rangeToYear);
+
+        [$rekapitulasi, $totalStats] = $this->buildRekapData($employees, $startDate, $endDate);
+
+        $summary = [
+            'total_karyawan'   => $employees->count(),
+            'total_hadir'      => $totalStats['hadir'],
+            'total_terlambat'  => $totalStats['terlambat'],
+            'total_izin'       => $totalStats['izin'],
+            'total_sakit'      => $totalStats['sakit'],
+            'total_cuti'       => $totalStats['cuti'],
+            'total_alpha'      => $totalStats['alpha'],
+            'avg_attendance'   => $employees->count() > 0
+                ? round(collect($rekapitulasi)->avg('percentage'), 1)
+                : 0,
+        ];
+
+        $periodName = $this->formatPeriodName($periodType, $quarter, $year, $startDate, $endDate);
+
+        return response()->json([
+            'success' => true,
+            'data'    => $rekapitulasi,
+            'summary' => $summary,
+            'period'  => [
+                'type'        => $periodType,
+                'month'       => $month,
+                'quarter'     => $quarter,
+                'year'        => $year,
+                'period_name' => $periodName,
+                'start_date'  => $startDate->format('Y-m-d'),
+                'end_date'    => $endDate->format('Y-m-d'),
+            ]
+        ]);
+    }
+
+    /**
+     * Resolve start/end date dari periode yang dipilih.
+     */
+    private function resolveDateRange(
+        string $periodType,
+        $month, $quarter, $year,
+        $rangeFromMonth, $rangeFromYear,
+        $rangeToMonth, $rangeToYear
+    ): array {
         if ($periodType === 'quarterly') {
-            // Calculate quarter start and end dates
             $quarterStartMonth = ($quarter - 1) * 3 + 1;
             $startDate = Carbon::createFromDate($year, $quarterStartMonth, 1)->startOfMonth();
-            $endDate = $startDate->copy()->addMonths(2)->endOfMonth();
+            $endDate   = $startDate->copy()->addMonths(2)->endOfMonth();
         } elseif ($periodType === 'range') {
-            // Custom month range (can span across years)
             $startDate = Carbon::createFromDate($rangeFromYear, $rangeFromMonth, 1)->startOfMonth();
-            $endDate = Carbon::createFromDate($rangeToYear, $rangeToMonth, 1)->endOfMonth();
+            $endDate   = Carbon::createFromDate($rangeToYear, $rangeToMonth, 1)->endOfMonth();
         } else {
-            // Monthly view
             $startDate = Carbon::createFromDate($year, $month, 1);
-            $endDate = $startDate->copy()->endOfMonth();
+            $endDate   = $startDate->copy()->endOfMonth();
         }
-        
+
+        return [$startDate, $endDate];
+    }
+
+    /**
+     * Format nama periode untuk tampilan.
+     */
+    private function formatPeriodName(string $periodType, $quarter, $year, $startDate, $endDate): string
+    {
+        if ($periodType === 'quarterly') {
+            return 'Kuartal ' . $quarter . ' ' . $year . ' (' .
+                $startDate->translatedFormat('F') . ' - ' .
+                $endDate->translatedFormat('F Y') . ')';
+        } elseif ($periodType === 'range') {
+            return $startDate->translatedFormat('F Y') . ' - ' . $endDate->translatedFormat('F Y');
+        }
+        return $startDate->translatedFormat('F Y');
+    }
+
+    /**
+     * Bangun data rekapitulasi dari kumpulan karyawan dan rentang tanggal.
+     *
+     * Menggunakan 1 bulk query attendance untuk semua karyawan (anti N+1),
+     * lalu groupBy di PHP untuk hitung per-karyawan.
+     */
+    private function buildRekapData($employees, $startDate, $endDate): array
+    {
+        $employeeIds = $employees->pluck('id');
+
+        // 1 query untuk semua attendance (bukan N query per karyawan)
+        $allAttendances = Attendance::whereIn('employee_id', $employeeIds)
+            ->whereBetween('attendance_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->select('employee_id', 'status')
+            ->get()
+            ->groupBy('employee_id');
+
         $rekapitulasi = [];
         $totalStats = [
-            'hadir' => 0,
-            'terlambat' => 0,
-            'izin' => 0,
-            'sakit' => 0,
-            'cuti' => 0,
-            'alpha' => 0,
+            'hadir' => 0, 'terlambat' => 0,
+            'izin'  => 0, 'sakit'     => 0,
+            'cuti'  => 0, 'alpha'     => 0,
         ];
 
         foreach ($employees as $employee) {
-            // Count attendance by status within the date range
-            $attendances = Attendance::where('employee_id', $employee->id)
-                ->whereBetween('attendance_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-                ->get();
+            $attendances = $allAttendances->get($employee->id, collect());
 
             $stats = [
-                'hadir' => $attendances->where('status', 'hadir')->count(),
+                'hadir'     => $attendances->where('status', 'hadir')->count(),
                 'terlambat' => $attendances->where('status', 'terlambat')->count(),
-                'izin' => $attendances->where('status', 'izin')->count(),
-                'sakit' => $attendances->where('status', 'sakit')->count(),
-                'cuti' => $attendances->where('status', 'cuti')->count(),
-                'alpha' => $attendances->where('status', 'alpha')->count(),
+                'izin'      => $attendances->where('status', 'izin')->count(),
+                'sakit'     => $attendances->where('status', 'sakit')->count(),
+                'cuti'      => $attendances->where('status', 'cuti')->count(),
+                'alpha'     => $attendances->where('status', 'alpha')->count(),
             ];
 
-            // Calculate working days for this employee based on their work schedule
-            $workingDays = $this->calculateWorkingDays($employee, $startDate, $endDate);
-            
-            // Total present (hadir + terlambat)
+            $workingDays  = $this->calculateWorkingDays($employee, $startDate, $endDate);
             $totalPresent = $stats['hadir'] + $stats['terlambat'];
-            
-            // Attendance percentage
-            $percentage = $workingDays > 0 ? round(($totalPresent / $workingDays) * 100, 1) : 0;
+            $percentage   = $workingDays > 0 ? round(($totalPresent / $workingDays) * 100, 1) : 0;
 
             $rekapitulasi[] = [
-                'employee_id' => $employee->id,
+                'employee_id'   => $employee->id,
                 'employee_code' => $employee->employee_code,
-                'name' => $employee->name,
-                'department' => $employee->department->name ?? '-',
-                'position' => $employee->position->name ?? '-',
-                'hadir' => $stats['hadir'],
-                'terlambat' => $stats['terlambat'],
-                'izin' => $stats['izin'],
-                'sakit' => $stats['sakit'],
-                'cuti' => $stats['cuti'],
-                'alpha' => $stats['alpha'],
+                'name'          => $employee->name,
+                'department'    => $employee->department->name ?? '-',
+                'position'      => $employee->position->name ?? '-',
+                'hadir'         => $stats['hadir'],
+                'terlambat'     => $stats['terlambat'],
+                'izin'          => $stats['izin'],
+                'sakit'         => $stats['sakit'],
+                'cuti'          => $stats['cuti'],
+                'alpha'         => $stats['alpha'],
                 'total_present' => $totalPresent,
-                'working_days' => $workingDays,
-                'percentage' => $percentage,
+                'working_days'  => $workingDays,
+                'percentage'    => $percentage,
             ];
 
-            // Accumulate totals
             foreach ($stats as $key => $value) {
                 $totalStats[$key] += $value;
             }
         }
 
-        $summary = [
-            'total_karyawan' => $employees->count(),
-            'total_hadir' => $totalStats['hadir'],
-            'total_terlambat' => $totalStats['terlambat'],
-            'total_izin' => $totalStats['izin'],
-            'total_sakit' => $totalStats['sakit'],
-            'total_cuti' => $totalStats['cuti'],
-            'total_alpha' => $totalStats['alpha'],
-            'avg_attendance' => $employees->count() > 0 
-                ? round(collect($rekapitulasi)->avg('percentage'), 1) 
-                : 0,
-        ];
-
-        // Format period name
-        if ($periodType === 'quarterly') {
-            $periodName = 'Kuartal ' . $quarter . ' ' . $year . ' (' . 
-                $startDate->translatedFormat('F') . ' - ' . 
-                $endDate->translatedFormat('F Y') . ')';
-        } elseif ($periodType === 'range') {
-            $periodName = $startDate->translatedFormat('F Y') . ' - ' . $endDate->translatedFormat('F Y');
-        } else {
-            $periodName = $startDate->translatedFormat('F Y');
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => $rekapitulasi,
-            'summary' => $summary,
-            'period' => [
-                'type' => $periodType,
-                'month' => $month,
-                'quarter' => $quarter,
-                'year' => $year,
-                'period_name' => $periodName,
-                'start_date' => $startDate->format('Y-m-d'),
-                'end_date' => $endDate->format('Y-m-d'),
-            ]
-        ]);
+        return [$rekapitulasi, $totalStats];
     }
 
     /**
@@ -198,42 +209,26 @@ class RekapitulasiController extends Controller
     private function calculateWorkingDays($employee, $startDate, $endDate)
     {
         if (!$employee->workSchedule) {
-            // Default to weekdays if no schedule
-            $weekdays = $this->countWeekdays($startDate, $endDate);
-            Log::info("Employee {$employee->employee_code} has no work schedule, using weekdays: {$weekdays}");
-            return $weekdays;
+            return $this->countWeekdays($startDate, $endDate);
         }
 
-        $schedule = $employee->workSchedule;
+        $schedule    = $employee->workSchedule;
         $workingDays = 0;
-        $current = $startDate->copy();
+        $current     = $startDate->copy();
 
         while ($current <= $endDate) {
-            $dayOfWeek = strtolower($current->format('l'));
+            $dayOfWeek  = strtolower($current->format('l'));
             $workColumn = 'work_' . $dayOfWeek;
-            
+
             if (isset($schedule->$workColumn) && $schedule->$workColumn) {
                 $workingDays++;
             }
-            
+
             $current->addDay();
         }
 
-        Log::info("Employee {$employee->employee_code} calculated working days: {$workingDays}", [
-            'schedule_days' => [
-                'monday' => $schedule->work_monday ?? null,
-                'tuesday' => $schedule->work_tuesday ?? null,
-                'wednesday' => $schedule->work_wednesday ?? null,
-                'thursday' => $schedule->work_thursday ?? null,
-                'friday' => $schedule->work_friday ?? null,
-                'saturday' => $schedule->work_saturday ?? null,
-                'sunday' => $schedule->work_sunday ?? null,
-            ]
-        ]);
-
-        // Fallback if workSchedule exists but has no working days configured
+        // Fallback jika schedule ada tapi tidak ada hari kerja terkonfigurasi
         if ($workingDays === 0) {
-            Log::warning("Work schedule exists for {$employee->employee_code} but no working days configured, falling back to weekdays");
             return $this->countWeekdays($startDate, $endDate);
         }
 
@@ -334,109 +329,46 @@ class RekapitulasiController extends Controller
      */
     public function exportPdf(Request $request)
     {
-        $periodType = $request->get('period_type', 'monthly');
-        $month = $request->get('month', now()->month);
-        $quarter = $request->get('quarter', now()->quarter);
-        $year = $request->get('year', now()->year);
+        $periodType     = $request->get('period_type', 'monthly');
+        $month          = $request->get('month', now()->month);
+        $quarter        = $request->get('quarter', now()->quarter);
+        $year           = $request->get('year', now()->year);
         $rangeFromMonth = $request->get('range_from_month');
-        $rangeFromYear = $request->get('range_from_year');
-        $rangeToMonth = $request->get('range_to_month');
-        $rangeToYear = $request->get('range_to_year');
-        $departmentId = $request->get('department_id');
-        $positionId = $request->get('position_id');
-        $employeeId = $request->get('employee_id');
-        $joinDateFrom = $request->get('join_date_from');
-        $joinDateTo = $request->get('join_date_to');
+        $rangeFromYear  = $request->get('range_from_year');
+        $rangeToMonth   = $request->get('range_to_month');
+        $rangeToYear    = $request->get('range_to_year');
+        $departmentId   = $request->get('department_id');
+        $positionId     = $request->get('position_id');
+        $employeeId     = $request->get('employee_id');
+        $joinDateFrom   = $request->get('join_date_from');
+        $joinDateTo     = $request->get('join_date_to');
 
-        // Get data
         $employees = Karyawans::where('status', 'active')
             ->with(['department', 'position', 'workSchedule'])
-            ->when($employeeId, function($q) use ($employeeId) {
-                return $q->where('id', $employeeId);
-            })
-            ->when($departmentId, function($q) use ($departmentId) {
-                return $q->where('department_id', $departmentId);
-            })
-            ->when($positionId, function($q) use ($positionId) {
-                return $q->where('position_id', $positionId);
-            })
-            ->when($joinDateFrom, function($q) use ($joinDateFrom) {
-                return $q->whereDate('join_date', '>=', $joinDateFrom);
-            })
-            ->when($joinDateTo, function($q) use ($joinDateTo) {
-                return $q->whereDate('join_date', '<=', $joinDateTo);
-            })
+            ->when($employeeId,    fn($q) => $q->where('id', $employeeId))
+            ->when($departmentId,  fn($q) => $q->where('department_id', $departmentId))
+            ->when($positionId,    fn($q) => $q->where('position_id', $positionId))
+            ->when($joinDateFrom,  fn($q) => $q->whereDate('join_date', '>=', $joinDateFrom))
+            ->when($joinDateTo,    fn($q) => $q->whereDate('join_date', '<=', $joinDateTo))
             ->orderBy('employee_code')
             ->get();
 
-        // Calculate date range based on period type
-        if ($periodType === 'quarterly') {
-            $quarterStartMonth = ($quarter - 1) * 3 + 1;
-            $startDate = Carbon::createFromDate($year, $quarterStartMonth, 1)->startOfMonth();
-            $endDate = $startDate->copy()->addMonths(2)->endOfMonth();
-        } elseif ($periodType === 'range') {
-            $startDate = Carbon::createFromDate($rangeFromYear, $rangeFromMonth, 1)->startOfMonth();
-            $endDate = Carbon::createFromDate($rangeToYear, $rangeToMonth, 1)->endOfMonth();
-        } else {
-            $startDate = Carbon::createFromDate($year, $month, 1);
-            $endDate = $startDate->copy()->endOfMonth();
-        }
-        
-        $rekapitulasi = [];
-        foreach ($employees as $employee) {
-            $attendances = Attendance::where('employee_id', $employee->id)
-                ->whereBetween('attendance_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-                ->get();
+        [$startDate, $endDate] = $this->resolveDateRange(
+            $periodType, $month, $quarter, $year,
+            $rangeFromMonth, $rangeFromYear, $rangeToMonth, $rangeToYear
+        );
 
-            $stats = [
-                'hadir' => $attendances->where('status', 'hadir')->count(),
-                'terlambat' => $attendances->where('status', 'terlambat')->count(),
-                'izin' => $attendances->where('status', 'izin')->count(),
-                'sakit' => $attendances->where('status', 'sakit')->count(),
-                'cuti' => $attendances->where('status', 'cuti')->count(),
-                'alpha' => $attendances->where('status', 'alpha')->count(),
-            ];
+        // Reuse buildRekapData — tidak ada duplikasi N+1 query
+        [$rekapitulasi] = $this->buildRekapData($employees, $startDate, $endDate);
 
-            $workingDays = $this->calculateWorkingDays($employee, $startDate, $endDate);
-            $totalPresent = $stats['hadir'] + $stats['terlambat'];
-            $percentage = $workingDays > 0 ? round(($totalPresent / $workingDays) * 100, 1) : 0;
-
-            $rekapitulasi[] = [
-                'employee_code' => $employee->employee_code,
-                'name' => $employee->name,
-                'department' => $employee->department->name ?? '-',
-                'position' => $employee->position->name ?? '-',
-                'hadir' => $stats['hadir'],
-                'terlambat' => $stats['terlambat'],
-                'izin' => $stats['izin'],
-                'sakit' => $stats['sakit'],
-                'cuti' => $stats['cuti'],
-                'alpha' => $stats['alpha'],
-                'total_present' => $totalPresent,
-                'working_days' => $workingDays,
-                'percentage' => $percentage,
-            ];
-        }
-
-        // Format period name
-        if ($periodType === 'quarterly') {
-            $periodName = 'Kuartal ' . $quarter . ' ' . $year . ' (' . 
-                $startDate->translatedFormat('F') . ' - ' . 
-                $endDate->translatedFormat('F Y') . ')';
-        } elseif ($periodType === 'range') {
-            $periodName = $startDate->translatedFormat('F Y') . ' - ' . $endDate->translatedFormat('F Y');
-        } else {
-            $periodName = $startDate->translatedFormat('F Y');
-        }
+        $periodName = $this->formatPeriodName($periodType, $quarter, $year, $startDate, $endDate);
 
         $data = [
             'rekapitulasi' => $rekapitulasi,
-            'period' => $periodName,
+            'period'       => $periodName,
             'generated_at' => now()->translatedFormat('d F Y H:i'),
         ];
 
-        // Return printable view instead of PDF download
-        // User can use browser's print to PDF feature
         return view('admin.rekapitulasi.pdf', $data);
     }
 
@@ -593,42 +525,21 @@ class RekapitulasiController extends Controller
 
     /**
      * Get available geographic locations for filter
+     * Menggunakan 1 query distinct multi-kolom (bukan 4 query terpisah)
      */
     private function getAvailableLocations()
     {
-        $provinces = Karyawans::where('status', 'active')
+        $rows = Karyawans::where('status', 'active')
+            ->select('province', 'kabupaten', 'kecamatan', 'desa')
             ->whereNotNull('province')
             ->distinct()
-            ->pluck('province')
-            ->sort()
-            ->values();
-
-        $kabupatens = Karyawans::where('status', 'active')
-            ->whereNotNull('kabupaten')
-            ->distinct()
-            ->pluck('kabupaten')
-            ->sort()
-            ->values();
-
-        $kecamatans = Karyawans::where('status', 'active')
-            ->whereNotNull('kecamatan')
-            ->distinct()
-            ->pluck('kecamatan')
-            ->sort()
-            ->values();
-
-        $desas = Karyawans::where('status', 'active')
-            ->whereNotNull('desa')
-            ->distinct()
-            ->pluck('desa')
-            ->sort()
-            ->values();
+            ->get();
 
         return [
-            'provinces' => $provinces,
-            'kabupatens' => $kabupatens,
-            'kecamatans' => $kecamatans,
-            'desas' => $desas,
+            'provinces'  => $rows->pluck('province')->filter()->unique()->sort()->values(),
+            'kabupatens' => $rows->pluck('kabupaten')->filter()->unique()->sort()->values(),
+            'kecamatans' => $rows->pluck('kecamatan')->filter()->unique()->sort()->values(),
+            'desas'      => $rows->pluck('desa')->filter()->unique()->sort()->values(),
         ];
     }
 
