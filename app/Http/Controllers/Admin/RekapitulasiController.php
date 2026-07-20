@@ -148,12 +148,32 @@ class RekapitulasiController extends Controller
     {
         $employeeIds = $employees->pluck('id');
 
-        // 1 query untuk semua attendance (bukan N query per karyawan)
-        $allAttendances = Attendance::whereIn('employee_id', $employeeIds)
-            ->whereBetween('attendance_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-            ->select('employee_id', 'status')
+        $startYear = $startDate->year;
+        $startMonth = $startDate->month;
+        $endYear = $endDate->year;
+        $endMonth = $endDate->month;
+
+        // 1 query aggregating the monthly summaries
+        // Since ranges are always full months, we can sum the monthly counts.
+        $summaries = \App\Models\AttendanceMonthlySummary::whereIn('employee_id', $employeeIds)
+            ->where(function ($query) use ($startYear, $startMonth, $endYear, $endMonth) {
+                if ($startYear == $endYear) {
+                    $query->where('year', $startYear)
+                          ->whereBetween('month', [$startMonth, $endMonth]);
+                } else {
+                    $query->where(function($q) use ($startYear, $startMonth) {
+                        $q->where('year', $startYear)->where('month', '>=', $startMonth);
+                    })->orWhere(function($q) use ($startYear, $endYear) {
+                        $q->where('year', '>', $startYear)->where('year', '<', $endYear);
+                    })->orWhere(function($q) use ($endYear, $endMonth) {
+                        $q->where('year', $endYear)->where('month', '<=', $endMonth);
+                    });
+                }
+            })
+            ->selectRaw('employee_id, SUM(hadir) as hadir, SUM(terlambat) as terlambat, SUM(izin) as izin, SUM(sakit) as sakit, SUM(cuti) as cuti, SUM(alpha) as alpha')
+            ->groupBy('employee_id')
             ->get()
-            ->groupBy('employee_id');
+            ->keyBy('employee_id');
 
         $rekapitulasi = [];
         $totalStats = [
@@ -163,15 +183,15 @@ class RekapitulasiController extends Controller
         ];
 
         foreach ($employees as $employee) {
-            $attendances = $allAttendances->get($employee->id, collect());
+            $summary = $summaries->get($employee->id);
 
             $stats = [
-                'hadir'     => $attendances->where('status', 'hadir')->count(),
-                'terlambat' => $attendances->where('status', 'terlambat')->count(),
-                'izin'      => $attendances->where('status', 'izin')->count(),
-                'sakit'     => $attendances->where('status', 'sakit')->count(),
-                'cuti'      => $attendances->where('status', 'cuti')->count(),
-                'alpha'     => $attendances->where('status', 'alpha')->count(),
+                'hadir'     => $summary ? $summary->hadir : 0,
+                'terlambat' => $summary ? $summary->terlambat : 0,
+                'izin'      => $summary ? $summary->izin : 0,
+                'sakit'     => $summary ? $summary->sakit : 0,
+                'cuti'      => $summary ? $summary->cuti : 0,
+                'alpha'     => $summary ? $summary->alpha : 0,
             ];
 
             $workingDays  = $this->calculateWorkingDays($employee, $startDate, $endDate);

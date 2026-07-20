@@ -83,6 +83,9 @@ class GenerateAbsentAttendance extends Command
             ->get()
             ->keyBy('employee_id');
 
+        $insertData = [];
+        $now = now();
+
         foreach ($employees as $employee) {
             // Check if employee has work schedule
             if (!$employee->workSchedule) {
@@ -162,7 +165,7 @@ class GenerateAbsentAttendance extends Command
                 // Employee has approved leave, create attendance with leave status
                 $leaveStatus = $approvedLeave->leave_type; // cuti, izin, or sakit
 
-                Attendance::create([
+                $insertData[] = [
                     'employee_id' => $employee->id,
                     'attendance_date' => $date->format('Y-m-d'),
                     'check_in' => null,
@@ -170,7 +173,9 @@ class GenerateAbsentAttendance extends Command
                     'status' => $leaveStatus,
                     'late_minutes' => 0,
                     'notes' => "Auto-generated: {$leaveStatus} (approved) - {$approvedLeave->reason}",
-                ]);
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
 
                 $this->line("✓ Generated {$leaveStatus} for: {$employee->name} ({$employee->employee_code}) - Approved leave");
                 $generatedCount++;
@@ -178,7 +183,7 @@ class GenerateAbsentAttendance extends Command
             }
 
             // Create alpha attendance record
-            $alphaAttendance = Attendance::create([
+            $insertData[] = [
                 'employee_id' => $employee->id,
                 'attendance_date' => $date->format('Y-m-d'),
                 'check_in' => null,
@@ -186,7 +191,9 @@ class GenerateAbsentAttendance extends Command
                 'status' => 'alpha',
                 'late_minutes' => 0,
                 'notes' => 'Auto-generated: Tidak melakukan absensi',
-            ]);
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
 
             // Send WhatsApp notification for alpha
             // try {
@@ -203,6 +210,12 @@ class GenerateAbsentAttendance extends Command
             $gracePeriodInfo = $isToday ? " (Grace period: {$gracePeriodEnd->format('H:i')})" : "";
             $this->line("✓ Generated alpha for: {$employee->name} ({$employee->employee_code}) - Check-in time: {$checkinTime->format('H:i')}{$gracePeriodInfo}");
             $generatedCount++;
+        }
+
+        if (!empty($insertData)) {
+            foreach (array_chunk($insertData, 100) as $chunk) {
+                Attendance::insert($chunk);
+            }
         }
 
         $this->newLine();
@@ -284,6 +297,9 @@ class GenerateAbsentAttendance extends Command
             ->get()
             ->keyBy('employee_id');
 
+        $insertData = [];
+        $now = now();
+
         foreach ($employees as $employee) {
             // Check if attendance record already exists
             if (isset($existingAttendances[$employee->id])) {
@@ -299,7 +315,7 @@ class GenerateAbsentAttendance extends Command
                 // Employee has approved leave, create attendance with leave status
                 $leaveStatus = $approvedLeave->leave_type;
 
-                Attendance::create([
+                $insertData[] = [
                     'employee_id' => $employee->id,
                     'attendance_date' => $date->format('Y-m-d'),
                     'check_in' => null,
@@ -307,7 +323,9 @@ class GenerateAbsentAttendance extends Command
                     'status' => $leaveStatus,
                     'late_minutes' => 0,
                     'notes' => "Hari Libur ({$holiday->name}) - {$leaveStatus} (approved): {$approvedLeave->reason}",
-                ]);
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
 
                 $this->line("✓ Generated {$leaveStatus} for: {$employee->name} ({$employee->employee_code})");
                 $generatedCount++;
@@ -326,7 +344,7 @@ class GenerateAbsentAttendance extends Command
                 default => 'libur'
             };
 
-            Attendance::create([
+            $insertData[] = [
                 'employee_id' => $employee->id,
                 'attendance_date' => $date->format('Y-m-d'),
                 'check_in' => null,
@@ -334,10 +352,18 @@ class GenerateAbsentAttendance extends Command
                 'status' => $attendanceStatus,
                 'late_minutes' => 0,
                 'notes' => "Hari Libur ({$holiday->type_label}): {$holiday->name}",
-            ]);
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
 
             $this->line("✓ Generated {$attendanceStatus} for: {$employee->name} ({$employee->employee_code})");
             $generatedCount++;
+        }
+
+        if (!empty($insertData)) {
+            foreach (array_chunk($insertData, 100) as $chunk) {
+                Attendance::insert($chunk);
+            }
         }
 
         $this->newLine();
