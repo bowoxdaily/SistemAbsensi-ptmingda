@@ -2,9 +2,40 @@
 
 @section('title', 'Dashboard Viewer')
 
+@push('head')
+    <link rel="preload" as="image" href="{{ asset('sneat-1.0.0/assets/img/illustrations/man-with-laptop-light.png') }}"
+        fetchpriority="high">
+@endpush
+
 @section('content')
     <div class="row">
-        <!-- Statistik Hari Ini -->
+        <div class="col-lg-8 mb-4 order-0">
+            <div class="card">
+                <div class="d-flex align-items-end row">
+                    <div class="col-sm-7">
+                        <div class="card-body">
+                            <h5 class="card-title text-primary">Selamat Datang Viewer! 👋</h5>
+                            <p class="mb-4">
+                                Hari ini adalah <span
+                                    class="fw-bold">{{ \Carbon\Carbon::now()->translatedFormat('l, d F Y') }}</span>.
+                                Pantau data absensi dan karyawan dengan tampilan read-only.
+                            </p>
+                            <a href="{{ route('admin.attendance.index') }}" class="btn btn-sm btn-outline-primary">Lihat Semua
+                                Absensi</a>
+                        </div>
+                    </div>
+                    <div class="col-sm-5 text-center text-sm-left">
+                        <div class="card-body pb-0 px-0 px-md-4">
+                            <img src="{{ asset('sneat-1.0.0/assets/img/illustrations/man-with-laptop-light.png') }}"
+                                width="200" height="140" alt="Viewer Dashboard" fetchpriority="high" decoding="async" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-md-4 order-1">
+            <div class="row">
                 <div class="col-lg-6 col-md-12 col-6 mb-4">
                     <div class="card">
                         <div class="card-body">
@@ -38,7 +69,6 @@
     </div>
 
     <div class="row">
-        <!-- Statistik Cards -->
         <div class="col-12 col-md-8 col-lg-4 order-3 order-md-2">
             <div class="row">
                 <div class="col-6 mb-4">
@@ -63,14 +93,14 @@
                                     <i class="bx bx-user-minus bx-md text-danger"></i>
                                 </div>
                             </div>
-                            <span>Total Resign</span>
+                            <span>Karyawan Resign</span>
                             <h3 class="card-title text-nowrap mb-1">{{ $totalResign }}</h3>
                             <small class="text-danger fw-semibold">Resign</small>
                         </div>
                     </div>
                 </div>
-                <div class="col-12 mb-4">
-                    <div class="card">
+                <div class="col-6 mb-4">
+                    <div class="card h-100">
                         <div class="card-body">
                             <div class="card-title d-flex align-items-start justify-content-between">
                                 <div class="avatar flex-shrink-0">
@@ -83,59 +113,43 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-12 mb-4">
-                    <div class="card border-0 shadow-sm">
+                <div class="col-6 mb-4">
+                    <div class="card h-100">
                         <div class="card-body">
-                            <div class="d-flex align-items-start justify-content-between mb-3">
-                                <div>
-                                    <span class="d-block fw-semibold">Jam Kerja Minggu Ini</span>
-                                    <small class="text-muted">Batas maksimum 60 jam/minggu</small>
-                                </div>
-                                <span class="badge rounded-pill {{ ($weeklyWorkSummary['is_over_limit'] ?? false) ? 'bg-danger' : 'bg-success' }}">
-                                    {{ ($weeklyWorkSummary['is_over_limit'] ?? false) ? 'Lewat Batas' : 'Aman' }}
-                                </span>
-                            </div>
-
-                            <h3 class="card-title mb-1">{{ $weeklyWorkSummary['formatted_hours'] ?? '0 jam 00 menit' }}</h3>
-                            <p class="mb-3 text-muted">
-                                Total minggu ini, sisa <strong>{{ number_format($weeklyWorkSummary['remaining_hours'] ?? 60, 2) }} jam</strong>
-                            </p>
-
-                            <div class="progress mb-2" style="height: 10px;">
-                                <div class="progress-bar {{ ($weeklyWorkSummary['is_over_limit'] ?? false) ? 'bg-danger' : 'bg-primary' }}"
-                                    role="progressbar"
-                                    style="width: {{ $weeklyWorkSummary['progress_percent'] ?? 0 }}%"
-                                    aria-valuenow="{{ $weeklyWorkSummary['progress_percent'] ?? 0 }}"
-                                    aria-valuemin="0"
-                                    aria-valuemax="100">
+                            <div class="card-title d-flex align-items-start justify-content-between">
+                                <div class="avatar flex-shrink-0">
+                                    <i class="bx bx-calendar-event bx-md text-info"></i>
                                 </div>
                             </div>
-
-                            <small class="text-muted d-block">
-                                Periode: {{ isset($weeklyWorkSummary['week_start']) ? $weeklyWorkSummary['week_start']->translatedFormat('d M') : '-' }}
-                                - {{ isset($weeklyWorkSummary['week_end']) ? $weeklyWorkSummary['week_end']->translatedFormat('d M Y') : '-' }}
-                            </small>
+                            <span>Izin/Sakit/Cuti</span>
+                            <h3 class="card-title text-nowrap mb-1">{{ $izinHariIni }}</h3>
+                            <small class="text-info fw-semibold">Hari Ini</small>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Absensi Terbaru -->
         <div class="col-12 col-md-8 col-lg-8 order-2 order-md-3 order-lg-2 mb-4">
             <div class="card">
                 <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-                    <h5 class="card-title m-0 me-2">Absensi Terbaru Hari Ini</h5>
-                    <a href="{{ route('admin.attendance.index') }}" class="btn btn-sm btn-outline-primary">Lihat Semua</a>
+                    <h5 class="card-title m-0 me-2">
+                        <span class="d-none d-sm-inline">Absensi Terbaru Hari Ini</span>
+                        <span class="d-sm-none">Absensi Hari Ini</span>
+                    </h5>
+                    <a href="{{ route('admin.attendance.index') }}" class="btn btn-sm btn-outline-primary">
+                        <span class="d-none d-sm-inline">Lihat Semua</span>
+                        <span class="d-sm-none">Semua</span>
+                    </a>
                 </div>
                 <div class="card-body">
-                    <!-- Desktop Table -->
                     <div class="table-responsive text-nowrap d-none d-md-block">
                         <table class="table table-hover">
                             <thead>
                                 <tr>
                                     <th>Karyawan</th>
                                     <th>Departemen</th>
+                                    <th>Jabatan</th>
                                     <th>Jam Masuk</th>
                                     <th>Status</th>
                                 </tr>
@@ -146,13 +160,14 @@
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <div class="avatar avatar-sm me-3">
-                                                        @if ($absensi->employee->profile_photo_url)
-                                                            <img src="{{ $absensi->employee->profile_photo_url }}"
-                                                            alt="Avatar" class="rounded-circle" width="38" height="38"
-                                                            style="object-fit: cover;">
+                                                    @if ($absensi->employee->profile_photo_url)
+                                                        <img src="{{ $absensi->employee->profile_photo_url }}"
+                                                            alt="Avatar" class="rounded-circle" loading="lazy"
+                                                            width="38" height="38" style="object-fit: cover;">
                                                     @else
                                                         <img src="{{ asset('sneat-1.0.0/assets/img/avatars/1.png') }}"
-                                                            alt="Avatar" class="rounded-circle" width="38" height="38">
+                                                            alt="Avatar" class="rounded-circle" loading="lazy"
+                                                            width="38" height="38">
                                                     @endif
                                                 </div>
                                                 <div>
@@ -162,6 +177,7 @@
                                             </div>
                                         </td>
                                         <td>{{ $absensi->employee->department->name ?? '-' }}</td>
+                                        <td>{{ $absensi->employee->position->name ?? '-' }}</td>
                                         <td>{{ $absensi->check_in ? \Carbon\Carbon::parse($absensi->check_in)->format('H:i') : '-' }}</td>
                                         <td>
                                             @if ($absensi->status == 'hadir')
@@ -177,55 +193,78 @@
                                             @elseif($absensi->status == 'alpha')
                                                 <span class="badge bg-label-danger">Alpha</span>
                                             @else
-                                                <span class="badge bg-label-dark">{{ ucfirst($absensi->status) }}</span>
+                                                <span class="badge bg-label-danger">{{ ucfirst($absensi->status) }}</span>
                                             @endif
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="text-center py-4 text-muted">Belum ada data absensi hari ini</td>
+                                        <td colspan="5" class="text-center">Belum ada data absensi hari ini</td>
                                     </tr>
                                 @endforelse
                             </tbody>
                         </table>
                     </div>
 
-                    <!-- Mobile Cards -->
                     <div class="d-md-none">
                         @forelse($absensiTerbaru as $absensi)
-                            <div class="card mb-2 border shadow-sm">
+                            <div class="card mb-3 shadow-sm">
                                 <div class="card-body p-3">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <div class="avatar avatar-sm">
-                                                    @if ($absensi->employee->profile_photo_url)
-                                                        <img src="{{ $absensi->employee->profile_photo_url }}"
-                                                        alt="Avatar" class="rounded-circle" width="36" height="36"
-                                                        style="object-fit: cover;">
-                                                @else
-                                                    <img src="{{ asset('sneat-1.0.0/assets/img/avatars/1.png') }}"
-                                                        alt="Avatar" class="rounded-circle" width="36" height="36">
-                                                @endif
-                                            </div>
-                                            <div>
-                                                <strong class="small">{{ $absensi->employee->name }}</strong>
-                                                <div class="text-muted" style="font-size:0.75rem">{{ $absensi->employee->department->name ?? '-' }}</div>
-                                            </div>
+                                    <div class="d-flex align-items-start mb-2">
+                                        <div class="avatar avatar-sm me-2">
+                                            @if ($absensi->employee->profile_photo_url)
+                                                <img src="{{ $absensi->employee->profile_photo_url }}"
+                                                    alt="Avatar" class="rounded-circle" loading="lazy" width="38"
+                                                    height="38" style="object-fit: cover;">
+                                            @else
+                                                <img src="{{ asset('sneat-1.0.0/assets/img/avatars/1.png') }}"
+                                                    alt="Avatar" class="rounded-circle" loading="lazy" width="38"
+                                                    height="38">
+                                            @endif
                                         </div>
-                                        <div class="text-end">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-0">{{ $absensi->employee->name }}</h6>
+                                            <small class="text-muted">
+                                                <i class='bx bx-id-card'></i> {{ $absensi->employee->employee_code }}
+                                            </small>
+                                        </div>
+                                        <div>
                                             @if ($absensi->status == 'hadir')
                                                 <span class="badge bg-success">Hadir</span>
                                             @elseif($absensi->status == 'terlambat')
                                                 <span class="badge bg-warning">Terlambat</span>
+                                            @elseif($absensi->status == 'izin')
+                                                <span class="badge bg-info">Izin</span>
+                                            @elseif($absensi->status == 'sakit')
+                                                <span class="badge bg-secondary">Sakit</span>
+                                            @elseif($absensi->status == 'cuti')
+                                                <span class="badge bg-primary">Cuti</span>
                                             @elseif($absensi->status == 'alpha')
                                                 <span class="badge bg-danger">Alpha</span>
                                             @else
-                                                <span class="badge bg-secondary">{{ ucfirst($absensi->status) }}</span>
+                                                <span class="badge bg-danger">{{ ucfirst($absensi->status) }}</span>
                                             @endif
-                                            <div class="text-muted mt-1" style="font-size:0.75rem">
-                                                {{ $absensi->check_in ? \Carbon\Carbon::parse($absensi->check_in)->format('H:i') : '-' }}
-                                            </div>
                                         </div>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <small class="text-muted d-block">
+                                                <i class='bx bx-buildings'></i> Departemen
+                                            </small>
+                                            <strong class="small">{{ $absensi->employee->department->name ?? '-' }}</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted d-block">
+                                                <i class='bx bx-briefcase'></i> Jabatan
+                                            </small>
+                                            <strong class="small">{{ $absensi->employee->position->name ?? '-' }}</strong>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 text-center border-top pt-2">
+                                        <small class="text-muted">Jam Masuk</small>
+                                        <h5 class="mb-0 text-success">
+                                            {{ $absensi->check_in ? \Carbon\Carbon::parse($absensi->check_in)->format('H:i') : '-' }}
+                                        </h5>
                                     </div>
                                 </div>
                             </div>
@@ -241,10 +280,8 @@
         </div>
     </div>
 
-    <!-- Grafik + Statistik Bawah -->
     <div class="row">
-        <!-- Statistik Status Absensi Hari Ini -->
-        <div class="col-md-5 col-lg-4 mb-4">
+        <div class="col-md-4 col-lg-4 mb-4">
             <div class="card h-100">
                 <div class="card-header">
                     <h5 class="card-title mb-0">Ringkasan Absensi Hari Ini</h5>
@@ -274,14 +311,16 @@
             </div>
         </div>
 
-        <!-- Grafik 7 Hari Terakhir -->
-        <div class="col-md-7 col-lg-8 mb-4">
+        <div class="col-md-8 col-lg-8 mb-4">
             <div class="card h-100">
                 <div class="card-header">
-                    <h5 class="card-title mb-0">Statistik Absensi 7 Hari Terakhir</h5>
+                    <h5 class="card-title mb-0">
+                        <span class="d-none d-sm-inline">Statistik Absensi 7 Hari Terakhir</span>
+                        <span class="d-sm-none">Statistik 7 Hari</span>
+                    </h5>
                 </div>
                 <div class="card-body">
-                    <canvas id="chartAbsensiViewer" height="160"></canvas>
+                    <canvas id="chartAbsensiViewer" height="200"></canvas>
                 </div>
             </div>
         </div>
@@ -291,37 +330,41 @@
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
     <script defer>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             const ctx = document.getElementById('chartAbsensiViewer');
             if (ctx && typeof Chart !== 'undefined') {
                 new Chart(ctx, {
-                    type: 'bar',
+                    type: 'line',
                     data: {
                         labels: {!! json_encode($statistikMingguIni['labels'] ?? []) !!},
                         datasets: [{
                             label: 'Hadir',
                             data: {!! json_encode($statistikMingguIni['hadir'] ?? []) !!},
-                            backgroundColor: 'rgba(75, 192, 192, 0.7)',
                             borderColor: 'rgb(75, 192, 192)',
-                            borderWidth: 1
+                            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                            tension: 0.4
                         }, {
                             label: 'Tidak Hadir',
                             data: {!! json_encode($statistikMingguIni['tidak_hadir'] ?? []) !!},
-                            backgroundColor: 'rgba(255, 99, 132, 0.7)',
                             borderColor: 'rgb(255, 99, 132)',
-                            borderWidth: 1
+                            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                            tension: 0.4
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: true,
                         plugins: {
-                            legend: { position: 'top' }
+                            legend: {
+                                position: 'top',
+                            }
                         },
                         scales: {
                             y: {
                                 beginAtZero: true,
-                                ticks: { stepSize: 1 }
+                                ticks: {
+                                    stepSize: 1
+                                }
                             }
                         }
                     }
