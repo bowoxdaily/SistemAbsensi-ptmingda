@@ -104,7 +104,7 @@ class AttendanceController extends Controller
                     ['path' => $request->url(), 'query' => $request->query()]
                 );
             } else {
-                $attendances = $orderedQuery->paginate((int) $perPage);
+                $attendances = $orderedQuery->paginate((int) $perPage)->withQueryString();
             }
         }
 
