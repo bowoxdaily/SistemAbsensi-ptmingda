@@ -496,37 +496,12 @@ class AttendanceController extends Controller
                 $checkOutTime = now();
             }
 
-            // Calculate overtime with weekly cap
-            $overtimeMinutes = 0;
-            if (in_array($attendance->status, ['hadir', 'terlambat'])) {
-                try {
-                    $employee = Karyawans::with(['workSchedule', 'position'])->find($request->employee_id);
-                    $schedule = $employee?->workSchedule;
-
-                    if ($employee && $schedule) {
-                        $checkInTime = Carbon::parse($dateString . ' ' . ($attendance->check_in instanceof Carbon ? $attendance->check_in->format('H:i:s') : $attendance->check_in));
-                        $overtimeMinutes = app(\App\Services\OvertimeCalculator::class)->calculate(
-                            $attendance,
-                            Carbon::parse($dateString),
-                            $checkInTime,
-                            $checkOutTime,
-                            $schedule,
-                            $employee->isEligibleForWeekdayOvertime()
-                        );
-                    }
-                } catch (\Exception $e) {
-                    \Log::warning('Failed to calculate overtime: ' . $e->getMessage());
-                    $overtimeMinutes = 0;
-                }
-            }
-
-            // Update attendance
+            // Update attendance (overtime dihitung via batch cron, bukan real-time)
             $attendance->update([
                 'check_out' => $checkOutTime->format('H:i:s'),
                 'photo_out' => null, // Always null for manual input
                 'location_out' => null, // Always null for manual input
                 'notes' => $attendance->notes ? $attendance->notes . ' | ' . $request->notes : $request->notes,
-                'overtime_minutes' => $overtimeMinutes,
             ]);
 
             return response()->json([
@@ -939,39 +914,17 @@ class AttendanceController extends Controller
                 $lateMinutes = $request->late_minutes ?? 0;
             }
 
-            // Calculate overtime with weekly cap
-            $overtimeMinutes = 0;
-            $employee = $attendance->employee;
-            if (!$employee->relationLoaded('position')) {
-                $employee->load('position');
-            }
-            if (in_array($request->status, ['hadir', 'terlambat']) && $schedule && $request->check_out) {
-                try {
-                    $checkInTime = Carbon::parse($request->attendance_date . ' ' . $request->check_in);
-                    $checkOutTime = Carbon::createFromFormat('Y-m-d H:i', $request->attendance_date . ' ' . $request->check_out);
-
-                    $overtimeMinutes = app(\App\Services\OvertimeCalculator::class)->calculate(
-                        $attendance,
-                        Carbon::parse($request->attendance_date),
-                        $checkInTime,
-                        $checkOutTime,
-                        $schedule,
-                        $employee->isEligibleForWeekdayOvertime()
-                    );
-                } catch (\Exception $e) {
-                    \Log::warning('Failed to calculate overtime in update: ' . $e->getMessage());
-                    $overtimeMinutes = 0;
-                }
-            }
-
-            // Update attendance data
+            // Update attendance data (overtime dihitung via batch cron, bukan real-time)
             $attendance->attendance_date = $request->attendance_date;
             $attendance->check_in = $request->check_in;
             $attendance->check_out = $request->check_out;
             $attendance->status = $request->status;
             $attendance->late_minutes = $lateMinutes;
-            $attendance->overtime_minutes = $overtimeMinutes;
             $attendance->notes = $request->notes;
+
+            if ($attendance->isDirty('check_out')) {
+                $attendance->overtime_minutes = 0;
+            }
 
             $attendance->save();
 
@@ -1095,34 +1048,11 @@ class AttendanceController extends Controller
                 }
 
                 $checkOutTime = \Carbon\Carbon::parse($log->scan_time)->format('H:i:s');
-                $schedule     = $employee->workSchedule ?? null;
 
-                // Calculate overtime with weekly cap
-                $overtimeMinutes = 0;
-                if ($schedule) {
-                    try {
-                        $checkInTime = Carbon::parse($request->date . ' ' . ($attendance->check_in instanceof Carbon ? $attendance->check_in->format('H:i:s') : $attendance->check_in));
-                        $actualOut = Carbon::parse($request->date . ' ' . $checkOutTime);
-
-                        $overtimeMinutes = app(\App\Services\OvertimeCalculator::class)->calculate(
-                            $attendance,
-                            Carbon::parse($request->date),
-                            $checkInTime,
-                            $actualOut,
-                            $schedule,
-                            $employee->isEligibleForWeekdayOvertime()
-                        );
-                    } catch (\Exception $e) {
-                        \Log::warning('Bulk checkout overtime calc error', [
-                            'employee_id' => $employee->id,
-                            'error' => $e->getMessage()
-                        ]);
-                    }
-                }
-
-                $attendance->check_out        = $checkOutTime;
-                $attendance->photo_out        = $log->photo_url;
-                $attendance->overtime_minutes = $overtimeMinutes;
+                // Overtime dihitung via batch cron, bukan real-time
+                $attendance->check_out = $checkOutTime;
+                $attendance->photo_out = $log->photo_url;
+                $attendance->overtime_minutes = 0;
                 if ($request->notes) {
                     $attendance->notes = ($attendance->notes ? $attendance->notes . ' | ' : '') . $request->notes;
                 }

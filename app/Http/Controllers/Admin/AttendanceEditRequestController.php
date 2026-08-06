@@ -243,37 +243,15 @@ class AttendanceEditRequestController extends Controller
             }
         }
 
-        // Hitung overtime_minutes dengan batas mingguan
-        $overtimeMinutes = 0;
-        $employee = $attendance->employee;
-        if (!$employee->relationLoaded('position')) {
-            $employee->load('position');
-        }
-        if (in_array($newStatus, ['hadir', 'terlambat']) && $schedule && $newCheckOut) {
-            try {
-                $checkInTime = Carbon::parse($newDate . ' ' . $newCheckIn);
-                $checkOutTime = Carbon::createFromFormat('Y-m-d H:i', $newDate . ' ' . $newCheckOut);
-
-                $overtimeMinutes = app(\App\Services\OvertimeCalculator::class)->calculate(
-                    $attendance,
-                    Carbon::parse($newDate),
-                    $checkInTime,
-                    $checkOutTime,
-                    $schedule,
-                    $employee->isEligibleForWeekdayOvertime()
-                );
-            } catch (\Exception $e) {
-                $overtimeMinutes = 0;
-            }
-        }
-
-        // Terapkan perubahan ke attendance
+        // Terapkan perubahan ke attendance (overtime dihitung via batch cron, bukan real-time)
         $attendance->attendance_date   = $newDate;
         $attendance->check_in          = $newCheckIn;
         $attendance->check_out         = $newCheckOut;
         $attendance->status            = $newStatus;
         $attendance->late_minutes      = $lateMinutes;
-        $attendance->overtime_minutes  = $overtimeMinutes;
+        if ($attendance->isDirty('check_out')) {
+            $attendance->overtime_minutes = 0;
+        }
         $attendance->save();
 
         // Update status request
