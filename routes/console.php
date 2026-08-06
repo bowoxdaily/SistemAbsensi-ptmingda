@@ -35,19 +35,21 @@ Schedule::command('attendance:generate-absent')
     ->appendOutputTo(storage_path('logs/generate-absent.log'));
 
 // Schedule: Auto sync Fingerspot data
-// JADWAL DIOPTIMASI: Tidak jalan saat jam puncak absen masuk (07:00-08:30)
-// dan jam puncak absen pulang (16:30-18:00) — menghindari kompetisi disk I/O
-// Jalan: 06:00-06:59 (sebelum rush), 09:00-16:29 (siang), 18:01-21:00 (malam)
+// JADWAL DIOPTIMASI: Tidak jalan saat jam puncak absen masuk (07:00-08:59)
+// dan jam puncak absen pulang (16:00-18:59) — menghindari kompetisi disk I/O & table lock
+// Jalan: 06:00-06:59 (sebelum rush), 09:00-15:59 (siang), 19:00-21:00 (malam)
+// [FIX 2026-08-06] Tambah skip jam 16 (16:00-16:59 = peak checkout karyawan)
 Schedule::command('fingerspot:sync')
-    ->cron('*/5 6,9-16,18-21 * * *')  // skip jam 7,8,17 (peak attendance hours)
+    ->cron('*/5 6,9-15,19-21 * * *')  // skip jam 7,8,16,17,18 (peak attendance hours)
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/fingerspot-sync.log'));
 
-// Schedule: Recalculate overtime same-day jam 18:30 (setelah rush checkout selesai)
-// Menghitung lembur hari ini agar admin bisa lihat hasil di hari yang sama
+// Schedule: Recalculate overtime same-day jam 19:00 (geser 30 menit dari 18:30)
+// [FIX 2026-08-06] Geser dari 18:30 → 19:00 agar tidak bertabrakan dengan
+// generate-absent 17:30 dan queue:work peak sehingga MySQL tidak overload
 Schedule::command('attendance:recalculate-overtime', ['--from' => now()->format('Y-m-d')])
-    ->dailyAt('18:30')
+    ->dailyAt('19:00')
     ->weekdays()
     ->withoutOverlapping()
     ->runInBackground()

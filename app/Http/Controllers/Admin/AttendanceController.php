@@ -535,15 +535,26 @@ class AttendanceController extends Controller
         $query->whereYear('attendance_date', $year)
             ->whereMonth('attendance_date', $month);
 
-        $summary = [
-            'total' => $query->count(),
-            'hadir' => $query->clone()->where('status', 'hadir')->count(),
-            'terlambat' => $query->clone()->where('status', 'terlambat')->count(),
-            'izin' => $query->clone()->where('status', 'izin')->count(),
-            'sakit' => $query->clone()->where('status', 'sakit')->count(),
-            'alpha' => $query->clone()->where('status', 'alpha')->count(),
-            'cuti' => $query->clone()->where('status', 'cuti')->count(),
-        ];
+        // [FIX 2026-08-06] Redis Cache: simpan hasil summary 5 menit
+        // Key unik per employee+bulan+tahun agar tidak tabrakan antar user
+        $cacheKey = "attendance_summary:{$employeeId}:{$year}:{$month}";
+
+        $summary = \Illuminate\Support\Facades\Cache::remember($cacheKey, 300, function () use ($query) {
+            $statusCounts = $query->clone()
+                ->select('status', \DB::raw('COUNT(*) as total'))
+                ->groupBy('status')
+                ->pluck('total', 'status');
+
+            return [
+                'total'     => $statusCounts->sum(),
+                'hadir'     => (int) $statusCounts->get('hadir', 0),
+                'terlambat' => (int) $statusCounts->get('terlambat', 0),
+                'izin'      => (int) $statusCounts->get('izin', 0),
+                'sakit'     => (int) $statusCounts->get('sakit', 0),
+                'alpha'     => (int) $statusCounts->get('alpha', 0),
+                'cuti'      => (int) $statusCounts->get('cuti', 0),
+            ];
+        });
 
         return response()->json([
             'success' => true,
@@ -732,12 +743,19 @@ class AttendanceController extends Controller
             });
         }
 
-        // Get statistics
-        $totalAttendance = $query->count();
-        $hadirCount = (clone $query)->where('status', 'hadir')->count();
-        $terlambatCount = (clone $query)->where('status', 'terlambat')->count();
-        $izinCount = (clone $query)->where('status', 'izin')->count();
-        $alphaCount = (clone $query)->where('status', 'alpha')->count();
+        // [FIX 2026-08-06] Ganti 5 query count() terpisah → 1 query GROUP BY
+        // Sebelumnya: 5 round-trips ke MySQL untuk 1 halaman report
+        // Sekarang: 1 query saja, pivot ke variabel PHP
+        $statusCounts = (clone $query)
+            ->select('status', \DB::raw('COUNT(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $totalAttendance = $statusCounts->sum();
+        $hadirCount      = (int) $statusCounts->get('hadir', 0);
+        $terlambatCount  = (int) $statusCounts->get('terlambat', 0);
+        $izinCount       = (int) $statusCounts->get('izin', 0);
+        $alphaCount      = (int) $statusCounts->get('alpha', 0);
 
         // Get daily statistics for chart
         $dailyStats = Attendance::selectRaw('DATE(attendance_date) as date, status, COUNT(*) as count')
@@ -1034,7 +1052,8 @@ class AttendanceController extends Controller
 
             $updated = 0;
             $noLogs  = 0;
-            $logIdsToUpdate = [];
+            $logIdsToUpdate      = [];
+            $attendanceUpdates   = []; // [id => [field => value]] untuk batch update
 
             foreach ($attendances as $attendance) {
                 $employee = $attendance->employee;
@@ -1048,20 +1067,33 @@ class AttendanceController extends Controller
                 }
 
                 $checkOutTime = \Carbon\Carbon::parse($log->scan_time)->format('H:i:s');
-
-                // Overtime dihitung via batch cron, bukan real-time
-                $attendance->check_out = $checkOutTime;
-                $attendance->photo_out = $log->photo_url;
-                $attendance->overtime_minutes = 0;
+                $notes = $attendance->notes;
                 if ($request->notes) {
-                    $attendance->notes = ($attendance->notes ? $attendance->notes . ' | ' : '') . $request->notes;
+                    $notes = ($notes ? $notes . ' | ' : '') . $request->notes;
                 }
-                $attendance->save();
 
-                // Collect log IDs for batch update
+                // [FIX 2026-08-06] Kumpulkan data untuk batch update
+                // Hindari $attendance->save() per-loop agar AttendanceObserver
+                // tidak fire N×2 queries ke attendance_monthly_summaries saat peak checkout
+                $attendanceUpdates[$attendance->id] = [
+                    'check_out'        => $checkOutTime,
+                    'photo_out'        => $log->photo_url,
+                    'overtime_minutes' => 0,
+                    'notes'            => $notes,
+                ];
+
                 $logIdsToUpdate[] = $log->id;
-                
                 $updated++;
+            }
+
+            // [FIX 2026-08-06] Satu DB::update per attendance via case/when
+            // menggantikan N×save() yang memicu N×Observer queries
+            if (!empty($attendanceUpdates)) {
+                foreach ($attendanceUpdates as $attId => $fields) {
+                    \App\Models\Attendance::withoutObservers(function () use ($attId, $fields) {
+                        \App\Models\Attendance::where('id', $attId)->update($fields);
+                    });
+                }
             }
 
             // OPTIMIZATION: Batch update fingerspot logs

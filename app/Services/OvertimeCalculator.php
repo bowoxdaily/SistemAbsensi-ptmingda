@@ -69,23 +69,45 @@ class OvertimeCalculator
         return 0;
     }
 
+    /**
+     * [FIX 2026-08-06] Fallback dengan Redis Cache (TTL 10 menit).
+     * Jika Redis tidak tersedia, fallback ke MySQL query biasa.
+     * Jika sering terpanggil (lihat log WARNING) → caller tidak meneruskan
+     * $weeklyUsedMinutes dan menyebabkan N+1. Perbaiki di caller.
+     */
     private function getWeeklyUsedOvertimeMinutes(object $attendance): int
     {
         $attendanceDate = Carbon::parse($attendance->attendance_date);
         $weekStart = $attendanceDate->copy()->startOfWeek(Carbon::MONDAY)->startOfDay();
-        $weekEnd = $attendanceDate->copy()->endOfWeek(Carbon::SUNDAY)->endOfDay();
+        $weekEnd   = $attendanceDate->copy()->endOfWeek(Carbon::SUNDAY)->endOfDay();
 
-        $query = Attendance::query()
-            ->where('employee_id', $attendance->employee_id)
-            ->whereBetween('attendance_date', [$weekStart->toDateString(), $weekEnd->toDateString()])
-            ->whereNotNull('check_out')
-            ->whereIn('status', ['hadir', 'terlambat']);
+        // Redis cache key: unik per karyawan per minggu
+        $cacheKey = 'overtime_weekly:'
+            . ($attendance->employee_id ?? 'unknown') . ':'
+            . $weekStart->toDateString();
 
-        if ($attendance->exists) {
-            $query->where('id', '!=', $attendance->id);
-        }
+        // Log warning agar caller bisa diperbaiki
+        \Illuminate\Support\Facades\Log::warning('[OvertimeCalculator] Fallback query triggered — pastikan caller meneruskan $weeklyUsedMinutes', [
+            'employee_id'     => $attendance->employee_id ?? null,
+            'attendance_id'   => $attendance->id ?? null,
+            'attendance_date' => $attendance->attendance_date ?? null,
+            'cache_key'       => $cacheKey,
+        ]);
 
-        return (int) $query->sum('overtime_minutes');
+        // Ambil dari cache Redis jika ada, jika tidak query MySQL
+        return (int) \Illuminate\Support\Facades\Cache::remember($cacheKey, 600, function () use ($attendance, $weekStart, $weekEnd) {
+            $query = Attendance::query()
+                ->where('employee_id', $attendance->employee_id)
+                ->whereBetween('attendance_date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+                ->whereNotNull('check_out')
+                ->whereIn('status', ['hadir', 'terlambat']);
+
+            if ($attendance->exists) {
+                $query->where('id', '!=', $attendance->id);
+            }
+
+            return (int) $query->sum('overtime_minutes');
+        });
     }
 
     private function extractTimeParts(mixed $timeValue, int $defaultHour, int $defaultMinute): array

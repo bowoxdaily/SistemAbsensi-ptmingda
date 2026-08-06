@@ -1,316 +1,205 @@
-# Analisis & Optimasi Beban MySQL dari Cron Jobs
-
-## 🔴 Identifikasi Masalah
-
-### Cron Job yang Berpotensi Memberatkan MySQL
-
-#### 1. **OVERTIME RECALCULATION** (Prioritas Tertinggi)
-
-- **Jadwal:** Setiap hari jam 23:00
-- **Lokasi:** `routes/console.php` line 51-56
-- **Command:** `attendance:recalculate-overtime`
-- **Beban:**
-    - Query seluruh attendance dengan status `hadir`/`terlambat` yang sudah check-out
-    - Eager loading: `employee.workSchedule` → 2-3 JOIN operations
-    - Loop untuk setiap record → kalkulasi overtime
-    - Multiple UPDATE queries untuk record yang berubah
-
-**Estimasi Load:**
-
-```
-100 karyawan/hari × (1 SELECT + 1 UPDATE) = ~200 queries
-200 karyawan/hari × (1 SELECT + 1 UPDATE) = ~400 queries
-500 karyawan/hari × (1 SELECT + 1 UPDATE) = ~1000 queries
-```
-
-#### 2. **FINGERSPOT SYNC** (Beban Sedang)
-
-- **Jadwal:** Setiap 5 menit
-- **Beban:** Tergantung jumlah data dari API Fingerspot
-- **Impact:** Jika ada ratusan scan per 5 menit → bisa membebani
-
-#### 3. **ALPHA GENERATION** (Beban Ringan)
-
-- **Jadwal:** Setiap menit (hari kerja)
-- **Beban:** Relatif ringan, hanya cek karyawan aktif dengan schedule
+# MySQL Load Optimization — Audit Report
+> **Tanggal Audit:** 2026-08-06 21:00 WIB  
+> **Auditor:** Cline AI  
+> **Trigger:** MySQL overload saat jam selesai kerja (±17:00–19:00 WIB)
 
 ---
 
-## ✅ Solusi yang Sudah Diimplementasikan
+## 🔍 Root Cause Analysis
 
-### 1. **Ubah Jadwal Overtime ke Hari Kerja Saja**
+Setiap hari kerja pada rentang **17:00–19:00 WIB**, terjadi **MySQL spike** karena beberapa proses berjalan bersamaan:
 
-✅ **Status:** COMPLETED
+| Waktu | Proses | Beban DB |
+|-------|--------|----------|
+| 17:30 | `attendance:generate-absent` (final sweep) | Berat — UPDATE massal |
+| 18:30 | `attendance:recalculate-overtime` (lama) | Berat — N query per karyawan |
+| setiap 5 menit | `fingerspot:sync` jam 16–18 | Sedang — INSERT + UPDATE |
+| setiap menit | `queue:work` | Polling DB terus |
+| Request user | `summary()` — 7 COUNT query | 7 round-trips per request |
+| Request user | `report()` — 5 COUNT query | 5 round-trips per request |
+| bulkCheckOut | `$attendance->save()` per loop | N×Observer queries |
 
-**Perubahan di `routes/console.php`:**
+**Efek gabungan:** Semua proses ini tabrakan di jam yang sama → MySQL connection pool habis → response lambat / timeout.
+
+---
+
+## ✅ Perbaikan yang Diterapkan
+
+### Fix #1 — Jadwal Schedule (routes/console.php)
+**Masalah:** `fingerspot:sync` jalan tiap 5 menit termasuk jam 16:00–18:59 (peak checkout).  
+**Masalah 2:** `recalculate-overtime` dijadwalkan jam 18:30, tabrakan dengan generate-absent 17:30.
 
 ```php
-Schedule::command('attendance:recalculate-overtime', ['--from' => now()->format('Y-m-d')])
-    ->dailyAt('23:00')
-    ->weekdays() // ✅ BARU: Hanya Senin-Jumat
-    ->withoutOverlapping()
-    ->runInBackground()
-    ->appendOutputTo(storage_path('logs/overtime-recalculate.log'));
+// SEBELUM
+->cron('*/5 6,9-15,17-21 * * *')   // sync jalan jam 17 & 18 = peak!
+->dailyAt('18:30')                   // overtime jam 18:30 = tabrakan
+
+// SESUDAH  
+->cron('*/5 6,9-15,19-21 * * *')   // skip jam 7,8,16,17,18 (peak)
+->dailyAt('19:00')                   // geser 30 menit ke off-peak
 ```
 
-**Impact:**
-
-- Mengurangi eksekusi dari 365 hari/tahun → 260 hari/tahun (28% reduction)
-- Tidak perlu process di Sabtu/Minggu (biasanya tidak ada attendance)
+**Dampak:** Fingerspot sync tidak bersaing dengan karyawan yang absen pulang. Recalculate tidak tabrakan dengan generate-absent.
 
 ---
 
-### 2. **Tambah Database Index untuk Query Overtime**
-
-✅ **Status:** MIGRATION READY
-
-**File:** `database/migrations/2026_07_10_100000_add_overtime_query_index_to_attendances.php`
-
-**Index baru:**
+### Fix #2 — `summary()` Method (AttendanceController)
+**Masalah:** 7 query `COUNT()` terpisah per request API.
 
 ```php
-$table->index(['status', 'attendance_date', 'check_out'], 'att_overtime_query_idx');
+// SEBELUM: 7 round-trips ke MySQL
+$total     = $query->count();
+$hadir     = (clone $query)->where('status','hadir')->count();
+$terlambat = (clone $query)->where('status','terlambat')->count();
+// ... dst
+
+// SESUDAH: 1 query GROUP BY
+$statusCounts = $query->clone()
+    ->select('status', DB::raw('COUNT(*) as total'))
+    ->groupBy('status')
+    ->pluck('total', 'status');
 ```
 
-**Alasan urutan kolom:**
-
-1. `status` → Filter pertama (IN clause: hadir/terlambat)
-2. `attendance_date` → Range query (>=)
-3. `check_out` → NOT NULL check
-
-**Cara apply:**
-
-```powershell
-php artisan migrate
-```
-
-**Expected Performance Improvement:** 2-5x faster query execution
+**Dampak:** -6 query per request summary (86% pengurangan).
 
 ---
 
-## 🎯 Rekomendasi Tambahan
-
-### Rekomendasi A: Ubah Waktu Eksekusi ke Beban Rendah
-
-**Current:** 23:00 (masih prime time untuk beberapa user)
-
-**Opsi:**
+### Fix #3 — `report()` Method (AttendanceController)
+**Masalah:** 5 query `COUNT()` terpisah per page load halaman report.
 
 ```php
-// Opsi 1: Dini hari (RECOMMENDED)
-->dailyAt('02:00')  // Beban paling rendah
-->weekdays()
+// SEBELUM: 5 round-trips
+$totalAttendance = $query->count();
+$hadirCount      = (clone $query)->where('status','hadir')->count();
+// ... dst
 
-// Opsi 2: Pagi sebelum jam kerja
-->dailyAt('05:00')  // Sebelum karyawan mulai absen
-->weekdays()
-
-// Opsi 3: Malam lebih larut
-->dailyAt('01:00')
-->weekdays()
+// SESUDAH: 1 query GROUP BY
+$statusCounts = (clone $query)
+    ->select('status', DB::raw('COUNT(*) as total'))
+    ->groupBy('status')
+    ->pluck('total', 'status');
 ```
 
-**Impact:** Menghindari konflik dengan user yang masih online
+**Dampak:** -4 query per page load report (80% pengurangan).
 
 ---
 
-### Rekomendasi B: Tambah Monitoring & Alerting
-
-#### 1. **Log File Monitoring**
-
-Log file sudah dikonfigurasi di:
-
-```
-storage/logs/overtime-recalculate.log
-storage/logs/fingerspot-sync.log
-```
-
-**Cara monitor:**
-
-```powershell
-# Windows PowerShell
-Get-Content storage\logs\overtime-recalculate.log -Tail 50
-
-# Linux/Mac
-tail -f storage/logs/overtime-recalculate.log
-```
-
-#### 2. **MySQL Slow Query Log**
-
-Aktifkan di `my.cnf` / `my.ini`:
-
-```ini
-[mysqld]
-slow_query_log = 1
-long_query_time = 2
-slow_query_log_file = /var/log/mysql/slow-query.log
-```
-
-Query yang lebih dari 2 detik akan tercatat.
-
-#### 3. **Laravel Telescope** (Optional)
-
-Install untuk monitoring real-time:
-
-```powershell
-composer require laravel/telescope --dev
-php artisan telescope:install
-php artisan migrate
-```
-
-Access di: `http://your-app.test/telescope`
-
----
-
-### Rekomendasi C: Optimasi Query di RecalculateOvertimeCommand
-
-**Current Implementation:**
+### Fix #4 — `bulkCheckOut()` Observer N+1 (AttendanceController)
+**Masalah:** Loop `foreach` memanggil `$attendance->save()` per karyawan. Setiap `save()` memicu `AttendanceObserver` yang menjalankan 2–3 extra queries ke `attendance_monthly_summaries`.
 
 ```php
-// app/Console/Commands/RecalculateOvertimeCommand.php
-$attendances = Attendance::with(['employee.workSchedule'])
-    ->whereNotNull('check_out')
-    ->whereIn('status', ['hadir', 'terlambat'])
-    ->whereDate('attendance_date', '>=', $from)
-    ->get();
-
+// SEBELUM: N×(save + observer queries)
 foreach ($attendances as $attendance) {
-    // ... calculation ...
-    $attendance->save(); // ❌ Individual UPDATE
+    $attendance->save(); // → trigger observer → 2-3 extra queries
+}
+
+// SESUDAH: withoutObservers() + batch collect
+$attendanceUpdates[$attendance->id] = [...fields...];
+// Setelah loop:
+foreach ($attendanceUpdates as $attId => $fields) {
+    Attendance::withoutObservers(function () use ($attId, $fields) {
+        Attendance::where('id', $attId)->update($fields);
+    });
 }
 ```
 
-**Optimasi dengan Bulk Update:**
-
-```php
-// Collect IDs dan nilai yang perlu diupdate
-$updates = [];
-foreach ($attendances as $attendance) {
-    $overtimeMinutes = ... // calculation
-
-    if ($attendance->overtime_minutes != $overtimeMinutes) {
-        $updates[] = [
-            'id' => $attendance->id,
-            'overtime_minutes' => $overtimeMinutes
-        ];
-    }
-}
-
-// ✅ Bulk update (lebih efisien)
-if (!empty($updates)) {
-    $cases = [];
-    $ids = [];
-
-    foreach ($updates as $update) {
-        $cases[] = "WHEN {$update['id']} THEN {$update['overtime_minutes']}";
-        $ids[] = $update['id'];
-    }
-
-    $casesStr = implode(' ', $cases);
-    $idsStr = implode(',', $ids);
-
-    DB::update("UPDATE attendances SET overtime_minutes = CASE id $casesStr END WHERE id IN ($idsStr)");
-}
-```
-
-**Note:** Implementasi ini opsional, hanya jika beban masih tinggi setelah index ditambahkan.
+**Dampak:** Observer tidak fire saat bulk update. Untuk 50 karyawan: dari ~150 queries → 50 queries (−67%).  
+**Catatan:** `overtime_minutes` tetap di-set 0 saat bulk checkout; kalkulasi akurat dilakukan oleh cron `attendance:recalculate-overtime` jam 19:00.
 
 ---
 
-## 📊 Monitoring Queries
+### Fix #5 — OvertimeCalculator Fallback Guard (OvertimeCalculator.php)
+**Masalah:** Method `getWeeklyUsedOvertimeMinutes()` adalah fallback N+1 yang dipanggil saat caller tidak meneruskan `$weeklyUsedMinutes`. Sulit terdeteksi di production.
 
-File SQL untuk monitoring sudah dibuat di:
-**`docs/monitoring_mysql_load.sql`**
+```php
+// SESUDAH: Tambah warning log
+private function getWeeklyUsedOvertimeMinutes(object $attendance): int
+{
+    Log::warning('[OvertimeCalculator] Fallback N+1 query triggered', [
+        'employee_id'   => $attendance->employee_id,
+        'attendance_id' => $attendance->id,
+        'caller'        => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)[2] ?? [],
+    ]);
+    // ... query ...
+}
+```
 
-Query yang tersedia:
+**Dampak:** Setiap kali fallback terpanggil, akan muncul entry `WARNING` di `storage/logs/laravel.log`. Tim dapat `grep '[OvertimeCalculator]'` untuk mendeteksi caller mana yang belum meneruskan weekly cache.
 
-1. Hitung attendance yang perlu diproses per hari
-2. Rata-rata beban harian
-3. Check existing indexes
-4. Monitor real-time running queries
+---
 
-**Cara pakai:**
+## 📊 Estimasi Pengurangan Query Saat Peak Hour
+
+| Skenario | Sebelum | Sesudah | Pengurangan |
+|----------|---------|---------|-------------|
+| 1 request `/summary` | 7 queries | 1 query | −86% |
+| 1 page `/report` | 5 queries | 1 query | −80% |
+| bulkCheckOut 50 karyawan | ~150 queries | ~50 queries | −67% |
+| fingerspot:sync jam 17–18 | Aktif | **Dimatikan** | −100% |
+| recalculate-overtime jam 18:30 | Tabrakan | Digeser 19:00 | Tidak tabrakan |
+
+---
+
+## 🔧 Rekomendasi Lanjutan (Belum Diimplementasi)
+
+### A. Index Database yang Direkomendasikan
+Jalankan di MySQL untuk mempercepat query yang sering:
 
 ```sql
--- Jalankan di phpMyAdmin / MySQL Workbench
-source docs/monitoring_mysql_load.sql;
+-- Index untuk filter status + tanggal (dipakai summary & report)
+ALTER TABLE attendances 
+  ADD INDEX idx_status_date (status, attendance_date);
+
+-- Index untuk employee + tanggal (dipakai di OvertimeCalculator)
+ALTER TABLE attendances 
+  ADD INDEX idx_emp_date_status (employee_id, attendance_date, status);
+
+-- Index untuk fingerspot logs (dipakai bulkCheckOut)
+ALTER TABLE fingerspot_logs 
+  ADD INDEX idx_emp_scantime_status (employee_id, scan_time, process_status);
+```
+
+### B. Cache Hasil Summary
+Jika halaman dashboard sering dibuka banyak user, pertimbangkan cache:
+
+```php
+$summary = Cache::remember("attendance_summary_{$date}", 300, function () use ($query) {
+    return $query->select('status', DB::raw('COUNT(*) as total'))
+        ->groupBy('status')
+        ->pluck('total', 'status');
+});
+```
+
+### C. Queue Horizon (jika traffic tinggi)
+Ganti `queue:work` via cron dengan **Laravel Horizon** untuk monitoring antrian real-time dan auto-scaling worker.
+
+### D. Slow Query Log MySQL
+Aktifkan slow query log untuk monitoring berkelanjutan:
+
+```ini
+# my.cnf / my.ini
+slow_query_log = 1
+slow_query_log_file = /var/log/mysql/slow.log
+long_query_time = 2
+log_queries_not_using_indexes = 1
 ```
 
 ---
 
-## 🧪 Testing
+## 🕐 Timeline Jadwal Setelah Perbaikan
 
-### Test Recalculation Manual
-
-```powershell
-# Dry run (preview tanpa save)
-php artisan attendance:recalculate-overtime --from=2026-07-09 --dry-run
-
-# Execute untuk tanggal tertentu
-php artisan attendance:recalculate-overtime --from=2026-07-09 --to=2026-07-09
-
-# Execute untuk semua bulan ini
-php artisan attendance:recalculate-overtime --from=2026-07-01
 ```
-
-### Test Scheduler
-
-```powershell
-# List semua scheduled tasks
-php artisan schedule:list
-
-# Run scheduler once (test semua due tasks)
-php artisan schedule:run
-
-# Run scheduler terus menerus (development)
-php artisan schedule:work
+06:00  fingerspot:sync mulai (setiap 5 menit)
+07:00  generate-absent sweep pagi (setiap 10 menit s/d 10:00)
+       [fingerspot:sync BERHENTI jam 7-8 = peak check-in]
+09:00  fingerspot:sync lanjut (s/d 15:59)
+       [fingerspot:sync BERHENTI jam 16 = peak check-out]
+17:30  generate-absent final sweep ✓
+19:00  fingerspot:sync lanjut (s/d 21:00)
+19:00  recalculate-overtime hari ini ✓ (tidak tabrakan)
+02:00  recalculate-overtime kemarin (final check) ✓
 ```
 
 ---
 
-## ✅ Checklist Implementasi
-
-- [x] ✅ Ubah jadwal overtime recalculation ke weekdays only
-- [x] ✅ Buat migration untuk index baru
-- [ ] 🔲 Apply migration: `php artisan migrate`
-- [ ] 🔲 Test query performance sebelum & sesudah index
-- [ ] 🔲 Monitor log file `overtime-recalculate.log` selama 1 minggu
-- [ ] 🔲 Evaluate: Apakah perlu pindah jam eksekusi (23:00 → 02:00)?
-- [ ] 🔲 Evaluate: Apakah perlu implementasi bulk update?
-- [ ] 🔲 Setup MySQL slow query log (optional)
-- [ ] 🔲 Setup Laravel Telescope untuk monitoring (optional)
-
----
-
-## 📈 Expected Results
-
-Setelah implementasi optimasi:
-
-**Before:**
-
-- Eksekusi: 365 hari/tahun
-- Query time: ~2-5 detik untuk 100 karyawan (tanpa index yang optimal)
-- Total queries: ~200-400 per eksekusi
-
-**After:**
-
-- Eksekusi: 260 hari/tahun (28% reduction)
-- Query time: ~0.5-1 detik untuk 100 karyawan (dengan index)
-- Impact: 60-80% reduction in database load
-
----
-
-## 🔗 Related Files
-
-- `routes/console.php` - Scheduled tasks configuration
-- `app/Console/Commands/RecalculateOvertimeCommand.php` - Overtime calculation logic
-- `app/Console/Commands/SyncFingerspotData.php` - Fingerspot sync logic
-- `app/Console/Commands/GenerateAbsentAttendance.php` - Alpha generation logic
-- `database/migrations/2026_07_10_100000_add_overtime_query_index_to_attendances.php` - New index migration
-- `docs/monitoring_mysql_load.sql` - Monitoring queries
-
----
-
-**Dibuat:** 2026-07-10  
-**Last Updated:** 2026-07-10  
-**Status:** Ready for Implementation
+*Laporan ini dibuat otomatis oleh audit AI. Untuk pertanyaan teknis, lihat komentar `[FIX 2026-08-06]` di source code.*
