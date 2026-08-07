@@ -44,10 +44,14 @@ class OfficeSettingController extends Controller
             $setting = OfficeSetting::get();
             $setting->update($request->all());
 
+            // [FIX 2026-08-08] Invalidate cache agar semua request absen berikutnya
+            // mendapatkan koordinat/radius terbaru, bukan nilai lama yang ter-cache 1 jam.
+            OfficeSetting::clearCache();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Pengaturan lokasi kantor berhasil diperbarui',
-                'data' => $setting
+                'data'    => $setting
             ]);
         } catch (\Exception $e) {
             return response()->json([

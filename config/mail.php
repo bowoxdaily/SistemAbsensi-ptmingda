@@ -135,4 +135,26 @@ return [
         'name' => env('MAIL_REPLY_TO_INTERVIEW_NAME', env('MAIL_FROM_INTERVIEW_NAME', env('MAIL_FROM_NAME', 'Example'))),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Email Rate Limiting
+    |--------------------------------------------------------------------------
+    |
+    | Controls how aggressively emails are sent to avoid hitting SMTP provider
+    | rate limits and triggering anti-spam bans.
+    |
+    | outbound_rate_per_minute  — max emails/minute across ALL outbound jobs
+    |                             (broadcast + alpha notifications).
+    |                             12 = 1 email per 5 seconds. Safe for Mailgun,
+    |                             SendGrid flex, and most shared SMTP providers.
+    |
+    | warmup_min_interval_seconds — minimum gap between consecutive warmup
+    |                               emails. 30 = 2 emails/minute max.
+    |                               Keeps new IP/domain reputation healthy.
+    |
+    */
+
+    'outbound_rate_per_minute'    => (int) env('MAIL_OUTBOUND_RATE_PER_MINUTE', 12),
+    'warmup_min_interval_seconds' => (int) env('MAIL_WARMUP_INTERVAL_SECONDS', 30),
+
 ];

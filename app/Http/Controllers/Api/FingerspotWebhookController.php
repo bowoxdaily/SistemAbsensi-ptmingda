@@ -399,25 +399,28 @@ class FingerspotWebhookController extends Controller
         FingerspotSetting $setting,
         ?string $photoUrl = null
     ): array {
-        $attendanceDate = $scanTime->toDateString();
-
-        // Get employee's work schedule for time-based rules
-        $schedule = $employee->workSchedule;
-        $workStartTime = null;
-        $workEndTime = null;
+        // ── Resolusi jadwal kerja ──────────────────────────────────────────
+        // $schedule   : objek WorkSchedule atau null (tidak punya jadwal)
+        // $hasSchedule: true  = jadwal nyata berhasil di-parse → normalisasi aktif
+        //               false = tidak ada jadwal / gagal parse  → skip normalisasi
+        $schedule       = $employee->workSchedule;
+        $hasSchedule    = false;
+        $workStartTime  = null;
+        $workEndTime    = null;
+        $startTimeStr   = '08:00'; // hanya dipakai sebagai fallback check-in/check-out
+        $endTimeStr     = '17:00';
 
         if ($schedule) {
             try {
                 // Handle both Carbon objects (from datetime cast) and strings
                 // WorkSchedule casts start_time/end_time as datetime:H:i:s which returns Carbon
                 $startTimeRaw = $schedule->start_time;
-                $endTimeRaw = $schedule->end_time;
+                $endTimeRaw   = $schedule->end_time;
 
-                // Extract HH:MM from Carbon object or string
+                // Extract HH:MM dari Carbon object atau string
                 if ($startTimeRaw instanceof Carbon) {
                     $startTimeStr = $startTimeRaw->format('H:i');
                 } else {
-                    // String format - extract HH:MM using regex
                     preg_match('/(\d{1,2}):(\d{2})/', (string) $startTimeRaw, $matches);
                     $startTimeStr = $matches ? $matches[1] . ':' . $matches[2] : '08:00';
                 }
@@ -429,27 +432,56 @@ class FingerspotWebhookController extends Controller
                     $endTimeStr = $matches ? $matches[1] . ':' . $matches[2] : '17:00';
                 }
 
-                $workStartTime = Carbon::createFromFormat('Y-m-d H:i', $attendanceDate . ' ' . $startTimeStr);
-                $workEndTime = Carbon::createFromFormat('Y-m-d H:i', $attendanceDate . ' ' . $endTimeStr);
-
-                // Handle overnight shifts (end time is next day)
-                if ($workEndTime->lt($workStartTime)) {
-                    $workEndTime->addDay();
-                }
+                $hasSchedule = true; // jadwal berhasil di-parse
             } catch (\Exception $e) {
                 Log::warning('Fingerspot: Could not parse work schedule times', [
                     'employee_id' => $employee->id,
-                    'schedule' => $schedule->toArray(),
-                    'error' => $e->getMessage(),
+                    'schedule'    => $schedule->toArray(),
+                    'error'       => $e->getMessage(),
                 ]);
-                // Set fallback values
-                $workStartTime = Carbon::createFromFormat('Y-m-d H:i', $attendanceDate . ' 08:00');
-                $workEndTime = Carbon::createFromFormat('Y-m-d H:i', $attendanceDate . ' 17:00');
+                // $hasSchedule tetap false → normalisasi di-skip
             }
-        } else {
-            // No work schedule - use default times
+        }
+
+        // ── Isu 6: Koreksi attendanceDate untuk shift malam (overnight) ───
+        // Jika shift malam (end < start, misal 20:00–04:00) dan scan terjadi
+        // di antara midnight–endTime (misal 00:00–04:00), scan tersebut adalah
+        // bagian dari shift hari SEBELUMNYA — koreksi attendanceDate ke kemarin.
+        //
+        // Deteksi: endTimeStr < startTimeStr (secara string HH:MM, berarti overnight)
+        //          DAN jam scan < endTimeStr (scan di sisi "pagi" shift)
+        $attendanceDate = $scanTime->toDateString();
+
+        if ($hasSchedule) {
+            $isOvernightShift = ($endTimeStr < $startTimeStr); // e.g. '04:00' < '20:00'
+            $scanHourMin      = $scanTime->format('H:i');      // e.g. '01:30'
+            if ($isOvernightShift && $scanHourMin < $startTimeStr && $scanHourMin <= $endTimeStr) {
+                // Scan ada di sisi dini hari → bagian dari shift kemarin
+                $attendanceDate = $scanTime->copy()->subDay()->toDateString();
+
+                Log::info('Fingerspot: Overnight shift — attendanceDate corrected to previous day', [
+                    'employee_id'    => $employee->id,
+                    'scan_time'      => $scanTime->format('Y-m-d H:i:s'),
+                    'attendance_date'=> $attendanceDate,
+                    'shift_start'    => $startTimeStr,
+                    'shift_end'      => $endTimeStr,
+                ]);
+            }
+        }
+
+        // Build full Carbon datetime dari jadwal + attendanceDate yang sudah dikoreksi
+        try {
+            $workStartTime = Carbon::createFromFormat('Y-m-d H:i', $attendanceDate . ' ' . $startTimeStr);
+            $workEndTime   = Carbon::createFromFormat('Y-m-d H:i', $attendanceDate . ' ' . $endTimeStr);
+
+            // Handle overnight shifts: workEndTime di hari berikutnya
+            if ($workEndTime->lt($workStartTime)) {
+                $workEndTime->addDay();
+            }
+        } catch (\Exception $e) {
+            // Fallback: pakai default 08:00/17:00
             $workStartTime = Carbon::createFromFormat('Y-m-d H:i', $attendanceDate . ' 08:00');
-            $workEndTime = Carbon::createFromFormat('Y-m-d H:i', $attendanceDate . ' 17:00');
+            $workEndTime   = Carbon::createFromFormat('Y-m-d H:i', $attendanceDate . ' 17:00');
         }
 
         // Check for existing attendance on this date
@@ -508,14 +540,19 @@ class FingerspotWebhookController extends Controller
 
                 // ── NORMALISASI WAKTU CHECK-IN (Aturan Buyer) ─────────────
                 // Window dinamis dari jadwal: [workStartTime - 15 menit, workStartTime)
-                // Scan < windowStart : waktu di-random ke dalam window
-                // Scan >= windowStart: waktu disimpan aktual (tidak diubah)
-                // Tidak ada jadwal   : skip normalisasi, simpan aktual
+                // Scan <  windowStart : waktu di-random ke dalam window
+                // Scan >= windowStart : waktu disimpan aktual (tidak diubah)
+                // Tidak ada jadwal ($hasSchedule=false): kirim null → skip normalisasi, simpan aktual
                 // Scan asli tetap tersimpan di fingerspot_logs.scan_time
-                $normResult        = $this->normalizeCheckInTime($scanTime, $workStartTime);
+                $normResult        = $this->normalizeCheckInTime($scanTime, $hasSchedule ? $workStartTime : null);
                 $effectiveScanTime = $normResult['normalized_time'];  // waktu di Attendance
                 $originalScanTime  = $normResult['original_time'];    // waktu asli mesin
                 $wasNormalized     = $normResult['was_normalized'];   // true jika diubah
+
+                // Build catatan normalisasi untuk disimpan di attendances.notes
+                $normalizationNote = $wasNormalized
+                    ? 'Normalized: ' . $originalScanTime->format('H:i:s') . ' → ' . $effectiveScanTime->format('H:i:s')
+                    : null;
 
                 // Create check-in dengan waktu efektif
                 $attendance = $this->createCheckIn(
@@ -523,7 +560,9 @@ class FingerspotWebhookController extends Controller
                     $effectiveScanTime,
                     $attendanceDate,
                     $directPhotoUrl,
-                    $workStartTime
+                    $workStartTime,
+                    $schedule,         // Isu 5: kirim dari luar, tidak double-load
+                    $normalizationNote // Isu 3/4: catatan normalisasi → attendances.notes
                 );
 
                 $logMsg = $wasNormalized
@@ -678,60 +717,85 @@ class FingerspotWebhookController extends Controller
     /**
      * Create check-in attendance record.
      *
-     * Keterlambatan dihitung berdasarkan workStartTime:
-     *   - scanTime >= workStartTime => 'terlambat', late_minutes dihitung.
-     *   - scanTime <  workStartTime => 'hadir',     late_minutes = 0.
+     * Keterlambatan dihitung berdasarkan workStartTime + late_tolerance jadwal:
+     *   - scanTime <  lateThreshold (workStartTime + tolerance) => 'hadir', late_minutes = 0
+     *   - scanTime >= lateThreshold                             => 'terlambat',
+     *                                                              late_minutes = diff(workStartTime, scanTime)
+     *                                                              (dihitung dari workStartTime, bukan threshold)
+     *
+     * @param  Employee          $employee       Karyawan
+     * @param  Carbon            $scanTime       Waktu scan efektif (sudah dinormalisasi jika perlu)
+     * @param  string            $attendanceDate Tanggal absensi 'Y-m-d'
+     * @param  string|null       $photoUrl       URL foto check-in
+     * @param  Carbon|null       $workStartTime  Jam mulai shift (Carbon full datetime)
+     * @param  WorkSchedule|null $schedule       Jadwal kerja (untuk late_tolerance); dikirim dari luar agar tidak double-load
+     * @param  string|null       $normalizationNote Catatan normalisasi waktu jika terjadi, akan ditambah ke notes
      */
     protected function createCheckIn(
         Employee $employee,
         Carbon $scanTime,
         string $attendanceDate,
         ?string $photoUrl = null,
-        ?Carbon $workStartTime = null
+        ?Carbon $workStartTime = null,
+        ?\App\Models\WorkSchedule $schedule = null,
+        ?string $normalizationNote = null
     ): Attendance {
         $checkInTime = $scanTime->format('H:i:s');
 
-        // ── Hitung keterlambatan ──────────────────────────────────────────
+        // ── Hitung keterlambatan dengan toleransi dari jadwal ─────────────
         $lateMinutes = 0;
         $status      = 'hadir';
 
-        $schedule = $employee->workSchedule;
-
-        if ($schedule && $workStartTime) {
+        if ($workStartTime) {
             try {
-                // Rule: Jika scan jam 8:00 AM atau lebih (dan ini scan pertama hari ini), langsung terlambat
-                if ($scanTime->gte($workStartTime)) {
-                    $lateMinutes = $workStartTime->diffInMinutes($scanTime);
-                    $status = 'terlambat';
+                // Ambil toleransi keterlambatan dari jadwal (default 0 jika tidak ada jadwal)
+                $toleranceMinutes = ($schedule && $schedule->late_tolerance > 0)
+                    ? (int) $schedule->late_tolerance
+                    : 0;
+
+                // Threshold terlambat = workStartTime + toleransi
+                $lateThreshold = $workStartTime->copy()->addMinutes($toleranceMinutes);
+
+                if ($scanTime->gte($lateThreshold)) {
+                    // Terlambat: hitung menit dari workStartTime (bukan dari threshold)
+                    // sehingga late_minutes = total keterlambatan aktual, bukan setelah toleransi
+                    $lateMinutes = (int) $workStartTime->diffInMinutes($scanTime);
+                    $status      = 'terlambat';
                 }
             } catch (\Exception $e) {
                 Log::warning('Fingerspot: Could not calculate late minutes', [
                     'employee_id' => $employee->id,
-                    'schedule' => $schedule->toArray(),
-                    'error' => $e->getMessage(),
+                    'error'       => $e->getMessage(),
                 ]);
             }
         } else {
-            // Fallback jika tidak ada work schedule - gunakan jam 8:00 AM sebagai batas default
+            // Fallback jika tidak ada jadwal kerja - gunakan 08:00 sebagai batas default
+            // (karyawan tanpa jadwal tetap diproses, tapi tidak ada toleransi)
             try {
                 $defaultStartTime = Carbon::createFromFormat('Y-m-d H:i', $attendanceDate . ' 08:00');
                 if ($scanTime->gte($defaultStartTime)) {
-                    $lateMinutes = $defaultStartTime->diffInMinutes($scanTime);
-                    $status = 'terlambat';
+                    $lateMinutes = (int) $defaultStartTime->diffInMinutes($scanTime);
+                    $status      = 'terlambat';
                 }
             } catch (\Exception $e) {
-                // Ignore error, use default status 'hadir'
+                // Biarkan status 'hadir', late_minutes = 0
             }
         }
 
+        // ── Bangun notes: selalu "Via Fingerspot", tambah info normalisasi jika ada ──
+        $notes = 'Via Fingerspot';
+        if ($normalizationNote) {
+            $notes .= ' | ' . $normalizationNote;
+        }
+
         return Attendance::create([
-            'employee_id'    => $employee->id,
-            'attendance_date'=> $attendanceDate,
-            'check_in'       => $checkInTime,
-            'photo_in'       => $photoUrl,
-            'status'         => $status,
-            'late_minutes'   => $lateMinutes,
-            'notes'          => 'Via Fingerspot',
+            'employee_id'     => $employee->id,
+            'attendance_date' => $attendanceDate,
+            'check_in'        => $checkInTime,
+            'photo_in'        => $photoUrl,
+            'status'          => $status,
+            'late_minutes'    => $lateMinutes,
+            'notes'           => $notes,
         ]);
     }
 

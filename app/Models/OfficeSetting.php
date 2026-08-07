@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class OfficeSetting extends Model
 {
@@ -16,27 +17,42 @@ class OfficeSetting extends Model
     ];
 
     protected $casts = [
-        'latitude' => 'float',
-        'longitude' => 'float',
-        'radius_meters' => 'integer',
+        'latitude'         => 'float',
+        'longitude'        => 'float',
+        'radius_meters'    => 'integer',
         'enforce_location' => 'boolean',
     ];
 
     /**
-     * Get the singleton office setting
+     * Get the singleton office setting.
+     * [FIX 2026-08-08] Tambahkan Cache::remember untuk menghindari SELECT per check-in/check-out.
+     * Sebelumnya: firstOrCreate() dipanggil setiap request absen → SELECT + potential INSERT per karyawan.
+     * Sesudah: di-cache 1 jam, 1 query saja per jam untuk semua request.
+     * Cache di-invalidate lewat clearCache() saat admin update pengaturan kantor.
      */
     public static function get()
     {
-        return self::firstOrCreate(
-            ['id' => 1],
-            [
-                'office_name' => 'Kantor Pusat',
-                'latitude' => -6.200000,
-                'longitude' => 106.816666,
-                'radius_meters' => 100,
-                'enforce_location' => true,
-            ]
-        );
+        return Cache::remember('office_setting_singleton', 3600, function () {
+            return self::firstOrCreate(
+                ['id' => 1],
+                [
+                    'office_name'      => 'Kantor Pusat',
+                    'latitude'         => -6.200000,
+                    'longitude'        => 106.816666,
+                    'radius_meters'    => 100,
+                    'enforce_location' => true,
+                ]
+            );
+        });
+    }
+
+    /**
+     * Invalidate the singleton cache.
+     * Panggil ini setelah admin menyimpan perubahan OfficeSetting.
+     */
+    public static function clearCache(): void
+    {
+        Cache::forget('office_setting_singleton');
     }
 
     /**
@@ -74,3 +90,4 @@ class OfficeSetting extends Model
         return $distance <= $this->radius_meters;
     }
 }
+

@@ -442,29 +442,37 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get statistik bulanan untuk karyawan
+     * Get statistik bulanan untuk karyawan.
+     * [FIX 2026-08-08] Ganti N+1 loop query (1 query/hari) → 1 query bulk + pivot PHP.
+     * Sebelumnya: max 31 queries/karyawan saat buka dashboard.
+     * Sesudah: selalu 1 query per karyawan.
      */
     private function getMonthlyStatsForEmployee($employeeId)
     {
         $stats = [];
-        $thisMonth = Carbon::now()->month;
-        $thisYear = Carbon::now()->year;
+        $now = Carbon::now();
+        $thisMonth = $now->month;
+        $thisYear  = $now->year;
+        $today     = $now->day;
+        $daysInMonth = $now->daysInMonth;
 
-        // Get jumlah hari dalam bulan ini
-        $daysInMonth = Carbon::now()->daysInMonth;
+        // 1 query untuk semua hari dalam bulan ini, pivot ke array keyed by day
+        $attendanceMap = Attendance::where('employee_id', $employeeId)
+            ->whereYear('attendance_date', $thisYear)
+            ->whereMonth('attendance_date', $thisMonth)
+            ->select('attendance_date', 'status')
+            ->get()
+            ->keyBy(fn($a) => (int) Carbon::parse($a->attendance_date)->format('d'));
 
         for ($day = 1; $day <= $daysInMonth; $day++) {
-            $date = Carbon::create($thisYear, $thisMonth, $day);
-
-            if ($date->isFuture()) break;
+            if ($day > $today) {
+                break;
+            }
 
             $stats['labels'][] = $day;
-
-            $attendance = Attendance::where('employee_id', $employeeId)
-                ->whereDate('attendance_date', $date)
-                ->first();
-
-            $stats['status'][] = $attendance ? $attendance->status : 'tidak_ada_data';
+            $stats['status'][] = $attendanceMap->has($day)
+                ? $attendanceMap[$day]->status
+                : 'tidak_ada_data';
         }
 
         return $stats;

@@ -65,14 +65,25 @@ Schedule::command('attendance:recalculate-overtime', ['--from' => now()->subDay(
     ->appendOutputTo(storage_path('logs/overtime-recalculate.log'));
 
 // Schedule: Queue worker — proses jobs (email broadcast, notifikasi, dll)
-// --sleep=3 : tunggu 3 detik sebelum poll ulang jika queue kosong (kurangi DB polling)
-// --max-time=50 : berhenti setelah 50 detik (memberi jeda antar run)
-// --stop-when-empty : berhenti segera jika queue sudah kosong
-Schedule::command('queue:work', ['--stop-when-empty', '--max-time=50', '--sleep=3'])
+// --queue=default : eksplisit hanya proses queue 'default' (alpha notification, broadcast)
+// --sleep=3       : tunggu 3 detik sebelum poll ulang jika queue kosong (kurangi DB polling)
+// --max-time=50   : berhenti setelah 50 detik (memberi jeda antar run agar tidak tumpang-tindih)
+// --stop-when-empty: berhenti segera jika queue sudah kosong
+Schedule::command('queue:work', ['--queue' => 'default', '--stop-when-empty', '--max-time=50', '--sleep=3'])
     ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/queue-worker.log'));
+
+// Schedule: Queue worker terpisah untuk warmup emails
+// Berjalan di queue 'warmup-emails' agar tidak bersaing dengan notifikasi urgent.
+// --max-time=50 memberi ruang untuk cooldown 10 detik sebelum run berikutnya.
+// ThrottleWarmupEmails middleware di SendWarmupEmail mengatur jeda 30 detik per email.
+Schedule::command('queue:work', ['--queue' => 'warmup-emails', '--stop-when-empty', '--max-time=50', '--sleep=5'])
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/queue-warmup-worker.log'));
 
 // Schedule: Dispatch warmup emails every hour (respects daily limits)
 // Sends emails based on warmup schedule configuration

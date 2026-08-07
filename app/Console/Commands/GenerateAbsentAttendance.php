@@ -216,6 +216,48 @@ class GenerateAbsentAttendance extends Command
             foreach (array_chunk($insertData, 100) as $chunk) {
                 Attendance::insert($chunk);
             }
+
+            // [FIX 2026-08-08] Attendance::insert() melewati Eloquent Observer sehingga
+            // AttendanceObserver tidak men-update attendance_monthly_summaries secara otomatis.
+            // Invalidasi cache summary untuk bulan ini agar data Rekapitulasi tidak stale.
+            // Summary akan di-rebuild oleh cron recalculate-overtime pada pukul 19:00.
+            $cacheYear  = $date->year;
+            $cacheMonth = $date->month;
+            foreach ($insertData as $row) {
+                \Illuminate\Support\Facades\Cache::forget(
+                    "attendance_summary:{$row['employee_id']}:{$cacheYear}:{$cacheMonth}"
+                );
+            }
+
+            // [FIX 2026-08-07] Dispatch alpha email notifications dengan delay bertahap
+            // agar tidak mem-burst SMTP provider sekaligus.
+            // Jeda 5 detik per email = 12 email/menit, sesuai MAIL_OUTBOUND_RATE_PER_MINUTE.
+            // Hanya untuk record berstatus 'alpha' (skip izin/cuti/sakit).
+            $emailDelaySeconds = (int) round(60 / max(1, (int) config('mail.outbound_rate_per_minute', 12)));
+            $emailIndex = 0;
+            foreach ($insertData as $row) {
+                if (($row['status'] ?? '') !== 'alpha') {
+                    continue;
+                }
+
+                // Resolve attendance ID yang baru saja di-insert
+                $attendance = Attendance::where('employee_id', $row['employee_id'])
+                    ->whereDate('attendance_date', $row['attendance_date'])
+                    ->value('id');
+
+                if (!$attendance) {
+                    continue;
+                }
+
+                \App\Jobs\SendAlphaNotificationEmailJob::dispatch($attendance)
+                    ->delay(now()->addSeconds($emailIndex * $emailDelaySeconds));
+
+                $emailIndex++;
+            }
+
+            if ($emailIndex > 0) {
+                $this->line("  📧 {$emailIndex} alpha email notification dijadwalkan (jeda {$emailDelaySeconds}s per email)");
+            }
         }
 
         $this->newLine();
@@ -363,6 +405,16 @@ class GenerateAbsentAttendance extends Command
         if (!empty($insertData)) {
             foreach (array_chunk($insertData, 100) as $chunk) {
                 Attendance::insert($chunk);
+            }
+
+            // [FIX 2026-08-08] Sama seperti generate-absent reguler:
+            // Attendance::insert() melewati Observer, invalidasi cache summary secara manual.
+            $cacheYear  = $date->year;
+            $cacheMonth = $date->month;
+            foreach ($insertData as $row) {
+                \Illuminate\Support\Facades\Cache::forget(
+                    "attendance_summary:{$row['employee_id']}:{$cacheYear}:{$cacheMonth}"
+                );
             }
         }
 

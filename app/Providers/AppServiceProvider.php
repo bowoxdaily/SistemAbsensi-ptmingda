@@ -35,9 +35,12 @@ class AppServiceProvider extends ServiceProvider
         // Gunakan Bootstrap 5 untuk Paginasi
         Paginator::useBootstrapFive();
 
-        // Keep SMTP traffic below Lark's frequency caps (60 emails/minute).
+        // Keep SMTP traffic below the provider's rate cap.
+        // Default: 12 emails/minute (1 per 5 s) — safe for Mailgun, SendGrid flex,
+        // and shared SMTP. Tune via MAIL_OUTBOUND_RATE_PER_MINUTE in .env.
         RateLimiter::for('lark-outbound-email', function (): Limit {
-            return Limit::perMinute(50)->by('smtp_notifications');
+            $ratePerMinute = (int) config('mail.outbound_rate_per_minute', 12);
+            return Limit::perMinute($ratePerMinute)->by('smtp_notifications');
         });
     }
 }

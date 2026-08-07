@@ -9,6 +9,8 @@ use App\Models\Karyawans;
 use App\Models\Department;
 use App\Models\Position;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class GuestMonitoringController extends Controller
@@ -37,37 +39,83 @@ class GuestMonitoringController extends Controller
 
     /* ─── API: Dashboard Stats ───────────────────────── */
 
+    /**
+     * [FIX 2026-08-08] Konsolidasi 14+ COUNT queries terpisah → 3 GROUP BY queries + cache.
+     * Endpoint ini public (no auth), jadi tanpa cache bisa di-hit bot/crawler setiap detik.
+     * Sebelumnya: 8 COUNT(employees) + 6 COUNT(attendances) + 6 COUNT(interviews) = 20 queries/request.
+     * Sesudah: 3 GROUP BY queries, hasil di-cache 60 detik.
+     */
     public function stats()
     {
-        $today = today();
+        $today    = today();
+        $todayStr = $today->toDateString();
+
+        // ── Karyawan stats: 1 GROUP BY query ──────────────────────────────
+        $karyawanCounts = \Illuminate\Support\Facades\Cache::remember(
+            'guest_karyawan_stats',
+            60,
+            function () {
+                return Karyawans::select('status', \Illuminate\Support\Facades\DB::raw('COUNT(*) as total'))
+                    ->groupBy('status')
+                    ->pluck('total', 'status');
+            }
+        );
 
         $karyawanStats = [
-            'total'           => Karyawans::count(),
-            'active'          => Karyawans::where('status', 'active')->count(),
-            'resign'          => Karyawans::where('status', 'resign')->count(),
-            'inactive'        => Karyawans::where('status', 'inactive')->count(),
-            'mangkir'         => Karyawans::where('status', 'mangkir')->count(),
-            'gagal_probation' => Karyawans::where('status', 'gagal_probation')->count(),
-            'pending'         => Karyawans::where('status', 'pending')->count(),
-            'phk'             => Karyawans::where('status', 'phk')->count(),
+            'total'           => $karyawanCounts->sum(),
+            'active'          => (int) $karyawanCounts->get('active', 0),
+            'resign'          => (int) $karyawanCounts->get('resign', 0),
+            'inactive'        => (int) $karyawanCounts->get('inactive', 0),
+            'mangkir'         => (int) $karyawanCounts->get('mangkir', 0),
+            'gagal_probation' => (int) $karyawanCounts->get('gagal_probation', 0),
+            'pending'         => (int) $karyawanCounts->get('pending', 0),
+            'phk'             => (int) $karyawanCounts->get('phk', 0),
         ];
+
+        // ── Absensi stats hari ini: 1 GROUP BY query, cache 60 detik ──────
+        $absensiCounts = \Illuminate\Support\Facades\Cache::remember(
+            'guest_absensi_stats_' . $todayStr,
+            60,
+            function () use ($todayStr) {
+                return Attendance::whereDate('attendance_date', $todayStr)
+                    ->select('status', \Illuminate\Support\Facades\DB::raw('COUNT(*) as total'))
+                    ->groupBy('status')
+                    ->pluck('total', 'status');
+            }
+        );
 
         $absensiStats = [
-            'hadir'    => Attendance::whereDate('attendance_date', $today)->where('status', 'hadir')->count(),
-            'terlambat' => Attendance::whereDate('attendance_date', $today)->where('status', 'terlambat')->count(),
-            'alpha'    => Attendance::whereDate('attendance_date', $today)->where('status', 'alpha')->count(),
-            'izin'     => Attendance::whereDate('attendance_date', $today)->where('status', 'izin')->count(),
-            'sakit'    => Attendance::whereDate('attendance_date', $today)->where('status', 'sakit')->count(),
-            'cuti'     => Attendance::whereDate('attendance_date', $today)->where('status', 'cuti')->count(),
+            'hadir'     => (int) $absensiCounts->get('hadir', 0),
+            'terlambat' => (int) $absensiCounts->get('terlambat', 0),
+            'alpha'     => (int) $absensiCounts->get('alpha', 0),
+            'izin'      => (int) $absensiCounts->get('izin', 0),
+            'sakit'     => (int) $absensiCounts->get('sakit', 0),
+            'cuti'      => (int) $absensiCounts->get('cuti', 0),
         ];
 
-        $interviewStats = [
-            'total'     => Interview::count(),
-            'scheduled' => Interview::where('status', 'scheduled')->count(),
-            'confirmed' => Interview::where('status', 'confirmed')->count(),
-            'completed' => Interview::where('status', 'completed')->count(),
-            'cancelled' => Interview::where('status', 'cancelled')->count(),
-            'hari_ini'  => Interview::whereDate('interview_date', $today)->count(),
+        // ── Interview stats: 1 GROUP BY query, cache 5 menit ──────────────
+        $interviewData = \Illuminate\Support\Facades\Cache::remember(
+            'guest_interview_stats_' . $todayStr,
+            300,
+            function () use ($todayStr) {
+                $counts = Interview::select('status', \Illuminate\Support\Facades\DB::raw('COUNT(*) as total'))
+                    ->groupBy('status')
+                    ->pluck('total', 'status');
+
+                $hariIni = Interview::whereDate('interview_date', $todayStr)->count();
+
+                return ['counts' => $counts, 'hari_ini' => $hariIni];
+            }
+        );
+
+        $interviewCounts = $interviewData['counts'];
+        $interviewStats  = [
+            'total'     => $interviewCounts->sum(),
+            'scheduled' => (int) $interviewCounts->get('scheduled', 0),
+            'confirmed' => (int) $interviewCounts->get('confirmed', 0),
+            'completed' => (int) $interviewCounts->get('completed', 0),
+            'cancelled' => (int) $interviewCounts->get('cancelled', 0),
+            'hari_ini'  => (int) $interviewData['hari_ini'],
         ];
 
         $recentAttendance = Attendance::with(['employee.department', 'employee.position'])

@@ -622,37 +622,26 @@ class AttendanceController extends Controller
             ->appends($request->all());
 
         // Calculate statistics for the filtered period
+        // [FIX 2026-08-08] Ganti 6 COUNT queries terpisah → 1 query GROUP BY.
+        // Sebelumnya: 6 round-trips MySQL per halaman riwayat karyawan.
+        // Sesudah: 1 query saja, pivot di PHP.
+        $baseStatQuery = Attendance::where('employee_id', $employee->id)
+            ->whereYear('attendance_date', $year)
+            ->whereMonth('attendance_date', $month);
+
+        // Jika ada filter status, hitung total untuk semua status tetap dari query tanpa filter
+        $statusCounts = (clone $baseStatQuery)
+            ->select('status', \Illuminate\Support\Facades\DB::raw('COUNT(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
         $stats = [
-            'hadir' => Attendance::where('employee_id', $employee->id)
-                ->whereYear('attendance_date', $year)
-                ->whereMonth('attendance_date', $month)
-                ->where('status', 'hadir')
-                ->count(),
-            'terlambat' => Attendance::where('employee_id', $employee->id)
-                ->whereYear('attendance_date', $year)
-                ->whereMonth('attendance_date', $month)
-                ->where('status', 'terlambat')
-                ->count(),
-            'cuti' => Attendance::where('employee_id', $employee->id)
-                ->whereYear('attendance_date', $year)
-                ->whereMonth('attendance_date', $month)
-                ->where('status', 'cuti')
-                ->count(),
-            'izin' => Attendance::where('employee_id', $employee->id)
-                ->whereYear('attendance_date', $year)
-                ->whereMonth('attendance_date', $month)
-                ->where('status', 'izin')
-                ->count(),
-            'sakit' => Attendance::where('employee_id', $employee->id)
-                ->whereYear('attendance_date', $year)
-                ->whereMonth('attendance_date', $month)
-                ->where('status', 'sakit')
-                ->count(),
-            'alpha' => Attendance::where('employee_id', $employee->id)
-                ->whereYear('attendance_date', $year)
-                ->whereMonth('attendance_date', $month)
-                ->where('status', 'alpha')
-                ->count(),
+            'hadir'     => (int) $statusCounts->get('hadir', 0),
+            'terlambat' => (int) $statusCounts->get('terlambat', 0),
+            'cuti'      => (int) $statusCounts->get('cuti', 0),
+            'izin'      => (int) $statusCounts->get('izin', 0),
+            'sakit'     => (int) $statusCounts->get('sakit', 0),
+            'alpha'     => (int) $statusCounts->get('alpha', 0),
         ];
 
         return view('employee.attendance.history', compact('attendances', 'stats', 'month', 'year', 'employee'));

@@ -263,7 +263,12 @@ class BroadcastController extends Controller
                 )->delay(now()->addSeconds($index * $delay));
             }
 
-            // Dispatch Email jobs with pacing to avoid Lark frequency-limit bounces.
+            // Dispatch Email jobs with pacing to avoid SMTP provider rate-limit bans.
+            // Space jobs by 5 s each (= 12 emails/minute) to stay within the
+            // lark-outbound-email rate limiter defined in AppServiceProvider.
+            // Even if the rate limiter re-queues a job, the pre-applied delay acts
+            // as a first layer of defence so the burst never hits the SMTP server.
+            $emailDelaySeconds = (int) round(60 / max(1, (int) config('mail.outbound_rate_per_minute', 12)));
             foreach ($emailRecipients as $index => $employee) {
                 SendBroadcastEmailJob::dispatch(
                     $broadcast->id,
@@ -272,7 +277,7 @@ class BroadcastController extends Controller
                     $request->title,
                     $request->message,
                     $imageUrl
-                )->delay(now()->addSeconds($index * 2));
+                )->delay(now()->addSeconds($index * $emailDelaySeconds));
             }
 
             $channelLabel = match($channel) {

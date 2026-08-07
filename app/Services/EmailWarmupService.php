@@ -109,8 +109,12 @@ class EmailWarmupService
             return false;
         }
 
-        // Rate limiting: minimum 5 seconds between emails
-        if ($this->schedule->last_send_at && $this->schedule->last_send_at->diffInSeconds(now()) < 5) {
+        // Rate limiting: configurable minimum gap between warmup emails.
+        // Default: 30 seconds (= 2 emails/minute max) — conservative for IP warm-up.
+        // Tune via MAIL_WARMUP_INTERVAL_SECONDS in .env.
+        $minInterval = (int) config('mail.warmup_min_interval_seconds', 30);
+
+        if ($this->schedule->last_send_at && $this->schedule->last_send_at->diffInSeconds(now()) < $minInterval) {
             return false;
         }
 
@@ -126,8 +130,9 @@ class EmailWarmupService
             return 0;
         }
 
+        $minInterval   = (int) config('mail.warmup_min_interval_seconds', 30);
         $secondsSinceLast = $this->schedule->last_send_at->diffInSeconds(now());
-        $delay = 5 - $secondsSinceLast;
+        $delay = $minInterval - $secondsSinceLast;
 
         return max(0, $delay);
     }

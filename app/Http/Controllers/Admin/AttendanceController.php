@@ -95,7 +95,9 @@ class AttendanceController extends Controller
             $orderedQuery = $query->orderBy('attendance_date', 'desc')->orderBy('check_in', 'desc');
 
             if ($perPage === 'all') {
-                $allData     = $orderedQuery->get();
+                // [FIX 2026-08-08] Hard cap 5000 record untuk mencegah memory exhausted.
+                // Tanpa batas ini, admin bisa select range 3 bulan × 500 karyawan = 45.000+ rows ke memory.
+                $allData     = $orderedQuery->limit(5000)->get();
                 $attendances = new \Illuminate\Pagination\LengthAwarePaginator(
                     $allData,
                     $allData->count(),
@@ -1086,13 +1088,60 @@ class AttendanceController extends Controller
                 $updated++;
             }
 
-            // [FIX 2026-08-06] Satu DB::update per attendance via case/when
-            // menggantikan N×save() yang memicu N×Observer queries
+            // [FIX 2026-08-08] Ganti N UPDATE terpisah (1 per karyawan) → 1 UPDATE batch via DB::statement.
+            // Juga tambahkan invalidasi cache monthly summary karena withoutObservers() melewati observer.
+            // Sebelumnya: N closure + N UPDATE query (misal 300 karyawan = 300 queries UPDATE).
+            // Sesudah: 1 query UPDATE tunggal dengan CASE/WHEN untuk semua attendance sekaligus.
             if (!empty($attendanceUpdates)) {
+                $ids           = array_keys($attendanceUpdates);
+                $checkOutCase  = 'CASE id';
+                $photoCase     = 'CASE id';
+                $notesCase     = 'CASE id';
+                $bindings      = [];
+
                 foreach ($attendanceUpdates as $attId => $fields) {
-                    \App\Models\Attendance::withoutObservers(function () use ($attId, $fields) {
-                        \App\Models\Attendance::where('id', $attId)->update($fields);
-                    });
+                    $checkOutCase .= " WHEN ? THEN ?";
+                    $bindings[]    = $attId;
+                    $bindings[]    = $fields['check_out'];
+
+                    $photoCase    .= " WHEN ? THEN ?";
+                    $bindings[]    = $attId;
+                    $bindings[]    = $fields['photo_out'];
+
+                    $notesCase    .= " WHEN ? THEN ?";
+                    $bindings[]    = $attId;
+                    $bindings[]    = $fields['notes'];
+                }
+
+                $checkOutCase .= ' END';
+                $photoCase    .= ' END';
+                $notesCase    .= ' END';
+
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $bindings     = array_merge($bindings, $ids);
+
+                \Illuminate\Support\Facades\DB::statement(
+                    "UPDATE attendances
+                     SET check_out = {$checkOutCase},
+                         photo_out = {$photoCase},
+                         overtime_minutes = 0,
+                         notes = {$notesCase}
+                     WHERE id IN ({$placeholders})",
+                    $bindings
+                );
+
+                // Karena kita melewati Observer, invalidasi cache monthly summary secara manual
+                // agar dashboard Rekapitulasi tidak menampilkan data stale.
+                $checkoutDate = \Carbon\Carbon::parse($request->date);
+                $affectedEmpIds = $attendances
+                    ->whereIn('id', $ids)
+                    ->pluck('employee_id')
+                    ->unique();
+
+                foreach ($affectedEmpIds as $empId) {
+                    \Illuminate\Support\Facades\Cache::forget(
+                        "attendance_summary:{$empId}:{$checkoutDate->year}:{$checkoutDate->month}"
+                    );
                 }
             }
 
