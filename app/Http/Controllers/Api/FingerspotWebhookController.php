@@ -322,6 +322,74 @@ class FingerspotWebhookController extends Controller
     }
 
     /**
+     * Normalisasi waktu check-in berdasarkan jadwal kerja karyawan.
+     *
+     * Window valid dihitung DINAMIS dari workStartTime:
+     *   windowEnd   = workStartTime           (jam mulai shift, e.g. 07:30)
+     *   windowStart = workStartTime - 15 menit (e.g. 07:15)
+     *
+     * Aturan:
+     *   - Scan >= windowStart → simpan AKTUAL (tidak diubah)
+     *   - Scan <  windowStart → random ke [windowStart, windowEnd)
+     *   - workStartTime NULL  → skip normalisasi, simpan AKTUAL
+     *
+     * Contoh:
+     *   Shift pagi  07:30 → window 07:15–07:30 → scan 07:00 → random 07:15:xx
+     *   Shift siang 12:00 → window 11:45–12:00 → scan 11:40 → random 11:45:xx
+     *   Shift malam 20:00 → window 19:45–20:00 → scan 19:30 → random 19:45:xx
+     *
+     * @param  Carbon      $scanTime      Waktu scan asli dari fingerspot
+     * @param  Carbon|null $workStartTime Jam mulai shift dari jadwal kerja
+     * @return array{normalized_time: Carbon, was_normalized: bool, original_time: Carbon}
+     */
+    protected function normalizeCheckInTime(Carbon $scanTime, ?Carbon $workStartTime): array
+    {
+        $originalTime = $scanTime->copy(); // immutable-safe
+
+        // Tidak ada jadwal kerja -> skip normalisasi, simpan aktual
+        if ($workStartTime === null) {
+            return [
+                'normalized_time' => $scanTime->copy(),
+                'was_normalized'  => false,
+                'original_time'   => $originalTime,
+            ];
+        }
+
+        // Hitung window dinamis dari jadwal: [workStartTime - 15 menit, workStartTime)
+        $windowEnd   = $workStartTime->copy();
+        $windowStart = $workStartTime->copy()->subMinutes(15);
+
+        // Scan >= windowStart -> kembalikan aktual, tidak ada normalisasi
+        if ($scanTime->gte($windowStart)) {
+            return [
+                'normalized_time' => $scanTime->copy(),
+                'was_normalized'  => false,
+                'original_time'   => $originalTime,
+            ];
+        }
+
+        // Scan < windowStart -> randomize ke [windowStart, windowEnd)
+        // Window = 15 menit = 900 detik; detik di-random agar distribusi natural
+        $windowTotalSeconds = (int) $windowStart->diffInSeconds($windowEnd); // selalu 900
+        $randomSeconds      = random_int(0, max(0, $windowTotalSeconds - 1));
+        $normalizedTime     = $windowStart->copy()->addSeconds($randomSeconds);
+
+        Log::info('Fingerspot: Check-in time normalized (scan before window start)', [
+            'original_scan'  => $originalTime->format('H:i:s'),
+            'shift_start'    => $workStartTime->format('H:i:s'),
+            'window_start'   => $windowStart->format('H:i:s'),
+            'window_end'     => $windowEnd->format('H:i:s'),
+            'normalized_to'  => $normalizedTime->format('H:i:s'),
+        ]);
+
+        return [
+            'normalized_time' => $normalizedTime,
+            'was_normalized'  => true,
+            'original_time'   => $originalTime,
+        ];
+    }
+
+    /**
      * Process attendance from scan log
      */
     protected function processAttendance(
@@ -438,18 +506,42 @@ class FingerspotWebhookController extends Controller
                     ]);
                 }
 
-                // Create check-in with direct photo URL
-                $attendance = $this->createCheckIn($employee, $scanTime, $attendanceDate, $directPhotoUrl, $workStartTime);
+                // ── NORMALISASI WAKTU CHECK-IN (Aturan Buyer) ─────────────
+                // Window dinamis dari jadwal: [workStartTime - 15 menit, workStartTime)
+                // Scan < windowStart : waktu di-random ke dalam window
+                // Scan >= windowStart: waktu disimpan aktual (tidak diubah)
+                // Tidak ada jadwal   : skip normalisasi, simpan aktual
+                // Scan asli tetap tersimpan di fingerspot_logs.scan_time
+                $normResult        = $this->normalizeCheckInTime($scanTime, $workStartTime);
+                $effectiveScanTime = $normResult['normalized_time'];  // waktu di Attendance
+                $originalScanTime  = $normResult['original_time'];    // waktu asli mesin
+                $wasNormalized     = $normResult['was_normalized'];   // true jika diubah
 
-                $log->markAsSuccess($attendance->id, 'Check-in recorded');
+                // Create check-in dengan waktu efektif
+                $attendance = $this->createCheckIn(
+                    $employee,
+                    $effectiveScanTime,
+                    $attendanceDate,
+                    $directPhotoUrl,
+                    $workStartTime
+                );
+
+                $logMsg = $wasNormalized
+                    ? 'Check-in recorded (normalized: ' . $originalScanTime->format('H:i:s') . ' -> ' . $effectiveScanTime->format('H:i:s') . ')'
+                    : 'Check-in recorded (actual: ' . $effectiveScanTime->format('H:i:s') . ')';
+
+                $log->markAsSuccess($attendance->id, $logMsg);
 
                 DB::commit();
                 return [
-                    'status' => 'success',
-                    'action' => 'check_in',
-                    'attendance_id' => $attendance->id,
-                    'employee' => $employee->name,
-                    'time' => $scanTime->format('Y-m-d H:i:s'),
+                    'status'             => 'success',
+                    'action'             => 'check_in',
+                    'attendance_id'      => $attendance->id,
+                    'employee'           => $employee->name,
+                    'time'               => $effectiveScanTime->format('Y-m-d H:i:s'),
+                    'was_normalized'     => $wasNormalized,
+                    'original_scan_time' => $wasNormalized ? $originalScanTime->format('Y-m-d H:i:s') : null,
+                    'normalized_to'      => $wasNormalized ? $effectiveScanTime->format('H:i:s') : null,
                 ];
             }
 
@@ -584,18 +676,24 @@ class FingerspotWebhookController extends Controller
     }
 
     /**
-     * Create check-in attendance record
+     * Create check-in attendance record.
      *
-     * Rule baru: Jika attlog masuk jam 8:00 AM atau setelahnya dan belum ada attlog sebelumnya di hari itu,
-     * maka dianggap terlambat (status = 'terlambat')
+     * Keterlambatan dihitung berdasarkan workStartTime:
+     *   - scanTime >= workStartTime => 'terlambat', late_minutes dihitung.
+     *   - scanTime <  workStartTime => 'hadir',     late_minutes = 0.
      */
-    protected function createCheckIn(Employee $employee, Carbon $scanTime, string $attendanceDate, ?string $photoUrl = null, ?Carbon $workStartTime = null): Attendance
-    {
+    protected function createCheckIn(
+        Employee $employee,
+        Carbon $scanTime,
+        string $attendanceDate,
+        ?string $photoUrl = null,
+        ?Carbon $workStartTime = null
+    ): Attendance {
         $checkInTime = $scanTime->format('H:i:s');
 
-        // Calculate late minutes if employee has work schedule
+        // ── Hitung keterlambatan ──────────────────────────────────────────
         $lateMinutes = 0;
-        $status = 'hadir';
+        $status      = 'hadir';
 
         $schedule = $employee->workSchedule;
 
@@ -627,13 +725,13 @@ class FingerspotWebhookController extends Controller
         }
 
         return Attendance::create([
-            'employee_id' => $employee->id,
-            'attendance_date' => $attendanceDate,
-            'check_in' => $checkInTime,
-            'photo_in' => $photoUrl,
-            'status' => $status,
-            'late_minutes' => $lateMinutes,
-            'notes' => 'Via Fingerspot',
+            'employee_id'    => $employee->id,
+            'attendance_date'=> $attendanceDate,
+            'check_in'       => $checkInTime,
+            'photo_in'       => $photoUrl,
+            'status'         => $status,
+            'late_minutes'   => $lateMinutes,
+            'notes'          => 'Via Fingerspot',
         ]);
     }
 
