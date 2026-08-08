@@ -16,6 +16,9 @@ return [
     | messages to your logs. The value provided here should match one of
     | the channels present in the list of "channels" configured below.
     |
+    | Production: Set LOG_CHANNEL=daily di .env agar log dirotasi per hari
+    | dan tidak membengkak menjadi file tunggal 2+ GB.
+    |
     */
 
     'default' => env('LOG_CHANNEL', 'stack'),
@@ -65,11 +68,29 @@ return [
             'replace_placeholders' => true,
         ],
 
+        /*
+         * [FIX 2026-08-08] Daily log rotation — WAJIB dipakai di production.
+         *
+         * Masalah sebelumnya: LOG_CHANNEL=single menghasilkan 1 file laravel.log
+         * yang terus tumbuh tanpa batas → mencapai 2.7 GB → disk I/O overload
+         * setiap kali PHP append log baru → memperlambat seluruh aplikasi.
+         *
+         * Solusi:
+         * - Driver 'daily' membuat file baru setiap hari: laravel-2026-08-08.log
+         * - LOG_DAILY_DAYS=7 → otomatis hapus file log lebih dari 7 hari
+         * - LOG_LEVEL=error di production → hanya catat ERROR ke atas,
+         *   bukan DEBUG/INFO yang sangat verbose dan cepat membengkakkan log
+         *
+         * Set di .env production:
+         *   LOG_CHANNEL=daily
+         *   LOG_LEVEL=error
+         *   LOG_DAILY_DAYS=7
+         */
         'daily' => [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),
-            'level' => env('LOG_LEVEL', 'debug'),
-            'days' => env('LOG_DAILY_DAYS', 14),
+            'level' => env('LOG_LEVEL', 'error'),
+            'days' => env('LOG_DAILY_DAYS', 7),
             'replace_placeholders' => true,
         ],
 

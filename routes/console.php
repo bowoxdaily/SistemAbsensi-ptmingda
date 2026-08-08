@@ -75,32 +75,13 @@ Schedule::command('queue:work', ['--queue' => 'default', '--stop-when-empty', '-
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/queue-worker.log'));
 
-// Schedule: Queue worker terpisah untuk warmup emails
-// Berjalan di queue 'warmup-emails' agar tidak bersaing dengan notifikasi urgent.
-// --max-time=50 memberi ruang untuk cooldown 10 detik sebelum run berikutnya.
-// ThrottleWarmupEmails middleware di SendWarmupEmail mengatur jeda 30 detik per email.
-Schedule::command('queue:work', ['--queue' => 'warmup-emails', '--stop-when-empty', '--max-time=50', '--sleep=5'])
-    ->everyMinute()
-    ->withoutOverlapping()
-    ->runInBackground()
-    ->appendOutputTo(storage_path('logs/queue-warmup-worker.log'));
-
-// Schedule: Dispatch warmup emails every hour (respects daily limits)
-// Sends emails based on warmup schedule configuration
-Schedule::command('email:dispatch-warmup')
-    ->hourly()
-    ->withoutOverlapping()
-    ->runInBackground()
-    ->appendOutputTo(storage_path('logs/warmup-emails.log'));
-
-// Schedule: Bersihkan session file expired setiap tengah malam
-// Mencegah folder storage/framework/sessions membengkak (SESSION_DRIVER=file)
-Schedule::command('session:cleanup')
-    ->dailyAt('00:30')
-    ->appendOutputTo(storage_path('logs/session-cleanup.log'));
+// [FIX 2026-08-08] session:cleanup DIHAPUS — SESSION_DRIVER=redis di production,
+// Redis mengelola TTL/expiry session secara otomatis tanpa perlu cleanup manual.
+// Menjalankan session:cleanup dengan SESSION_DRIVER=redis hanya membuang waktu
+// dan menambah beban cron tanpa manfaat.
 
 // Schedule: Bersihkan cache file expired setiap hari jam 01:00
-// Mencegah storage/framework/cache membengkak
+// Mencegah storage/framework/cache membengkak (untuk cache tag yang pakai file/database)
 Schedule::command('cache:prune-stale-tags')
     ->dailyAt('01:00')
     ->appendOutputTo(storage_path('logs/cache-cleanup.log'));
