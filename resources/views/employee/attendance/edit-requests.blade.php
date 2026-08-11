@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
-@section('title', 'Status Request Edit Absensi')
+@section('title', 'Pengajuan & Klarifikasi Absensi')
 
 @section('content')
     <div class="container-xxl flex-grow-1 container-p-y">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="fw-bold mb-0">
-                <span class="text-muted fw-light">Karyawan /</span> Status Request Edit Absensi
+                <span class="text-muted fw-light">Karyawan /</span> Pengajuan & Klarifikasi Absensi
             </h4>
             <div>
                 <a href="{{ route('dashboard') }}" class="btn btn-sm btn-outline-secondary">
@@ -14,6 +14,20 @@
                 </a>
             </div>
         </div>
+
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-pills flex-column flex-md-row mb-4">
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('employee.attendance.edit-requests') ? 'active' : '' }}" href="{{ route('employee.attendance.edit-requests') }}">
+                    <i class="bx bx-edit me-1"></i> Form Edit Presensi
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('employee.attendance.clarifications') ? 'active' : '' }}" href="{{ route('employee.attendance.clarifications') }}">
+                    <i class="bx bx-file me-1"></i> Klarifikasi Berkas Fisik
+                </a>
+            </li>
+        </ul>
 
         <!-- Statistik -->
         <div class="row mb-4">

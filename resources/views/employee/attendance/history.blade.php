@@ -182,6 +182,16 @@
                                                         data-id="{{ $attendance->id }}">
                                                         <i class='bx bx-show'></i> Detail
                                                     </button>
+                                                    <button type="button" class="btn btn-sm btn-warning btn-clarify ms-1"
+                                                        data-id="{{ $attendance->id }}"
+                                                        data-date="{{ \Carbon\Carbon::parse($attendance->attendance_date)->format('d/m/Y') }}"
+                                                        data-status="{{ $attendance->status }}"
+                                                        data-check-in="{{ $attendance->check_in ? \Carbon\Carbon::parse($attendance->check_in)->format('H:i') : '' }}"
+                                                        data-check-out="{{ $attendance->check_out ? \Carbon\Carbon::parse($attendance->check_out)->format('H:i') : '' }}"
+                                                        title="Ajukan Klarifikasi">
+                                                        <i class='bx bx-file-blank'></i>
+                                                        <span class="d-none d-lg-inline">Klarifikasi</span>
+                                                    </button>
                                                 </td>
                                             </tr>
                                         @endforeach
@@ -280,6 +290,15 @@
                                                 <button type="button" class="btn btn-sm btn-primary view-detail"
                                                     data-id="{{ $attendance->id }}">
                                                     <i class='bx bx-show'></i> Detail
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-warning btn-clarify ms-1"
+                                                    data-id="{{ $attendance->id }}"
+                                                    data-date="{{ \Carbon\Carbon::parse($attendance->attendance_date)->format('d/m/Y') }}"
+                                                    data-status="{{ $attendance->status }}"
+                                                    data-check-in="{{ $attendance->check_in ? \Carbon\Carbon::parse($attendance->check_in)->format('H:i') : '' }}"
+                                                    data-check-out="{{ $attendance->check_out ? \Carbon\Carbon::parse($attendance->check_out)->format('H:i') : '' }}"
+                                                    title="Ajukan Klarifikasi">
+                                                    <i class='bx bx-file-blank'></i> Klarifikasi
                                                 </button>
                                             </div>
                                         </div>
@@ -474,6 +493,10 @@
                             <small class="text-muted d-block">Jabatan</small>
                             <strong>{{ $employee->position->name }}</strong>
                         </div>
+                        <hr>
+                        <a href="{{ route('employee.attendance.clarifications') }}" class="btn btn-warning w-100 btn-sm">
+                            <i class='bx bx-file-blank'></i> Riwayat Klarifikasi Saya
+                        </a>
                     </div>
                 </div>
             </div>
@@ -494,6 +517,83 @@
                             <span class="visually-hidden">Loading...</span>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal Ajukan Klarifikasi -->
+    <div class="modal fade" id="clarifyModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title"><i class='bx bx-file-blank me-1'></i> Ajukan Klarifikasi Absensi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-light border mb-3" id="clarifyInfoBox">
+                        <small class="text-muted">Tanggal Absensi:</small>
+                        <strong id="clarifyDate" class="d-block"></strong>
+                        <small class="text-muted">Status saat ini:</small>
+                        <strong id="clarifyCurrentStatus" class="d-block"></strong>
+                    </div>
+                    <form id="clarifyForm" enctype="multipart/form-data">
+                        @csrf
+                        <input type="hidden" id="clarifyAttendanceId" name="attendance_id">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Status yang Benar <span class="text-danger">*</span></label>
+                            <select class="form-select" name="new_status" id="clarifyNewStatus" required>
+                                <option value="">-- Pilih Status --</option>
+                                <option value="hadir">Hadir</option>
+                                <option value="terlambat">Terlambat</option>
+                                <option value="izin">Izin</option>
+                                <option value="sakit">Sakit</option>
+                                <option value="cuti">Cuti</option>
+                                <option value="lembur">Lembur</option>
+                                <option value="off">Off</option>
+                                <option value="cuti_khusus">Cuti Khusus</option>
+                            </select>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label fw-semibold">Jam Masuk Seharusnya</label>
+                                <input type="time" class="form-control" name="new_check_in" id="clarifyCheckIn">
+                                <small class="text-muted">Opsional</small>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-semibold">Jam Keluar Seharusnya</label>
+                                <input type="time" class="form-control" name="new_check_out" id="clarifyCheckOut">
+                                <small class="text-muted">Opsional</small>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Alasan / Keterangan <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="reason" id="clarifyReason" rows="3"
+                                placeholder="Jelaskan mengapa data absensi perlu diklarifikasi..." required maxlength="1000"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                Scan Formulir Klarifikasi Fisik <span class="text-danger">*</span>
+                            </label>
+                            <input type="file" class="form-control" name="attachment" id="clarifyAttachment"
+                                accept=".jpg,.jpeg,.png,.pdf" required>
+                            <div class="form-text">
+                                <i class='bx bx-info-circle'></i>
+                                Upload scan/foto formulir fisik yang sudah ditandatangani. Format: JPG, PNG, PDF. Maks. 5 MB.
+                            </div>
+                        </div>
+                        <div id="clarifyPreview" class="d-none mb-3 text-center">
+                            <img id="clarifyImgPreview" src="" class="img-fluid rounded border" style="max-height:200px;" alt="Preview">
+                            <p id="clarifyFileInfo" class="text-muted small mt-1"></p>
+                        </div>
+                        <div id="clarifyAlert" class="d-none"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-warning" id="clarifySubmitBtn">
+                        <span id="clarifySpinner" class="spinner-border spinner-border-sm d-none me-1"></span>
+                        <i class='bx bx-send me-1' id="clarifyIcon"></i>Kirim Klarifikasi
+                    </button>
                 </div>
             </div>
         </div>
@@ -658,5 +758,119 @@
                 });
             });
         });
+
+        // ─── Klarifikasi Absensi ────────────────────────────────────────────
+        // Buka modal klarifikasi
+        $(document).on('click', '.btn-clarify', function () {
+            const id       = $(this).data('id');
+            const date     = $(this).data('date');
+            const status   = $(this).data('status');
+            const checkIn  = $(this).data('check-in');
+            const checkOut = $(this).data('check-out');
+
+            // Reset form
+            $('#clarifyForm')[0].reset();
+            $('#clarifyAlert').addClass('d-none').html('');
+            $('#clarifyPreview').addClass('d-none');
+            $('#clarifyImgPreview').attr('src', '');
+            $('#clarifyFileInfo').text('');
+
+            // Isi info
+            $('#clarifyAttendanceId').val(id);
+            $('#clarifyDate').text(date);
+            $('#clarifyCurrentStatus').text(status.toUpperCase());
+
+            // Pre-fill status & jam masuk/keluar saat ini
+            $('#clarifyNewStatus').val(status);
+            if (checkIn) $('#clarifyCheckIn').val(checkIn);
+            if (checkOut) $('#clarifyCheckOut').val(checkOut);
+
+            $('#clarifyModal').modal('show');
+        });
+
+        // Preview lampiran saat dipilih
+        $('#clarifyAttachment').on('change', function () {
+            const file = this.files[0];
+            if (!file) { $('#clarifyPreview').addClass('d-none'); return; }
+
+            const maxBytes = 5 * 1024 * 1024;
+            if (file.size > maxBytes) {
+                showClarifyAlert('danger', 'Ukuran file melebihi batas 5 MB.');
+                this.value = '';
+                $('#clarifyPreview').addClass('d-none');
+                return;
+            }
+
+            const ext = file.name.split('.').pop().toLowerCase();
+            $('#clarifyFileInfo').text(file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)');
+
+            if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    $('#clarifyImgPreview').attr('src', e.target.result).removeClass('d-none');
+                    $('#clarifyPreview').removeClass('d-none');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                $('#clarifyImgPreview').addClass('d-none');
+                $('#clarifyPreview').removeClass('d-none');
+            }
+        });
+
+        // Submit klarifikasi
+        $('#clarifySubmitBtn').on('click', function () {
+            const form = document.getElementById('clarifyForm');
+            if (!form.checkValidity()) { form.reportValidity(); return; }
+
+            $('#clarifySpinner').removeClass('d-none');
+            $('#clarifyIcon').addClass('d-none');
+            $(this).prop('disabled', true);
+            $('#clarifyAlert').addClass('d-none');
+
+            const formData = new FormData(form);
+
+            $.ajax({
+                url: '/api/employee/attendance/clarifications',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                success: function (res) {
+                    if (res.success) {
+                        $('#clarifyModal').modal('hide');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Klarifikasi Terkirim!',
+                            text: res.message,
+                            confirmButtonText: 'OK'
+                        });
+                    } else {
+                        showClarifyAlert('danger', res.message || 'Gagal mengirim klarifikasi.');
+                    }
+                },
+                error: function (xhr) {
+                    const data = xhr.responseJSON;
+                    if (data && data.errors) {
+                        const msgs = Object.values(data.errors).flat().join('<br>');
+                        showClarifyAlert('danger', msgs);
+                    } else {
+                        showClarifyAlert('danger', data?.message || 'Terjadi kesalahan. Coba lagi.');
+                    }
+                },
+                complete: function () {
+                    $('#clarifySpinner').addClass('d-none');
+                    $('#clarifyIcon').removeClass('d-none');
+                    $('#clarifySubmitBtn').prop('disabled', false);
+                }
+            });
+        });
+
+        function showClarifyAlert(type, msg) {
+            $('#clarifyAlert')
+                .removeClass('d-none alert-danger alert-success alert-warning')
+                .addClass('alert alert-' + type)
+                .html(msg);
+        }
     </script>
 @endpush

@@ -75,6 +75,10 @@ Route::middleware(['auth'])->group(function () {
         // Attendance Edit Requests (admin submit, manager approve)
         Route::get('/admin/attendance/edit-requests', [AttendanceEditRequestController::class, 'index'])->name('admin.attendance.edit-requests');
 
+        // Attendance Clarifications (employee submit scan → admin approve directly)
+        Route::get('/admin/attendance/clarifications', [\App\Http\Controllers\Admin\AttendanceClarificationController::class, 'index'])->name('admin.attendance.clarifications');
+
+
         // Attendance Write Routes (admin/manager only)
         Route::get('/admin/attendance/face-detection', [AttendanceController::class, 'faceDetection'])->name('admin.attendance.face-detection');
         Route::get('/admin/attendance/manual', [AttendanceController::class, 'faceDetection'])->name('admin.attendance.manual');
@@ -191,6 +195,10 @@ Route::middleware(['auth'])->group(function () {
 
     // Employee Attendance Edit Requests (View only - Read-only)
     Route::get('/employee/attendance/edit-requests', [\App\Http\Controllers\Employee\AttendanceEditRequestController::class, 'index'])->name('employee.attendance.edit-requests');
+
+    // Employee Attendance Clarifications (View only - read status)
+    Route::get('/employee/attendance/clarifications', [\App\Http\Controllers\Employee\AttendanceClarificationController::class, 'index'])->name('employee.attendance.clarifications');
+
 
     // Employee Warning Letters (View only - Read-only)
     Route::get('/employee/warning-letters', [\App\Http\Controllers\Employee\WarningLetterController::class, 'index'])->name('employee.warning-letters.index');

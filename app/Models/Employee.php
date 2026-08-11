@@ -232,7 +232,7 @@ class Employee extends Model
             return $path;
         }
 
-        return asset('storage/' . ltrim($path, '/'));
+        return \Illuminate\Support\Facades\Storage::disk(config('filesystems.default'))->url(ltrim($path, '/'));
     }
 
     /**

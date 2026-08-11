@@ -77,7 +77,7 @@ class User extends Authenticatable
             return $path;
         }
 
-        return asset('storage/' . ltrim($path, '/'));
+        return \Illuminate\Support\Facades\Storage::disk(config('filesystems.default'))->url(ltrim($path, '/'));
     }
 
     /**

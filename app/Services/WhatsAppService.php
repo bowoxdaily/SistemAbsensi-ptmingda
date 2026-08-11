@@ -913,7 +913,7 @@ class WhatsAppService
         // Send photo only if admin enabled the option
         $image = null;
         if ($this->setting->send_checkin_photo && $attendance->photo_in) {
-            $image = asset('storage/' . $attendance->photo_in);
+            $image = \Illuminate\Support\Facades\Storage::disk(config('filesystems.default'))->url(ltrim($attendance->photo_in, '/'));
         }
 
         return $this->send($phone, $message, $image);
@@ -948,7 +948,7 @@ class WhatsAppService
         // Send photo only if admin enabled the option
         $image = null;
         if ($this->setting->send_checkout_photo && $attendance->photo_out) {
-            $image = asset('storage/' . $attendance->photo_out);
+            $image = \Illuminate\Support\Facades\Storage::disk(config('filesystems.default'))->url(ltrim($attendance->photo_out, '/'));
         }
 
         return $this->send($phone, $message, $image);
@@ -1575,7 +1575,7 @@ class WhatsAppService
         // Send notification with document link (if available)
         $documentUrl = null;
         if ($warningLetter->document_path) {
-            $documentUrl = asset('storage/' . $warningLetter->document_path);
+            $documentUrl = \Illuminate\Support\Facades\Storage::disk(config('filesystems.default'))->url(ltrim($warningLetter->document_path, '/'));
         }
 
         Log::info('Preparing to send WA', [

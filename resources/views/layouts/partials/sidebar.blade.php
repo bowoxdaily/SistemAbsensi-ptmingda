@@ -99,12 +99,26 @@
                             <div data-i18n="Leave">Cuti & Izin</div>
                         </a>
                     </li>
-                    <li class="menu-item {{ request()->routeIs('admin.attendance.edit-requests') ? 'active' : '' }}">
+                    <li class="menu-item {{ request()->routeIs('admin.attendance.edit-requests', 'admin.attendance.clarifications') ? 'active' : '' }}">
                         <a href="{{ route('admin.attendance.edit-requests') }}" class="menu-link">
-                            <div data-i18n="Edit Request">Request Edit Absensi</div>
-                            @php $pendingEditCount = \App\Models\AttendanceEditRequest::where('status','pending')->count(); @endphp
-                            @if($pendingEditCount > 0)
-                                <span class="badge bg-danger badge-notifications ms-auto">{{ $pendingEditCount }}</span>
+                            @if(in_array(Auth::user()->role, ['admin', 'superadmin']))
+                                <div data-i18n="Edit & Clarification">Request Edit & Klarifikasi</div>
+                                @php
+                                    $pendingEditCount = \App\Models\AttendanceEditRequest::where('status','pending')->count();
+                                    $pendingClarifyCount = \App\Models\AttendanceClarification::where('status','pending')->count();
+                                    $totalPending = $pendingEditCount + $pendingClarifyCount;
+                                @endphp
+                                @if($totalPending > 0)
+                                    <span class="badge bg-danger badge-notifications ms-auto">{{ $totalPending }}</span>
+                                @endif
+                            @else
+                                <div data-i18n="Edit Request">Request Edit Absensi</div>
+                                @php
+                                    $pendingEditCount = \App\Models\AttendanceEditRequest::where('status','pending')->count();
+                                @endphp
+                                @if($pendingEditCount > 0)
+                                    <span class="badge bg-danger badge-notifications ms-auto">{{ $pendingEditCount }}</span>
+                                @endif
                             @endif
                         </a>
                     </li>
@@ -488,11 +502,11 @@
                 </a>
             </li>
 
-            <!-- Status Request Edit Absensi -->
-            <li class="menu-item {{ request()->routeIs('employee.attendance.edit-requests') ? 'active' : '' }}">
+            <!-- Pengajuan & Klarifikasi Absensi -->
+            <li class="menu-item {{ request()->routeIs('employee.attendance.edit-requests', 'employee.attendance.clarifications') ? 'active' : '' }}">
                 <a href="{{ route('employee.attendance.edit-requests') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-check-double"></i>
-                    <div data-i18n="EditReqs">Status Form Edit Absensi</div>
+                    <div data-i18n="EditReqs">Pengajuan & Klarifikasi Absensi</div>
                 </a>
             </li>
 

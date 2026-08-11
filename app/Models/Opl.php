@@ -32,7 +32,7 @@ class Opl extends Model
         if (!$this->attachment) return null;
         // If already a full URL, return as-is
         if (str_starts_with($this->attachment, 'http')) return $this->attachment;
-        return asset('storage/' . $this->attachment);
+        return \Illuminate\Support\Facades\Storage::disk(config('filesystems.default'))->url(ltrim($this->attachment, '/'));
     }
 
     public function creator()

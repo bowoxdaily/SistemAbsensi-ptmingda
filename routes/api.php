@@ -539,3 +539,23 @@ Route::middleware(['web', 'auth'])->prefix('employee/announcements')->group(func
     Route::post('/mark-all-read', [\App\Http\Controllers\Employee\AnnouncementController::class, 'markAllRead']);
 });
 
+// ─── Attendance Clarification – Employee ─────────────────────────────────────
+Route::middleware(['web', 'auth'])->prefix('employee/attendance/clarifications')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Employee\AttendanceClarificationController::class, 'list']);
+    Route::get('/stats', [\App\Http\Controllers\Employee\AttendanceClarificationController::class, 'stats']);
+    Route::get('/pending-count', [\App\Http\Controllers\Employee\AttendanceClarificationController::class, 'pendingCount']);
+    Route::post('/', [\App\Http\Controllers\Employee\AttendanceClarificationController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Employee\AttendanceClarificationController::class, 'detail']);
+});
+
+// ─── Attendance Clarification – Admin ────────────────────────────────────────
+Route::middleware(['web', 'auth', 'admin'])->prefix('admin/attendance/clarifications')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Admin\AttendanceClarificationController::class, 'list']);
+    Route::get('/stats', [\App\Http\Controllers\Admin\AttendanceClarificationController::class, 'stats']);
+    Route::get('/pending-count', [\App\Http\Controllers\Admin\AttendanceClarificationController::class, 'pendingCount']);
+    Route::get('/{id}', [\App\Http\Controllers\Admin\AttendanceClarificationController::class, 'detail']);
+    Route::post('/{id}/approve', [\App\Http\Controllers\Admin\AttendanceClarificationController::class, 'approve']);
+    Route::post('/{id}/reject', [\App\Http\Controllers\Admin\AttendanceClarificationController::class, 'reject']);
+});
+
+
