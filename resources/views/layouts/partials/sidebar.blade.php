@@ -507,6 +507,18 @@
                 <a href="{{ route('employee.attendance.edit-requests') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-check-double"></i>
                     <div data-i18n="EditReqs">Pengajuan & Klarifikasi Absensi</div>
+                    @php
+                        $empForKlarBadge = Auth::user()->employee ?? null;
+                        $unreadKlarifikasi = $empForKlarBadge
+                            ? \App\Models\AttendanceClarification::where('employee_id', $empForKlarBadge->id)
+                                ->whereIn('status', ['approved', 'rejected'])
+                                ->where('is_read_by_employee', false)
+                                ->count()
+                            : 0;
+                    @endphp
+                    @if($unreadKlarifikasi > 0)
+                        <span class="badge bg-danger badge-notifications ms-auto">{{ $unreadKlarifikasi }}</span>
+                    @endif
                 </a>
             </li>
 

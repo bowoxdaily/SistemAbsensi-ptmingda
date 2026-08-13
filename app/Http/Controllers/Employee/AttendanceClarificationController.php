@@ -26,6 +26,13 @@ class AttendanceClarificationController extends Controller
     {
         $user     = Auth::user();
         $employee = Employee::where('user_id', $user->id)->firstOrFail();
+
+        // Tandai semua klarifikasi approved/rejected milik karyawan ini sebagai sudah dibaca
+        AttendanceClarification::where('employee_id', $employee->id)
+            ->whereIn('status', ['approved', 'rejected'])
+            ->where('is_read_by_employee', false)
+            ->update(['is_read_by_employee' => true]);
+
         return view('employee.attendance.clarifications', compact('employee'));
     }
 

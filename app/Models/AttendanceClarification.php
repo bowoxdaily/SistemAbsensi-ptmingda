@@ -21,10 +21,12 @@ class AttendanceClarification extends Model
         'reviewed_by',
         'reviewed_at',
         'review_notes',
+        'is_read_by_employee',
     ];
 
     protected $casts = [
-        'reviewed_at' => 'datetime',
+        'reviewed_at'          => 'datetime',
+        'is_read_by_employee'  => 'boolean',
     ];
 
     /** Relasi ke Attendance */
