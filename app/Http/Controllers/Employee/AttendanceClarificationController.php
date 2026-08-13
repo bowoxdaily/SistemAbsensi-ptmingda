@@ -49,15 +49,19 @@ class AttendanceClarificationController extends Controller
             'attendance_id' => 'required|exists:attendances,id',
             'reason'        => 'required|string|max:1000',
             'new_status'    => 'required|in:hadir,terlambat,izin,sakit,cuti,alpha,libur,lembur,off,cuti_khusus',
-            'new_check_in'  => 'nullable|date_format:H:i',
-            'new_check_out' => 'nullable|date_format:H:i',
+            'new_check_in'  => 'required|date_format:H:i',
+            'new_check_out' => 'required|date_format:H:i',
             'attachment'    => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ], [
-            'attachment.required' => 'Scan/foto formulir klarifikasi fisik wajib dilampirkan.',
-            'attachment.mimes'    => 'Format file harus JPG, PNG, atau PDF.',
-            'attachment.max'      => 'Ukuran file maksimal 5 MB.',
-            'reason.required'     => 'Alasan klarifikasi wajib diisi.',
-            'new_status.required' => 'Status absensi wajib dipilih.',
+            'attachment.required'    => 'Scan/foto formulir klarifikasi fisik wajib dilampirkan.',
+            'attachment.mimes'       => 'Format file harus JPG, PNG, atau PDF.',
+            'attachment.max'         => 'Ukuran file maksimal 5 MB.',
+            'reason.required'        => 'Alasan klarifikasi wajib diisi.',
+            'new_status.required'    => 'Status absensi wajib dipilih.',
+            'new_check_in.required'  => 'Jam masuk seharusnya wajib diisi.',
+            'new_check_in.date_format' => 'Format jam masuk harus HH:MM (contoh: 08:00).',
+            'new_check_out.required' => 'Jam keluar seharusnya wajib diisi.',
+            'new_check_out.date_format' => 'Format jam keluar harus HH:MM (contoh: 17:00).',
         ]);
 
         if ($validator->fails()) {

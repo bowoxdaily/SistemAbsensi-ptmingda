@@ -182,7 +182,7 @@
                                                         data-id="{{ $attendance->id }}">
                                                         <i class='bx bx-show'></i> Detail
                                                     </button>
-                                                    @if($attendance->status == 'hadir')
+                                                    @if($attendance->status == 'hadir' && empty($attendance->check_out))
                                                     <button type="button" class="btn btn-sm btn-warning btn-clarify ms-1"
                                                         data-id="{{ $attendance->id }}"
                                                         data-date="{{ \Carbon\Carbon::parse($attendance->attendance_date)->format('d/m/Y') }}"
@@ -292,7 +292,7 @@
                                                     data-id="{{ $attendance->id }}">
                                                     <i class='bx bx-show'></i> Detail
                                                 </button>
-                                                @if($attendance->status == 'hadir')
+                                                @if($attendance->status == 'hadir' && empty($attendance->check_out))
                                                 <button type="button" class="btn btn-sm btn-warning btn-clarify ms-1"
                                                     data-id="{{ $attendance->id }}"
                                                     data-date="{{ \Carbon\Carbon::parse($attendance->attendance_date)->format('d/m/Y') }}"
@@ -544,14 +544,12 @@
                         <input type="hidden" name="new_status" id="clarifyNewStatus" value="hadir">
                         <div class="row g-3 mb-3">
                             <div class="col-6">
-                                <label class="form-label fw-semibold">Jam Masuk Seharusnya</label>
-                                <input type="time" class="form-control" name="new_check_in" id="clarifyCheckIn">
-                                <small class="text-muted">Opsional</small>
+                                <label class="form-label fw-semibold">Jam Masuk Seharusnya <span class="text-danger">*</span></label>
+                                <input type="time" class="form-control" name="new_check_in" id="clarifyCheckIn" required>
                             </div>
                             <div class="col-6">
-                                <label class="form-label fw-semibold">Jam Keluar Seharusnya</label>
-                                <input type="time" class="form-control" name="new_check_out" id="clarifyCheckOut">
-                                <small class="text-muted">Opsional</small>
+                                <label class="form-label fw-semibold">Jam Keluar Seharusnya <span class="text-danger">*</span></label>
+                                <input type="time" class="form-control" name="new_check_out" id="clarifyCheckOut" required>
                             </div>
                         </div>
                         <div class="mb-3">
