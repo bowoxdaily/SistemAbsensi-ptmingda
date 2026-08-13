@@ -182,16 +182,17 @@
                                                         data-id="{{ $attendance->id }}">
                                                         <i class='bx bx-show'></i> Detail
                                                     </button>
+                                                    @if($attendance->status == 'hadir')
                                                     <button type="button" class="btn btn-sm btn-warning btn-clarify ms-1"
                                                         data-id="{{ $attendance->id }}"
                                                         data-date="{{ \Carbon\Carbon::parse($attendance->attendance_date)->format('d/m/Y') }}"
                                                         data-status="{{ $attendance->status }}"
                                                         data-check-in="{{ $attendance->check_in ? \Carbon\Carbon::parse($attendance->check_in)->format('H:i') : '' }}"
-                                                        data-check-out="{{ $attendance->check_out ? \Carbon\Carbon::parse($attendance->check_out)->format('H:i') : '' }}"
                                                         title="Ajukan Klarifikasi">
                                                         <i class='bx bx-file-blank'></i>
                                                         <span class="d-none d-lg-inline">Klarifikasi</span>
                                                     </button>
+                                                    @endif
                                                 </td>
                                             </tr>
                                         @endforeach
@@ -291,15 +292,16 @@
                                                     data-id="{{ $attendance->id }}">
                                                     <i class='bx bx-show'></i> Detail
                                                 </button>
+                                                @if($attendance->status == 'hadir')
                                                 <button type="button" class="btn btn-sm btn-warning btn-clarify ms-1"
                                                     data-id="{{ $attendance->id }}"
                                                     data-date="{{ \Carbon\Carbon::parse($attendance->attendance_date)->format('d/m/Y') }}"
                                                     data-status="{{ $attendance->status }}"
                                                     data-check-in="{{ $attendance->check_in ? \Carbon\Carbon::parse($attendance->check_in)->format('H:i') : '' }}"
-                                                    data-check-out="{{ $attendance->check_out ? \Carbon\Carbon::parse($attendance->check_out)->format('H:i') : '' }}"
                                                     title="Ajukan Klarifikasi">
                                                     <i class='bx bx-file-blank'></i> Klarifikasi
                                                 </button>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
@@ -539,20 +541,7 @@
                     <form id="clarifyForm" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" id="clarifyAttendanceId" name="attendance_id">
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Status yang Benar <span class="text-danger">*</span></label>
-                            <select class="form-select" name="new_status" id="clarifyNewStatus" required>
-                                <option value="">-- Pilih Status --</option>
-                                <option value="hadir">Hadir</option>
-                                <option value="terlambat">Terlambat</option>
-                                <option value="izin">Izin</option>
-                                <option value="sakit">Sakit</option>
-                                <option value="cuti">Cuti</option>
-                                <option value="lembur">Lembur</option>
-                                <option value="off">Off</option>
-                                <option value="cuti_khusus">Cuti Khusus</option>
-                            </select>
-                        </div>
+                        <input type="hidden" name="new_status" id="clarifyNewStatus" value="hadir">
                         <div class="row g-3 mb-3">
                             <div class="col-6">
                                 <label class="form-label fw-semibold">Jam Masuk Seharusnya</label>
@@ -762,11 +751,10 @@
         // ─── Klarifikasi Absensi ────────────────────────────────────────────
         // Buka modal klarifikasi
         $(document).on('click', '.btn-clarify', function () {
-            const id       = $(this).data('id');
-            const date     = $(this).data('date');
-            const status   = $(this).data('status');
-            const checkIn  = $(this).data('check-in');
-            const checkOut = $(this).data('check-out');
+            const id      = $(this).data('id');
+            const date    = $(this).data('date');
+            const status  = $(this).data('status');
+            const checkIn = $(this).data('check-in');
 
             // Reset form
             $('#clarifyForm')[0].reset();
@@ -780,10 +768,9 @@
             $('#clarifyDate').text(date);
             $('#clarifyCurrentStatus').text(status.toUpperCase());
 
-            // Pre-fill status & jam masuk/keluar saat ini
-            $('#clarifyNewStatus').val(status);
+            // Pre-fill jam masuk saat ini (status selalu hadir, jam keluar dikosongkan)
             if (checkIn) $('#clarifyCheckIn').val(checkIn);
-            if (checkOut) $('#clarifyCheckOut').val(checkOut);
+            $('#clarifyCheckOut').val('');
 
             $('#clarifyModal').modal('show');
         });
