@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Sanctum\PersonalAccessToken;
+use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
@@ -195,6 +196,82 @@ class AuthController extends Controller
                     'name' => $user->name,
                     'email' => $user->email,
                     'role' => $user->role,
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * Login with Google ID token from mobile (Flutter) and issue a Sanctum token.
+     *
+     * POST /api/auth/google/mobile
+     * Body: { "id_token": "..." }
+     */
+    public function googleMobileLogin(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'id_token' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+
+        try {
+            // Verify id_token via Google tokeninfo endpoint.
+            // This also checks token expiry and returns user claims.
+            $tokenInfo = Http::get('https://oauth2.googleapis.com/tokeninfo', [
+                'id_token' => $request->id_token,
+            ]);
+
+            if ($tokenInfo->failed()) {
+                throw new \RuntimeException('Invalid token');
+            }
+
+            $claims = $tokenInfo->json();
+
+            // Audience must match one of our registered client IDs.
+            $allowedClients = array_filter([
+                env('GOOGLE_CLIENT_ID'),
+                env('GOOGLE_ANDROID_CLIENT_ID'),
+            ]);
+            $aud = $claims['aud'] ?? null;
+            if (!$aud || (!empty($allowedClients) && !in_array($aud, $allowedClients, true))) {
+                throw new \RuntimeException('Token audience mismatch');
+            }
+
+            $googleUser = Socialite::driver('google')->stateless()->userFromToken($request->id_token);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token Google tidak valid',
+            ], 401);
+        }
+
+        $user = User::updateOrCreate(
+            ['email' => $googleUser->getEmail()],
+            [
+                'name'      => $googleUser->getName(),
+                'google_id' => $googleUser->getId(),
+            ]
+        );
+
+        $token = $user->createToken('mobile-app')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Login berhasil',
+            'data'    => [
+                'token_type' => 'Bearer',
+                'token'      => $token,
+                'user'       => [
+                    'id'    => $user->id,
+                    'name'  => $user->name,
+                    'email' => $user->email,
+                    'role'  => $user->role,
                 ],
             ],
         ]);
