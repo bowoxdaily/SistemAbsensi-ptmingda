@@ -75,7 +75,7 @@ class KaryawanTemplateExport implements FromCollection, WithHeadings, WithStyles
             !empty($this->departments) ? $this->departments[0] : 'IT & Development',  // Departemen
             !empty($this->subDepartments) ? $this->subDepartments[0] : '',  // Sub Departemen
             !empty($this->positions) ? $this->positions[0] : 'Staff IT',  // Posisi
-            'S1 Informatika',  // Lulusan Sekolah
+            'D4/S1',  // Lulusan Sekolah
             '2023-01-10',  // Tanggal Bergabung
             'Tetap',  // Status Kerja
             'Non Serikat',  // Status Serikat
@@ -313,6 +313,60 @@ class KaryawanTemplateExport implements FromCollection, WithHeadings, WithStyles
                 
                 for ($i = 3; $i <= 100; $i++) {
                     $sheet->getCell('G' . $i)->setDataValidation(clone $validation);
+                }
+
+                // Set dropdown untuk Agama (Column I)
+                $validation = $sheet->getCell('I2')->getDataValidation();
+                $validation->setType(DataValidation::TYPE_LIST);
+                $validation->setErrorStyle(DataValidation::STYLE_INFORMATION);
+                $validation->setAllowBlank(true);
+                $validation->setShowInputMessage(true);
+                $validation->setShowErrorMessage(true);
+                $validation->setShowDropDown(true);
+                $validation->setErrorTitle('Input error');
+                $validation->setError('Pilih dari dropdown');
+                $validation->setPromptTitle('Agama');
+                $validation->setPrompt('Pilih agama');
+                $validation->setFormula1('"Islam,Kristen,Katolik,Hindu,Buddha,Konghucu"');
+                
+                for ($i = 3; $i <= 100; $i++) {
+                    $sheet->getCell('I' . $i)->setDataValidation(clone $validation);
+                }
+
+                // Set dropdown untuk Status Kependudukan (Column K)
+                $validation = $sheet->getCell('K2')->getDataValidation();
+                $validation->setType(DataValidation::TYPE_LIST);
+                $validation->setErrorStyle(DataValidation::STYLE_INFORMATION);
+                $validation->setAllowBlank(true);
+                $validation->setShowInputMessage(true);
+                $validation->setShowErrorMessage(true);
+                $validation->setShowDropDown(true);
+                $validation->setErrorTitle('Input error');
+                $validation->setError('Pilih dari dropdown');
+                $validation->setPromptTitle('Status Kependudukan');
+                $validation->setPrompt('Pilih status kependudukan');
+                $validation->setFormula1('"WNI,WNA"');
+                
+                for ($i = 3; $i <= 100; $i++) {
+                    $sheet->getCell('K' . $i)->setDataValidation(clone $validation);
+                }
+
+                // Set dropdown untuk Lulusan Sekolah (Column Q)
+                $validation = $sheet->getCell('Q2')->getDataValidation();
+                $validation->setType(DataValidation::TYPE_LIST);
+                $validation->setErrorStyle(DataValidation::STYLE_INFORMATION);
+                $validation->setAllowBlank(true);
+                $validation->setShowInputMessage(true);
+                $validation->setShowErrorMessage(true);
+                $validation->setShowDropDown(true);
+                $validation->setErrorTitle('Input error');
+                $validation->setError('Pilih dari dropdown');
+                $validation->setPromptTitle('Pendidikan Terakhir');
+                $validation->setPrompt('Pilih pendidikan terakhir');
+                $validation->setFormula1('"SD,SMP,SMA,D1,D2,D3,D4/S1,S2"');
+                
+                for ($i = 3; $i <= 100; $i++) {
+                    $sheet->getCell('Q' . $i)->setDataValidation(clone $validation);
                 }
 
                 // Set dropdown untuk Departemen (Column N)
