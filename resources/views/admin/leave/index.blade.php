@@ -148,7 +148,7 @@
                                 <td>
                                     <div class="d-flex align-items-center">
                                         @if ($leave->employee->photo)
-                                            <img src="{{ asset('storage/' . $leave->employee->photo) }}" alt="Foto"
+                                            <img src="{{ Storage::url($leave->employee->photo) }}" alt="Foto"
                                                 class="rounded-circle me-2"
                                                 style="width: 40px; height: 40px; object-fit: cover;">
                                         @else
@@ -255,7 +255,7 @@
                     <div class="card-body border-bottom">
                         <div class="d-flex align-items-start mb-3">
                             @if ($leave->employee->photo)
-                                <img src="{{ asset('storage/' . $leave->employee->photo) }}" alt="Foto"
+                                <img src="{{ Storage::url($leave->employee->photo) }}" alt="Foto"
                                     class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;">
                             @else
                                 <div class="avatar me-3">
@@ -463,7 +463,7 @@
                                     <hr>
                                     <div class="mb-3">
                                         <h6 class="mb-2">Lampiran</h6>
-                                        <a href="/storage/${leave.attachment}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                        <a href="${STORAGE_BASE_URL}${leave.attachment}" target="_blank" class="btn btn-sm btn-outline-primary">
                                             <i class="bx bx-file"></i> Lihat Lampiran
                                         </a>
                                     </div>

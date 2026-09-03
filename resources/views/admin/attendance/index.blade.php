@@ -282,7 +282,7 @@
                                             @php
                                                 $photoInUrl = (str_starts_with($attendance->photo_in, 'http://') || str_starts_with($attendance->photo_in, 'https://')) 
                                                     ? $attendance->photo_in 
-                                                    : asset('storage/' . $attendance->photo_in);
+                                                    : Storage::url($attendance->photo_in);
                                             @endphp
                                             <a href="{{ $photoInUrl }}" target="_blank">
                                                 <img src="{{ $photoInUrl }}"
@@ -307,7 +307,7 @@
                                             @php
                                                 $photoOutUrl = (str_starts_with($attendance->photo_out, 'http://') || str_starts_with($attendance->photo_out, 'https://')) 
                                                     ? $attendance->photo_out 
-                                                    : asset('storage/' . $attendance->photo_out);
+                                                    : Storage::url($attendance->photo_out);
                                             @endphp
                                             <a href="{{ $photoOutUrl }}" target="_blank">
                                                 <img src="{{ $photoOutUrl }}"
@@ -539,7 +539,7 @@
                                                     @php
                                                         $photoInUrl = (str_starts_with($attendance->photo_in, 'http://') || str_starts_with($attendance->photo_in, 'https://')) 
                                                             ? $attendance->photo_in 
-                                                            : asset('storage/' . $attendance->photo_in);
+                                                            : Storage::url($attendance->photo_in);
                                                     @endphp
                                                     <a href="{{ $photoInUrl }}"
                                                         target="_blank">
@@ -567,7 +567,7 @@
                                                     @php
                                                         $photoOutUrl = (str_starts_with($attendance->photo_out, 'http://') || str_starts_with($attendance->photo_out, 'https://')) 
                                                             ? $attendance->photo_out 
-                                                            : asset('storage/' . $attendance->photo_out);
+                                                            : Storage::url($attendance->photo_out);
                                                     @endphp
                                                     <a href="{{ $photoOutUrl }}"
                                                         target="_blank">
@@ -1212,7 +1212,7 @@
                                     ${data.photo_in ? (() => {
                                         const photoIn = String(data.photo_in);
                                         const isExternal = photoIn.startsWith('http://') || photoIn.startsWith('https://');
-                                        const photoUrl = isExternal ? photoIn : '/storage/' + photoIn;
+                                        const photoUrl = isExternal ? photoIn : STORAGE_BASE_URL + photoIn;
                                         return `
                                             <div class="text-center">
                                                 <a href="${photoUrl}" target="_blank">
@@ -1245,7 +1245,7 @@
                                     ${data.photo_out ? (() => {
                                         const photoOut = String(data.photo_out);
                                         const isExternal = photoOut.startsWith('http://') || photoOut.startsWith('https://');
-                                        const photoUrl = isExternal ? photoOut : '/storage/' + photoOut;
+                                        const photoUrl = isExternal ? photoOut : STORAGE_BASE_URL + photoOut;
                                         return `
                                             <div class="text-center">
                                                 <a href="${photoUrl}" target="_blank">

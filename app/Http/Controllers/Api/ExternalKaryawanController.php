@@ -155,11 +155,11 @@ class ExternalKaryawanController extends Controller
 
         $path = 'profile_photos/' . $filename;
 
-        if (!Storage::disk('public')->exists($path)) {
+        if (!Storage::disk()->exists($path)) {
             abort(404, 'Photo not found');
         }
 
-        return Storage::disk('public')->download($path);
+        return Storage::disk()->download($path);
     }
 
     /**
@@ -193,7 +193,7 @@ class ExternalKaryawanController extends Controller
         // Selalu tambahkan profile_photo_url
         $profilePhoto = $data['profile_photo'] ?? null;
         if (!empty($profilePhoto)) {
-            $data['profile_photo_url'] = Storage::disk('public')->url($profilePhoto);
+            $data['profile_photo_url'] = Storage::url($profilePhoto);
         } else {
             $data['profile_photo_url'] = null;
         }

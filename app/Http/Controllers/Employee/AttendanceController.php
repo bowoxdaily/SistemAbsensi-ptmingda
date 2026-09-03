@@ -700,7 +700,7 @@ class AttendanceController extends Controller
         $imageName = uniqid() . '_' . time() . '.png';
         $imagePath = $path . '/' . $imageName;
 
-        Storage::disk('public')->put($imagePath, base64_decode($image));
+        Storage::disk()->put($imagePath, base64_decode($image));
 
         return $imagePath;
     }

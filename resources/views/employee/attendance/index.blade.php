@@ -419,7 +419,7 @@
                             if (att.photo_in) {
                                 const photoIn = String(att.photo_in);
                                 const isExternalIn = photoIn.startsWith('http://') || photoIn.startsWith('https://');
-                                const photoInUrl = isExternalIn ? photoIn : '/storage/' + photoIn;
+                                const photoInUrl = isExternalIn ? photoIn : STORAGE_BASE_URL + photoIn;
 
                                 document.getElementById('photoInContainer').style.display = 'block';
                                 document.getElementById('photoInPreview').src = photoInUrl;
@@ -428,7 +428,7 @@
                             if (att.photo_out) {
                                 const photoOut = String(att.photo_out);
                                 const isExternalOut = photoOut.startsWith('http://') || photoOut.startsWith('https://');
-                                const photoOutUrl = isExternalOut ? photoOut : '/storage/' + photoOut;
+                                const photoOutUrl = isExternalOut ? photoOut : STORAGE_BASE_URL + photoOut;
 
                                 document.getElementById('photoOutContainer').style.display = 'block';
                                 document.getElementById('photoOutPreview').src = photoOutUrl;

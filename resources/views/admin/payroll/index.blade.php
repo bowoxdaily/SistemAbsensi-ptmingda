@@ -1380,7 +1380,7 @@
                     .done(function(res) {
                         if (res.success && res.data.payment_proof) {
                             const proofPath = res.data.payment_proof;
-                            const proofUrl = `/storage/${proofPath}`;
+                            const proofUrl = `${STORAGE_BASE_URL}${proofPath}`;
                             const fileExt = proofPath.split('.').pop().toLowerCase();
 
                             let content = '';

@@ -160,7 +160,7 @@ class PayrollController extends Controller
             if ($request->hasFile('payment_proof_file')) {
                 $file = $request->file('payment_proof_file');
                 $filename = 'payment_proof_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                $paymentProofPath = $file->storeAs('payment_proofs', $filename, 'public');
+                $paymentProofPath = $file->storeAs('payment_proofs', $filename, config('filesystems.default'));
                 $paidAt = now();
                 $status = 'paid'; // Automatically set to paid if proof is uploaded
             }
@@ -506,14 +506,14 @@ class PayrollController extends Controller
         DB::beginTransaction();
         try {
             // Delete old payment proof if exists
-            if ($payroll->payment_proof && Storage::disk('public')->exists($payroll->payment_proof)) {
-                Storage::disk('public')->delete($payroll->payment_proof);
+            if ($payroll->payment_proof && Storage::disk()->exists($payroll->payment_proof)) {
+                Storage::disk()->delete($payroll->payment_proof);
             }
 
             // Store new file
             $file = $request->file('payment_proof');
             $filename = 'payment_proof_' . $payroll->payroll_code . '_' . time() . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs('payment_proofs', $filename, 'public');
+            $path = $file->storeAs('payment_proofs', $filename, config('filesystems.default'));
 
             // Update payroll
             $payroll->update([
@@ -562,8 +562,8 @@ class PayrollController extends Controller
         DB::beginTransaction();
         try {
             // Delete file
-            if (Storage::disk('public')->exists($payroll->payment_proof)) {
-                Storage::disk('public')->delete($payroll->payment_proof);
+            if (Storage::disk()->exists($payroll->payment_proof)) {
+                Storage::disk()->delete($payroll->payment_proof);
             }
 
             // Update payroll

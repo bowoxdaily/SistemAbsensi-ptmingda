@@ -661,7 +661,7 @@ class AttendanceController extends Controller
         $imageName = uniqid() . '_' . time() . '.png';
         $imagePath = $path . '/' . $imageName;
 
-        Storage::disk('public')->put($imagePath, base64_decode($image));
+        Storage::disk()->put($imagePath, base64_decode($image));
 
         return $imagePath;
     }
@@ -975,10 +975,10 @@ class AttendanceController extends Controller
 
             // Delete photos if exist
             if ($attendance->photo_in) {
-                Storage::disk('public')->delete($attendance->photo_in);
+                Storage::disk()->delete($attendance->photo_in);
             }
             if ($attendance->photo_out) {
-                Storage::disk('public')->delete($attendance->photo_out);
+                Storage::disk()->delete($attendance->photo_out);
             }
 
             // Delete attendance record
@@ -1204,10 +1204,10 @@ class AttendanceController extends Controller
             foreach ($attendances as $attendance) {
                 // Delete photos if exist
                 if ($attendance->photo_in) {
-                    Storage::disk('public')->delete($attendance->photo_in);
+                    Storage::disk()->delete($attendance->photo_in);
                 }
                 if ($attendance->photo_out) {
-                    Storage::disk('public')->delete($attendance->photo_out);
+                    Storage::disk()->delete($attendance->photo_out);
                 }
 
                 // Delete attendance record

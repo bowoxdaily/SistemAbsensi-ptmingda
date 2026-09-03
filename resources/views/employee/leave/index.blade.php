@@ -239,14 +239,14 @@
                                                             );
                                                         @endphp
                                                         @if (in_array($extension, ['jpg', 'jpeg', 'png']))
-                                                            <a href="{{ asset('storage/' . $leave->attachment) }}"
+                                                            <a href="{{ Storage::url($leave->attachment) }}"
                                                                 target="_blank">
-                                                                <img src="{{ asset('storage/' . $leave->attachment) }}"
+                                                                <img src="{{ Storage::url($leave->attachment) }}"
                                                                     alt="Lampiran" class="img-fluid rounded border"
                                                                     style="max-width: 300px;">
                                                             </a>
                                                         @else
-                                                            <a href="{{ asset('storage/' . $leave->attachment) }}"
+                                                            <a href="{{ Storage::url($leave->attachment) }}"
                                                                 target="_blank" class="btn btn-outline-primary btn-sm">
                                                                 <i class='bx bx-file'></i> Download Lampiran
                                                                 ({{ strtoupper($extension) }})

@@ -49,7 +49,7 @@ class OPLController extends Controller
         try {
             $attachmentPath = null;
             if ($request->hasFile('attachment')) {
-                $attachmentPath = $request->file('attachment')->store('opls', 'public');
+                $attachmentPath = $request->file('attachment')->store('opls', config('filesystems.default'));
             }
 
             $opl = Opl::create([
@@ -94,7 +94,7 @@ class OPLController extends Controller
             $opl = Opl::findOrFail($id);
             $attachmentPath = $opl->attachment;
             if ($request->hasFile('attachment')) {
-                $attachmentPath = $request->file('attachment')->store('opls', 'public');
+                $attachmentPath = $request->file('attachment')->store('opls', config('filesystems.default'));
             }
 
             $opl->update([

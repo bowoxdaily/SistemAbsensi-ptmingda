@@ -204,7 +204,7 @@ class WarningLetterController extends Controller
             if ($request->hasFile('document')) {
                 $file = $request->file('document');
                 $filename = 'sp_' . $request->sp_type . '_' . $request->employee_id . '_' . time() . '.' . $file->getClientOriginalExtension();
-                $documentPath = $file->storeAs('warning_letters', $filename, 'public');
+                $documentPath = $file->storeAs('warning_letters', $filename, config('filesystems.default'));
 
                 // Auto-activate if document is uploaded
                 $status = 'aktif';
@@ -659,14 +659,14 @@ class WarningLetterController extends Controller
             DB::beginTransaction();
 
             // Delete old document if exists
-            if ($sp->document_path && Storage::disk('public')->exists($sp->document_path)) {
-                Storage::disk('public')->delete($sp->document_path);
+            if ($sp->document_path && Storage::disk()->exists($sp->document_path)) {
+                Storage::disk()->delete($sp->document_path);
             }
 
             // Upload new document
             $file = $request->file('document');
             $filename = 'sp_' . $sp->sp_type . '_' . $sp->employee_id . '_' . time() . '.' . $file->getClientOriginalExtension();
-            $documentPath = $file->storeAs('warning_letters', $filename, 'public');
+            $documentPath = $file->storeAs('warning_letters', $filename, config('filesystems.default'));
 
             // Update SP: upload document and auto-activate
             $sp->update([
@@ -722,14 +722,11 @@ class WarningLetterController extends Controller
         try {
             $sp = WarningLetter::findOrFail($id);
 
-            if (!$sp->document_path || !Storage::disk('public')->exists($sp->document_path)) {
+            if (!$sp->document_path || !Storage::disk()->exists($sp->document_path)) {
                 abort(404, 'Dokumen tidak ditemukan');
             }
 
-            $filePath = storage_path('app/public/' . $sp->document_path);
-            $fileName = basename($sp->document_path);
-
-            return response()->download($filePath, $fileName);
+            return Storage::disk()->download($sp->document_path, basename($sp->document_path));
         } catch (\Exception $e) {
             Log::error('Error downloading SP document', [
                 'sp_id' => $id,

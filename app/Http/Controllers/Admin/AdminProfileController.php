@@ -94,8 +94,8 @@ class AdminProfileController extends Controller
             ]);
 
             // Delete old photo if exists
-            if ($user->profile_photo && Storage::disk('public')->exists($user->profile_photo)) {
-                Storage::disk('public')->delete($user->profile_photo);
+            if ($user->profile_photo && Storage::disk()->exists($user->profile_photo)) {
+                Storage::disk()->delete($user->profile_photo);
             }
 
             // Process and store new photo
@@ -115,7 +115,7 @@ class AdminProfileController extends Controller
             $path = 'profile_photos/' . $filename;
             $webpImage = $image->toWebp(quality: 85);
 
-            Storage::disk('public')->put($path, (string) $webpImage);
+            Storage::disk()->put($path, (string) $webpImage);
 
             $user->update(['profile_photo' => $path]);
 
@@ -123,7 +123,7 @@ class AdminProfileController extends Controller
                 'success' => true,
                 'message' => 'Foto profil berhasil diperbarui',
                 'data' => [
-                    'profile_photo' => asset('storage/' . $path)
+                    'profile_photo' => Storage::url($path)
                 ]
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {

@@ -218,8 +218,8 @@ class LeaveController extends Controller
             $leave = Leave::findOrFail($id);
 
             // Delete attachment if exists
-            if ($leave->attachment && Storage::disk('public')->exists($leave->attachment)) {
-                Storage::disk('public')->delete($leave->attachment);
+            if ($leave->attachment && Storage::disk()->exists($leave->attachment)) {
+                Storage::disk()->delete($leave->attachment);
             }
 
             $leave->delete();

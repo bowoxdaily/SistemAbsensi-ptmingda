@@ -89,7 +89,7 @@ class LeaveController extends Controller
         if ($request->hasFile('attachment')) {
             $file = $request->file('attachment');
             $filename = 'leave_' . $employee->id . '_' . time() . '.' . $file->getClientOriginalExtension();
-            $attachmentPath = $file->storeAs('leave_attachments', $filename, 'public');
+            $attachmentPath = $file->storeAs('leave_attachments', $filename, config('filesystems.default'));
         }
 
         // Create leave request
@@ -151,8 +151,8 @@ class LeaveController extends Controller
             ->firstOrFail();
 
         // Delete attachment if exists
-        if ($leave->attachment && Storage::disk('public')->exists($leave->attachment)) {
-            Storage::disk('public')->delete($leave->attachment);
+        if ($leave->attachment && Storage::disk()->exists($leave->attachment)) {
+            Storage::disk()->delete($leave->attachment);
         }
 
         $leave->delete();

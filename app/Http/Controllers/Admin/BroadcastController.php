@@ -203,7 +203,7 @@ class BroadcastController extends Controller
             if ($request->hasFile('image')) {
                 $file      = $request->file('image');
                 $filename  = 'broadcast_' . time() . '.' . $file->getClientOriginalExtension();
-                $imagePath = $file->storeAs('broadcast', $filename, 'public');
+                $imagePath = $file->storeAs('broadcast', $filename, config('filesystems.default'));
             }
 
             // Get recipients
@@ -213,7 +213,7 @@ class BroadcastController extends Controller
             );
 
             $channel  = $request->channel; // whatsapp | email | both
-            $imageUrl = $imagePath ? asset('storage/' . $imagePath) : null;
+            $imageUrl = $imagePath ? Storage::url($imagePath) : null;
             $delay    = (int) ($request->delay_per_message ?? 5);
 
             // Determine valid recipients based on channel
@@ -357,7 +357,7 @@ class BroadcastController extends Controller
                     'broadcast' => $broadcast,
                     'filter_details' => $filterDetails,
                     'recipients' => $recipientsList,
-                    'image_url' => $broadcast->image ? asset('storage/' . $broadcast->image) : null,
+                    'image_url' => $broadcast->image ? Storage::url($broadcast->image) : null,
                 ]
             ]);
         } catch (\Exception $e) {
@@ -378,7 +378,7 @@ class BroadcastController extends Controller
 
             // Delete image file if exists
             if ($broadcast->image) {
-                Storage::disk('public')->delete($broadcast->image);
+                Storage::disk()->delete($broadcast->image);
             }
 
             $broadcast->delete();

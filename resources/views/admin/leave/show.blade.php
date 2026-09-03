@@ -19,7 +19,7 @@
                 <div class="card">
                     <div class="card-body text-center">
                         @if ($leave->employee->photo)
-                            <img src="{{ asset('storage/' . $leave->employee->photo) }}" alt="Foto Karyawan"
+                            <img src="{{ Storage::url($leave->employee->photo) }}" alt="Foto Karyawan"
                                 class="rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;">
                         @else
                             <div class="avatar avatar-xl mx-auto mb-3">
@@ -129,12 +129,12 @@
                                         $extension = pathinfo($leave->attachment, PATHINFO_EXTENSION);
                                     @endphp
                                     @if (in_array($extension, ['jpg', 'jpeg', 'png']))
-                                        <a href="{{ asset('storage/' . $leave->attachment) }}" target="_blank">
-                                            <img src="{{ asset('storage/' . $leave->attachment) }}" alt="Lampiran"
+                                        <a href="{{ Storage::url($leave->attachment) }}" target="_blank">
+                                            <img src="{{ Storage::url($leave->attachment) }}" alt="Lampiran"
                                                 class="img-fluid rounded border" style="max-width: 300px;">
                                         </a>
                                     @else
-                                        <a href="{{ asset('storage/' . $leave->attachment) }}" target="_blank"
+                                        <a href="{{ Storage::url($leave->attachment) }}" target="_blank"
                                             class="btn btn-outline-primary">
                                             <i class='bx bx-file'></i> Download Lampiran ({{ strtoupper($extension) }})
                                         </a>

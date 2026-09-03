@@ -135,8 +135,8 @@ class ProfileController extends Controller
         ]);
 
         // Delete old photo if exists
-        if ($employee->profile_photo && Storage::disk('public')->exists($employee->profile_photo)) {
-            Storage::disk('public')->delete($employee->profile_photo);
+        if ($employee->profile_photo && Storage::disk()->exists($employee->profile_photo)) {
+            Storage::disk()->delete($employee->profile_photo);
         }
 
         // Process and store new photo
@@ -156,7 +156,7 @@ class ProfileController extends Controller
         $path = 'profile_photos/' . $filename;
         $webpImage = $image->toWebp(quality: 85);
 
-        Storage::disk('public')->put($path, (string) $webpImage);
+        Storage::disk()->put($path, (string) $webpImage);
 
         $employee->update(['profile_photo' => $path]);
 
@@ -165,7 +165,7 @@ class ProfileController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Foto profil berhasil diperbarui',
-                'photo_url' => asset('storage/' . $path)
+                'photo_url' => Storage::url($path)
             ]);
         }
 

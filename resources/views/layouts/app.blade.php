@@ -100,6 +100,7 @@
 </head>
 
 <body>
+    <script>const STORAGE_BASE_URL = @json(Storage::url(''));</script>
     <!-- Layout wrapper -->
     <div class="layout-wrapper layout-content-navbar">
         <div class="layout-container">

@@ -196,14 +196,11 @@ class WarningLetterController extends Controller
                 ->where('employee_id', $employee->id)
                 ->firstOrFail();
 
-            if (!$sp->document_path || !Storage::disk('public')->exists($sp->document_path)) {
+            if (!$sp->document_path || !Storage::disk()->exists($sp->document_path)) {
                 abort(404, 'Dokumen tidak ditemukan');
             }
 
-            $filePath = storage_path('app/public/' . $sp->document_path);
-            $fileName = basename($sp->document_path);
-
-            return response()->download($filePath, $fileName);
+            return Storage::disk()->download($sp->document_path, basename($sp->document_path));
         } catch (\Exception $e) {
             Log::error('Error downloading SP document by employee', [
                 'sp_id' => $id,
