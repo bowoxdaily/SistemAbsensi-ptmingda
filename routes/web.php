@@ -67,6 +67,7 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['admin'])->group(function () {
         // Master Data
         Route::get('/admin/department', [DepartmentController::class, 'dashboard'])->name('admin.department.index');
+        Route::get('/admin/department/export', [DepartmentController::class, 'export'])->name('admin.department.export');
         Route::get('/admin/sub-departments', [SubDepartmentController::class, 'index'])->name('admin.sub-departments.index');
         Route::post('/admin/karyawan/import', [KaryawanController::class, 'import'])->name('admin.karyawan.import');
         Route::get('/admin/karyawan/template', [KaryawanController::class, 'downloadTemplate'])->name('admin.karyawan.template');

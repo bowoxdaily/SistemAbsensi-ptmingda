@@ -13,7 +13,10 @@
                 <h4 class="fw-bold mb-1">Daftar Departemen</h4>
                 <p class="text-muted mb-0 d-none d-md-block">Kelola data departemen perusahaan</p>
             </div>
-            <div>
+            <div class="d-flex gap-2">
+                <a href="{{ route('admin.department.export') }}" class="btn btn-success btn-sm">
+                    <i class='bx bx-upload me-1'></i> <span class="d-none d-sm-inline">Export Excel</span>
+                </a>
                 <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#departmentModal"
                     onclick="openCreateModal()">
                     <i class='bx bx-plus me-1'></i> <span class="d-none d-sm-inline">Tambah</span>

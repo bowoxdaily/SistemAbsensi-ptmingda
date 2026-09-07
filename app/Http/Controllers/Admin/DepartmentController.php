@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Department;
+use App\Exports\DepartmentHierarchyExport;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -16,6 +18,15 @@ class DepartmentController extends Controller
     {
         $departments = Department::withCount('employees')->latest()->paginate(10);
         return view('admin.departments.index', compact('departments'));
+    }
+
+    /**
+     * Export departments and sub-departments hierarchy to Excel.
+     */
+    public function export(Request $request)
+    {
+        $filename = 'Data_Departemen_dan_Sub_' . date('Ymd_His') . '.xlsx';
+        return Excel::download(new DepartmentHierarchyExport($request->get('search')), $filename);
     }
 
     public function index(Request $request)
