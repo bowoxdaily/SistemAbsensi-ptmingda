@@ -89,8 +89,11 @@ class KaryawanExport implements FromCollection, WithHeadings, WithMapping, WithS
             'BPJS Ketenagakerjaan',
             'Status',
             'Alamat',
-            'Kota',
             'Provinsi',
+            'Kabupaten/Kota',
+            'Kecamatan',
+            'Desa/Kelurahan',
+            'Kota',
             'Kode Pos',
             'No. HP',
             'Email',
@@ -136,8 +139,11 @@ class KaryawanExport implements FromCollection, WithHeadings, WithMapping, WithS
             $karyawan->bpjs_ketenagakerjaan ?? '-',
             $this->getStatusLabel($karyawan->status),
             $karyawan->address ?? '-',
-            $karyawan->city ?? '-',
             $karyawan->province ?? '-',
+            $karyawan->kabupaten ?? '-',
+            $karyawan->kecamatan ?? '-',
+            $karyawan->desa ?? '-',
+            $karyawan->city ?? '-',
             $karyawan->postal_code ?? '-',
             $karyawan->phone ?? '-',
             $karyawan->email ?? '-',
@@ -171,23 +177,27 @@ class KaryawanExport implements FromCollection, WithHeadings, WithMapping, WithS
             'Q' => 20,  // Lulusan Sekolah
             'R' => 18,  // Tanggal Bergabung
             'S' => 15,  // Status Kerja
-            'T' => 18,  // Jadwal Kerja
-            'U' => 15,  // Tanggal Resign
-            'V' => 24,  // Rekomendasi
-            'W' => 20,  // Bank
-            'X' => 20,  // Nomor Rekening
-            'Y' => 20,  // NPWP
-            'Z' => 20,  // BPJS Kesehatan
-            'AA' => 20, // BPJS Ketenagakerjaan
-            'AB' => 12, // Status
-            'AC' => 35, // Alamat
-            'AD' => 15, // Kota
-            'AE' => 15, // Provinsi
-            'AF' => 12, // Kode Pos
-            'AG' => 15, // No HP
-            'AH' => 25, // Email
-            'AI' => 25, // Kontak Darurat Nama
-            'AJ' => 15, // Kontak Darurat No
+            'T' => 18,  // Status Serikat
+            'U' => 18,  // Jadwal Kerja
+            'V' => 15,  // Tanggal Resign/PHK
+            'W' => 24,  // Rekomendasi
+            'X' => 20,  // Bank
+            'Y' => 20,  // Nomor Rekening
+            'Z' => 20,  // NPWP
+            'AA' => 20, // BPJS Kesehatan
+            'AB' => 20, // BPJS Ketenagakerjaan
+            'AC' => 12, // Status
+            'AD' => 35, // Alamat
+            'AE' => 20, // Provinsi
+            'AF' => 22, // Kabupaten/Kota
+            'AG' => 18, // Kecamatan
+            'AH' => 18, // Desa/Kelurahan
+            'AI' => 15, // Kota
+            'AJ' => 12, // Kode Pos
+            'AK' => 15, // No HP
+            'AL' => 25, // Email
+            'AM' => 25, // Kontak Darurat Nama
+            'AN' => 15, // Kontak Darurat No
         ];
     }
 

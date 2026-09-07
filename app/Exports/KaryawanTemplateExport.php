@@ -87,10 +87,13 @@ class KaryawanTemplateExport implements FromCollection, WithHeadings, WithStyles
             '0001234567890',  // BPJS Kesehatan
             '0001234567890',  // BPJS Ketenagakerjaan
             'Aktif',  // Status
-            'Jl. Contoh No. 123',  // Alamat
-            'Jakarta Selatan',  // Kota
-            'DKI Jakarta',  // Provinsi
-            '12345',  // Kode Pos
+            'DESA JUNTINYWAT RT 001 RW 002',  // Alamat
+            'JAWA BARAT',  // Provinsi
+            'KABUPATEN INDRAMAYU',  // Kabupaten/Kota
+            'JUNTINYWAT',  // Kecamatan
+            'JUNTINYWAT',  // Desa/Kelurahan
+            'INDRAMAYU',  // Kota
+            '45282',  // Kode Pos
             '081234567890',  // No. HP
             'john.doe@example.com',  // Email
             'Jane Doe',  // Kontak Darurat (Nama)
@@ -103,7 +106,7 @@ class KaryawanTemplateExport implements FromCollection, WithHeadings, WithStyles
         
         // Add 10 empty rows for user to fill
         for ($i = 0; $i < 10; $i++) {
-            $collection->push(array_fill(0, 36, ''));
+            $collection->push(array_fill(0, 39, ''));
         }
 
         return $collection;
@@ -143,8 +146,11 @@ class KaryawanTemplateExport implements FromCollection, WithHeadings, WithStyles
             'BPJS Ketenagakerjaan',
             'Status',
             'Alamat',
-            'Kota',
             'Provinsi',
+            'Kabupaten/Kota',
+            'Kecamatan',
+            'Desa/Kelurahan',
+            'Kota',
             'Kode Pos',
             'No. HP',
             'Email',
@@ -188,13 +194,16 @@ class KaryawanTemplateExport implements FromCollection, WithHeadings, WithStyles
             'AA' => 20,  // BPJS Ketenagakerjaan
             'AB' => 12, // Status
             'AC' => 35, // Alamat
-            'AD' => 15, // Kota
-            'AE' => 15, // Provinsi
-            'AF' => 12, // Kode Pos
-            'AG' => 15, // No HP
-            'AH' => 25, // Email
-            'AI' => 25, // Kontak Darurat Nama
-            'AJ' => 15, // Kontak Darurat No
+            'AD' => 20, // Provinsi
+            'AE' => 22, // Kabupaten/Kota
+            'AF' => 18, // Kecamatan
+            'AG' => 18, // Desa/Kelurahan
+            'AH' => 15, // Kota
+            'AI' => 12, // Kode Pos
+            'AJ' => 15, // No HP
+            'AK' => 25, // Email
+            'AL' => 25, // Kontak Darurat Nama
+            'AM' => 15, // Kontak Darurat No
         ];
     }
 

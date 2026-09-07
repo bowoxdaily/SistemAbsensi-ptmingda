@@ -1022,12 +1022,24 @@
                                     <td id="detailAddress">-</td>
                                 </tr>
                                 <tr>
-                                    <th>Kota</th>
-                                    <td id="detailCity">-</td>
-                                </tr>
-                                <tr>
                                     <th>Provinsi</th>
                                     <td id="detailProvince">-</td>
+                                </tr>
+                                <tr>
+                                    <th>Kabupaten/Kota</th>
+                                    <td id="detailKabupaten">-</td>
+                                </tr>
+                                <tr>
+                                    <th>Kecamatan</th>
+                                    <td id="detailKecamatan">-</td>
+                                </tr>
+                                <tr>
+                                    <th>Desa/Kelurahan</th>
+                                    <td id="detailDesa">-</td>
+                                </tr>
+                                <tr>
+                                    <th>Kota</th>
+                                    <td id="detailCity">-</td>
                                 </tr>
                                 <tr>
                                     <th>Kode Pos</th>
@@ -2420,12 +2432,15 @@
                     }
 
                     // Kontak & Alamat
-                    $('#detailAddress').text(k.address);
-                    $('#detailCity').text(k.city);
-                    $('#detailProvince').text(k.province);
-                    $('#detailPostalCode').text(k.postal_code);
-                    $('#detailPhone').text(k.phone);
-                    $('#detailEmail').text(k.email);
+                    $('#detailAddress').text(k.address || '-');
+                    $('#detailProvince').text(k.province || '-');
+                    $('#detailKabupaten').text(k.kabupaten || '-');
+                    $('#detailKecamatan').text(k.kecamatan || '-');
+                    $('#detailDesa').text(k.desa || '-');
+                    $('#detailCity').text(k.city || '-');
+                    $('#detailPostalCode').text(k.postal_code || '-');
+                    $('#detailPhone').text(k.phone || '-');
+                    $('#detailEmail').text(k.email || '-');
 
                     // Kontak Darurat
                     $('#detailEmergencyName').text(k.emergency_contact_name);

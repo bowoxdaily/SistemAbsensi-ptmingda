@@ -79,8 +79,6 @@ class KaryawanImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
             'jadwal_kerja',
             'status',
             'alamat',
-            'kota',
-            'provinsi',
             'kode_pos',
             'no_hp',
             'email',
@@ -124,26 +122,36 @@ class KaryawanImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
         // Convert status
         $status = $this->convertStatus($row['status']);
 
-        // Parse geographic data
+        // Resolve raw geographic inputs from various possible slug names
+        $rawAddress = trim((string) ($row['alamat'] ?? ''));
+        $rawProvince = !empty($row['provinsi']) ? trim((string)$row['provinsi']) : null;
+        $rawKabupaten = !empty($row['kabupaten_kota']) ? trim((string)$row['kabupaten_kota']) : (!empty($row['kabupaten']) ? trim((string)$row['kabupaten']) : null);
+        $rawKecamatan = !empty($row['kecamatan']) ? trim((string)$row['kecamatan']) : null;
+        $rawDesa = !empty($row['desa_kelurahan']) ? trim((string)$row['desa_kelurahan']) : (!empty($row['desa']) ? trim((string)$row['desa']) : (!empty($row['kelurahan']) ? trim((string)$row['kelurahan']) : null));
+        $rawCity = !empty($row['kota']) ? trim((string)$row['kota']) : null;
+
+        // Auto-extract geographic data from address if needed
         $geo = \App\Services\IndonesianGeographicHelper::parseFullAddress(
-            (string) ($row['alamat'] ?? ''),
-            $row['kota'] ?? null,
-            $row['provinsi'] ?? null
+            $rawAddress,
+            $rawCity ?? $rawKabupaten,
+            $rawProvince
         );
-        $rawKabupaten = !empty($row['kabupaten']) ? $row['kabupaten'] : (!empty($row['kabupaten_kota']) ? $row['kabupaten_kota'] : null);
-        $rawKecamatan = $row['kecamatan'] ?? null;
-        $rawDesa = !empty($row['desa']) ? $row['desa'] : (!empty($row['kelurahan']) ? $row['kelurahan'] : null);
 
         $kabupaten = $rawKabupaten
-            ? \App\Services\IndonesianGeographicHelper::normalizeKabupatenKota($rawKabupaten, (string) ($row['alamat'] ?? ''), $rawKecamatan)
-            : $geo['kabupaten'];
+            ? \App\Services\IndonesianGeographicHelper::normalizeKabupatenKota($rawKabupaten, $rawAddress, $rawKecamatan)
+            : ($geo['kabupaten'] ?? null);
         $kecamatan = $rawKecamatan
             ? \App\Services\IndonesianGeographicHelper::cleanKecamatan($rawKecamatan)
-            : $geo['kecamatan'];
+            : ($geo['kecamatan'] ?? null);
         $desa = $rawDesa
             ? \App\Services\IndonesianGeographicHelper::cleanDesa($rawDesa)
-            : $geo['desa'];
-        $province = $geo['province'] ?? ($row['provinsi'] ? strtoupper(trim($row['provinsi'])) : null);
+            : ($geo['desa'] ?? null);
+        $province = $rawProvince
+            ? \App\Services\IndonesianGeographicHelper::normalizeProvince($rawProvince, $rawAddress, $rawCity ?? $rawKabupaten)
+            : ($geo['province'] ?? 'JAWA BARAT');
+        $city = $rawCity
+            ? strtoupper($rawCity)
+            : ($kabupaten ? preg_replace('/^(KABUPATEN|KOTA)\s+/i', '', $kabupaten) : ($geo['kabupaten'] ? preg_replace('/^(KABUPATEN|KOTA)\s+/i', '', $geo['kabupaten']) : 'INDRAMAYU'));
 
         DB::beginTransaction();
         try {
@@ -189,7 +197,7 @@ class KaryawanImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
                 'bpjs_ketenagakerjaan' => $row['bpjs_ketenagakerjaan'] ?? null,
                 'status' => $status,
                 'address' => $row['alamat'],
-                'city' => $row['kota'] ? strtoupper(trim($row['kota'])) : null,
+                'city' => $city,
                 'province' => $province,
                 'kabupaten' => $kabupaten,
                 'kecamatan' => $kecamatan,
@@ -244,11 +252,16 @@ class KaryawanImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
             'tanggal_bergabung' => 'nullable',
             'status_kerja' => 'nullable',
             'status_serikat' => 'nullable',
-            'jenis_shift' => 'nullable',
+            'jadwal_kerja' => 'nullable',
             'status' => 'nullable',
             'alamat' => 'nullable',
-            'kota' => 'nullable',
             'provinsi' => 'nullable',
+            'kabupaten_kota' => 'nullable',
+            'kabupaten' => 'nullable',
+            'kecamatan' => 'nullable',
+            'desa_kelurahan' => 'nullable',
+            'desa' => 'nullable',
+            'kota' => 'nullable',
             'kode_pos' => 'nullable',
             'no_hp' => 'nullable',
             'email' => 'nullable|email|unique:employees,email',
