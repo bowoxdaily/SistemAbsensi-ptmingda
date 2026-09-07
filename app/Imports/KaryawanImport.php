@@ -124,6 +124,27 @@ class KaryawanImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
         // Convert status
         $status = $this->convertStatus($row['status']);
 
+        // Parse geographic data
+        $geo = \App\Services\IndonesianGeographicHelper::parseFullAddress(
+            (string) ($row['alamat'] ?? ''),
+            $row['kota'] ?? null,
+            $row['provinsi'] ?? null
+        );
+        $rawKabupaten = !empty($row['kabupaten']) ? $row['kabupaten'] : (!empty($row['kabupaten_kota']) ? $row['kabupaten_kota'] : null);
+        $rawKecamatan = $row['kecamatan'] ?? null;
+        $rawDesa = !empty($row['desa']) ? $row['desa'] : (!empty($row['kelurahan']) ? $row['kelurahan'] : null);
+
+        $kabupaten = $rawKabupaten
+            ? \App\Services\IndonesianGeographicHelper::normalizeKabupatenKota($rawKabupaten, (string) ($row['alamat'] ?? ''), $rawKecamatan)
+            : $geo['kabupaten'];
+        $kecamatan = $rawKecamatan
+            ? \App\Services\IndonesianGeographicHelper::cleanKecamatan($rawKecamatan)
+            : $geo['kecamatan'];
+        $desa = $rawDesa
+            ? \App\Services\IndonesianGeographicHelper::cleanDesa($rawDesa)
+            : $geo['desa'];
+        $province = $geo['province'] ?? ($row['provinsi'] ? strtoupper(trim($row['provinsi'])) : null);
+
         DB::beginTransaction();
         try {
             // Create user account
@@ -168,8 +189,11 @@ class KaryawanImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
                 'bpjs_ketenagakerjaan' => $row['bpjs_ketenagakerjaan'] ?? null,
                 'status' => $status,
                 'address' => $row['alamat'],
-                'city' => $row['kota'],
-                'province' => $row['provinsi'],
+                'city' => $row['kota'] ? strtoupper(trim($row['kota'])) : null,
+                'province' => $province,
+                'kabupaten' => $kabupaten,
+                'kecamatan' => $kecamatan,
+                'desa' => $desa,
                 'postal_code' => $row['kode_pos'],
                 'phone' => $row['no_hp'],
                 'email' => $row['email'],

@@ -20,6 +20,8 @@ use App\Imports\KaryawanImport;
 use App\Models\Attendance;
 use Maatwebsite\Excel\Facades\Excel;
 
+use App\Services\IndonesianGeographicHelper;
+
 class KaryawanController extends Controller
 {
     /**
@@ -772,82 +774,61 @@ class KaryawanController extends Controller
      */
     public function extractGeographicData(string $address, ?string $city = null, ?string $province = null): array
     {
-        $addressUpper = strtoupper($address);
-
-        // Kabupaten biasanya sama dengan city - normalize to UPPERCASE
-        $kabupaten = $city ? strtoupper(trim($city)) : null;
-
-        // Try to extract kecamatan and desa from address
-        $addressParts = $this->parseAddressString($addressUpper);
+        $parsed = IndonesianGeographicHelper::parseFullAddress($address, $city, $province);
 
         return [
-            'kabupaten' => $kabupaten,
-            'kecamatan' => $addressParts['kecamatan'] ?? null,
-            'desa' => $addressParts['desa'] ?? null,
+            'kabupaten' => $parsed['kabupaten'] ?? ($city ? strtoupper(trim($city)) : null),
+            'kecamatan' => $parsed['kecamatan'],
+            'desa' => $parsed['desa'],
         ];
     }
 
     /**
      * Parse address string to extract kecamatan and desa
-     * Pattern references:
-     * - "DESA LOSARANG RT 010 RW 003 KEL/DESA LOSARANG KEC LOSARANG INDRAMAYU JAWA BARAT"
-     * - "JL. PENDIDIKAN NO. 123 KELURAHAN CITARUM KECAMATAN BANDUNG TENGAH"
      */
     private function parseAddressString(string $address): array
     {
-        $result = [
-            'desa' => null,
-            'kecamatan' => null,
+        $parsed = IndonesianGeographicHelper::parseFullAddress($address);
+        return [
+            'desa' => $parsed['desa'],
+            'kecamatan' => $parsed['kecamatan'],
         ];
-
-        // Clean address
-        $address = trim($address);
-
-        // Pattern 1: Look for "DESA" or "KEL" or "KELURAHAN" 
-        if (preg_match('/(?:DESA|KEL|KELURAHAN)\s+([A-Z\s]+?)(?:\s+RT|\s+RW|\s+KEC|$)/i', $address, $matches)) {
-            $result['desa'] = trim($matches[1]);
-        }
-
-        // Pattern 2: Look for "KEC" or "KECAMATAN" followed by name
-        // This pattern looks for KEC followed by word(s) that are not city/province names
-        if (preg_match('/\s+KEC\s+([A-Z\s]+?)(?:\s+INDRAMAYU|\s+BANDUNG|\s+JAWA|\s+SUMATERA|\s+SULAWESI|\s+KALIMANTAN|\s+BALI|\s+NTT|\s+MALUKU|$)/i', $address, $matches)) {
-            $potentialKec = trim($matches[1]);
-            // Filter out noise
-            if (!preg_match('/^\d+$|^RT$|^RW$/i', $potentialKec)) {
-                $result['kecamatan'] = $potentialKec;
-            }
-        }
-
-        // Pattern 3: Try alternative "KECAMATAN" keyword
-        if (!$result['kecamatan']) {
-            if (preg_match('/\s+KECAMATAN\s+([A-Z\s]+?)(?:\s+KOTA|\s+KAB|\s+JAWA|$)/i', $address, $matches)) {
-                $result['kecamatan'] = trim($matches[1]);
-            }
-        }
-
-        return $result;
     }
 
     /**
-     * Normalize geographic fields to UPPERCASE
+     * Normalize geographic fields to UPPERCASE and standard prefixes
      * Called before saving employee data to ensure consistency
      */
     private function normalizeGeographicData(array $data): array
     {
+        $address = $data['address'] ?? '';
+        $city = $data['city'] ?? null;
+        $province = $data['province'] ?? null;
+
+        $parsed = IndonesianGeographicHelper::parseFullAddress((string) $address, $city, $province);
+
         if (isset($data['province'])) {
-            $data['province'] = $data['province'] ? strtoupper(trim($data['province'])) : null;
+            $data['province'] = IndonesianGeographicHelper::normalizeProvince($data['province'], (string) $address, $city);
         }
         if (isset($data['city'])) {
             $data['city'] = $data['city'] ? strtoupper(trim($data['city'])) : null;
         }
-        if (isset($data['kabupaten'])) {
-            $data['kabupaten'] = $data['kabupaten'] ? strtoupper(trim($data['kabupaten'])) : null;
+        if (!empty($data['kabupaten'])) {
+            $data['kabupaten'] = IndonesianGeographicHelper::normalizeKabupatenKota($data['kabupaten'], (string) $address, $data['kecamatan'] ?? null);
+        } elseif (!empty($parsed['kabupaten'])) {
+            $data['kabupaten'] = $parsed['kabupaten'];
         }
-        if (isset($data['kecamatan'])) {
-            $data['kecamatan'] = $data['kecamatan'] ? strtoupper(trim($data['kecamatan'])) : null;
+
+        if (!empty($data['kecamatan'])) {
+            $data['kecamatan'] = IndonesianGeographicHelper::cleanKecamatan($data['kecamatan']);
+        } elseif (!empty($parsed['kecamatan'])) {
+            $data['kecamatan'] = $parsed['kecamatan'];
         }
-        if (isset($data['desa'])) {
-            $data['desa'] = $data['desa'] ? strtoupper(trim($data['desa'])) : null;
+
+        if (!empty($data['desa'])) {
+            $data['desa'] = IndonesianGeographicHelper::cleanDesa($data['desa']);
+        } elseif (!empty($parsed['desa'])) {
+            $data['desa'] = $parsed['desa'];
         }
 
         return $data;

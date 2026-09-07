@@ -419,13 +419,13 @@ class RekapitulasiController extends Controller
             $this->applyPositionScopeFilter($query, $positionScope);
 
             if ($province) {
-                $query->where('province', $province);
+                $province === 'Unknown' ? $query->whereNull('province') : $query->where('province', $province);
             }
             if ($kabupaten) {
-                $query->where('kabupaten', $kabupaten);
+                $kabupaten === 'Unknown' ? $query->whereNull('kabupaten') : $query->where('kabupaten', $kabupaten);
             }
             if ($kecamatan) {
-                $query->where('kecamatan', $kecamatan);
+                $kecamatan === 'Unknown' ? $query->whereNull('kecamatan') : $query->where('kecamatan', $kecamatan);
             }
 
             $employees = $query->orderBy('province')
@@ -585,13 +585,13 @@ class RekapitulasiController extends Controller
         $this->applyPositionScopeFilter($query, $positionScope);
 
         if ($province) {
-            $query->where('province', $province);
+            $province === 'Unknown' ? $query->whereNull('province') : $query->where('province', $province);
         }
         if ($kabupaten) {
-            $query->where('kabupaten', $kabupaten);
+            $kabupaten === 'Unknown' ? $query->whereNull('kabupaten') : $query->where('kabupaten', $kabupaten);
         }
         if ($kecamatan) {
-            $query->where('kecamatan', $kecamatan);
+            $kecamatan === 'Unknown' ? $query->whereNull('kecamatan') : $query->where('kecamatan', $kecamatan);
         }
 
         $employees = $query->orderBy('province')
@@ -656,16 +656,16 @@ class RekapitulasiController extends Controller
             $this->applyPositionScopeFilter($query, $positionScope);
 
             if (isset($filters['province'])) {
-                $query->where('province', $filters['province']);
+                $filters['province'] === 'Unknown' ? $query->whereNull('province') : $query->where('province', $filters['province']);
             }
             if (isset($filters['kabupaten'])) {
-                $query->where('kabupaten', $filters['kabupaten']);
+                $filters['kabupaten'] === 'Unknown' ? $query->whereNull('kabupaten') : $query->where('kabupaten', $filters['kabupaten']);
             }
             if (isset($filters['kecamatan'])) {
-                $query->where('kecamatan', $filters['kecamatan']);
+                $filters['kecamatan'] === 'Unknown' ? $query->whereNull('kecamatan') : $query->where('kecamatan', $filters['kecamatan']);
             }
             if (isset($filters['desa'])) {
-                $query->where('desa', $filters['desa']);
+                $filters['desa'] === 'Unknown' ? $query->whereNull('desa') : $query->where('desa', $filters['desa']);
             }
 
             $employees = $query->orderBy('employee_code')->get();
@@ -762,7 +762,10 @@ class RekapitulasiController extends Controller
 
             // Chart 2: Indramayu - by kecamatan (district)
             $indramayuByDistrictQuery = Karyawans::where('status', 'active')
-                ->where('kabupaten', 'INDRAMAYU')
+                ->where(function ($q) {
+                    $q->where('kabupaten', 'LIKE', '%INDRAMAYU%')
+                      ->orWhere('city', 'LIKE', '%INDRAMAYU%');
+                })
                 ->whereNotNull('kecamatan')
                 ->selectRaw('kecamatan, COUNT(*) as count')
                 ->groupBy('kecamatan')
@@ -773,7 +776,10 @@ class RekapitulasiController extends Controller
 
             // Chart 3: Losarang - by desa (village)
             $losarangByVillageQuery = Karyawans::where('status', 'active')
-                ->where('kabupaten', 'INDRAMAYU')
+                ->where(function ($q) {
+                    $q->where('kabupaten', 'LIKE', '%INDRAMAYU%')
+                      ->orWhere('city', 'LIKE', '%INDRAMAYU%');
+                })
                 ->whereRaw("UPPER(TRIM(kecamatan)) REGEXP '^LOSARANG(\\\\s+KAB\\\\.?)?$'")
                 ->selectRaw('desa, COUNT(*) as count')
                 ->groupBy('desa')
