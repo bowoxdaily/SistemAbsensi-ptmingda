@@ -68,6 +68,13 @@ class AttendanceEditRequestController extends Controller
             $query->where('status', $status);
         }
 
+        if ($search = trim((string) $request->get('search', ''))) {
+            $query->whereHas('attendance.employee', function ($employeeQuery) use ($search) {
+                $employeeQuery->where('name', 'like', "%{$search}%")
+                    ->orWhere('employee_code', 'like', "%{$search}%");
+            });
+        }
+
         $requests = $query->latest()->paginate($request->get('per_page', 15));
 
         // Explicitly format date fields to avoid timezone shift in JS

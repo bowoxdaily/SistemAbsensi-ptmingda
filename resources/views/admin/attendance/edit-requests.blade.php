@@ -86,6 +86,12 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Daftar Request Edit Absensi</h5>
                 <div class="d-flex gap-2">
+                    <div class="input-group input-group-sm" style="width:260px;">
+                        <input type="search" class="form-control" id="filter-search" placeholder="Cari nama/kode karyawan">
+                        <button type="button" class="btn btn-outline-primary" id="btnSearch" title="Cari">
+                            <i class='bx bx-search'></i>
+                        </button>
+                    </div>
                     <select class="form-select form-select-sm" id="filter-status" style="width:auto;">
                         <option value="">Semua Status</option>
                         <option value="pending" selected>Pending</option>
@@ -245,8 +251,9 @@
         page = page || 1;
         currentPage = page;
         const status = $('#filter-status').val();
+        const search = $('#filter-search').val().trim();
 
-        $.get('/api/admin/attendance-edit-requests', { status: status, per_page: 15, page: page }, function(res) {
+        $.get('/api/admin/attendance-edit-requests', { status: status, search: search, per_page: 15, page: page }, function(res) {
             if (!res.success) return;
             const rows   = res.data.data;
             const meta   = res.data;
@@ -556,6 +563,10 @@
 
     // ── Filter & refresh ──
     $('#filter-status').on('change', function() { loadRequests(1); });
+    $('#btnSearch').on('click', function() { loadRequests(1); });
+    $('#filter-search').on('keydown', function(event) {
+        if (event.key === 'Enter') loadRequests(1);
+    });
     $('#btnRefresh').on('click', function() { loadRequests(currentPage); loadStats(); });
     $(document).on('click', '.btn-page', function() { loadRequests(parseInt($(this).data('page'))); });
 
