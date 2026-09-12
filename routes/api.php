@@ -120,7 +120,7 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('departments')->group(functi
     Route::delete('/{id}', [DepartmentController::class, 'destroy']);
 });
 
-Route::middleware(['web', 'auth', 'admin'])->prefix('sub-departments')->group(function () {
+Route::middleware(['auth:sanctum', 'admin'])->prefix('sub-departments')->group(function () {
     Route::get('/', [SubDepartmentController::class, 'list']);
     Route::post('/', [SubDepartmentController::class, 'store']);
     Route::get('/by-department/{departmentId}', [SubDepartmentController::class, 'getByDepartment']);
