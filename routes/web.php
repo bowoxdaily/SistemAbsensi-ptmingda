@@ -20,6 +20,8 @@ use App\Http\Controllers\Admin\RekapitulasiController;
 use App\Http\Controllers\Admin\WarningLetterController;
 use App\Http\Controllers\Admin\EmailSmtpSettingController;
 use App\Http\Controllers\Admin\MailgunLogController;
+use App\Http\Controllers\Admin\LandingGalleryController;
+use App\Models\LandingGallery;
 use App\Http\Controllers\InterviewScanController;
 use App\Http\Controllers\JoinCallScanController;
 use Illuminate\Support\Facades\Route;
@@ -28,9 +30,10 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 
-// Redirect root to login
+// Landing page
 Route::get('/', function () {
-    return redirect()->route('login');
+    $galleries = LandingGallery::active()->ordered()->get();
+    return view('landing', compact('galleries'));
 });
 
 // Authentication Routes (with rate limiting to prevent brute force)
@@ -129,6 +132,13 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/opls', [\App\Http\Controllers\Admin\OPLController::class, 'index'])->name('admin.opls.index');
         Route::get('/admin/opls/create', function(){ return view('admin.opls.create'); })->name('admin.opls.create');
         Route::get('/admin/opls/{id}/edit', function($id){ return view('admin.opls.edit'); })->name('admin.opls.edit');
+
+        // Landing Page Gallery Management
+        Route::get('/admin/landing-gallery', [LandingGalleryController::class, 'index'])->name('admin.landing-gallery.index');
+        Route::post('/admin/landing-gallery', [LandingGalleryController::class, 'store'])->name('admin.landing-gallery.store');
+        Route::put('/admin/landing-gallery/{landingGallery}', [LandingGalleryController::class, 'update'])->name('admin.landing-gallery.update');
+        Route::patch('/admin/landing-gallery/{landingGallery}/toggle', [LandingGalleryController::class, 'toggle'])->name('admin.landing-gallery.toggle');
+        Route::delete('/admin/landing-gallery/{landingGallery}', [LandingGalleryController::class, 'destroy'])->name('admin.landing-gallery.destroy');
 
         // Status Karyawan Report
         Route::get('/admin/karyawan/status-report', [KaryawanController::class, 'statusReportPage'])->name('admin.karyawan.status-report');

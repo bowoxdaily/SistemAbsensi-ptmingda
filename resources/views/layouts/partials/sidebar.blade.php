@@ -258,6 +258,14 @@
                 <span class="menu-header-text">Pengaturan</span>
             </li>
 
+            <!-- Galeri Landing Page -->
+            <li class="menu-item {{ request()->routeIs('admin.landing-gallery.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.landing-gallery.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-images"></i>
+                    <div data-i18n="Galeri Landing">Galeri Landing Page</div>
+                </a>
+            </li>
+
             <!-- Pengaturan Sistem (Dropdown) -->
             <li class="menu-item {{ request()->routeIs('admin.settings.*') ? 'active open' : '' }}">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
