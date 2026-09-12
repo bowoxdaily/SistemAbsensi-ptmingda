@@ -50,7 +50,6 @@ Schedule::command('fingerspot:sync')
 // generate-absent 17:30 dan queue:work peak sehingga MySQL tidak overload
 Schedule::command('attendance:recalculate-overtime', ['--from' => now()->format('Y-m-d')])
     ->dailyAt('19:00')
-    ->weekdays()
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/overtime-recalculate.log'));
@@ -59,7 +58,6 @@ Schedule::command('attendance:recalculate-overtime', ['--from' => now()->format(
 // Recheck data kemarin untuk menangkap checkout Fingerspot yang masuk setelah 18:30
 Schedule::command('attendance:recalculate-overtime', ['--from' => now()->subDay()->format('Y-m-d')])
     ->dailyAt('02:00')
-    ->weekdays()
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/overtime-recalculate.log'));

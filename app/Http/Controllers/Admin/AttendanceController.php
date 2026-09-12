@@ -498,9 +498,37 @@ class AttendanceController extends Controller
                 $checkOutTime = now();
             }
 
-            // Update attendance (overtime dihitung via batch cron, bukan real-time)
+            $schedule = $attendance->employee->workSchedule;
+            $overtimeMinutes = 0;
+            $overtimeCategory = null;
+            if ($schedule && $attendance->check_in) {
+                $checkInTime = Carbon::parse($dateString . ' ' . $attendance->check_in);
+                $weekStart = $attendanceDate->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
+                $weekEnd = $attendanceDate->copy()->endOfWeek(Carbon::SUNDAY)->toDateString();
+                $weeklyUsedMinutes = (int) Attendance::query()
+                    ->where('employee_id', $attendance->employee_id)
+                    ->whereBetween('attendance_date', [$weekStart, $weekEnd])
+                    ->where('id', '!=', $attendance->id)
+                    ->whereNotNull('check_out')
+                    ->whereIn('status', ['hadir', 'terlambat'])
+                    ->sum('overtime_minutes');
+                $calculator = app(\App\Services\OvertimeCalculator::class);
+                $overtimeMinutes = $calculator->calculate(
+                    $attendance,
+                    $attendanceDate,
+                    $checkInTime,
+                    $checkOutTime,
+                    $schedule,
+                    $attendance->employee->isEligibleForWeekdayOvertime(),
+                    $weeklyUsedMinutes
+                );
+                $overtimeCategory = $calculator->categoryForMinutes($overtimeMinutes);
+            }
+
             $attendance->update([
                 'check_out' => $checkOutTime->format('H:i:s'),
+                'overtime_minutes' => $overtimeMinutes,
+                'overtime_category' => $overtimeCategory,
                 'photo_out' => null, // Always null for manual input
                 'location_out' => null, // Always null for manual input
                 'notes' => $attendance->notes ? $attendance->notes . ' | ' . $request->notes : $request->notes,
@@ -944,6 +972,7 @@ class AttendanceController extends Controller
 
             if ($attendance->isDirty('check_out')) {
                 $attendance->overtime_minutes = 0;
+                $attendance->overtime_category = null;
             }
 
             $attendance->save();
@@ -1056,6 +1085,8 @@ class AttendanceController extends Controller
             $noLogs  = 0;
             $logIdsToUpdate      = [];
             $attendanceUpdates   = []; // [id => [field => value]] untuk batch update
+            $weeklyUsage = [];
+            $calculator = app(\App\Services\OvertimeCalculator::class);
 
             foreach ($attendances as $attendance) {
                 $employee = $attendance->employee;
@@ -1074,13 +1105,42 @@ class AttendanceController extends Controller
                     $notes = ($notes ? $notes . ' | ' : '') . $request->notes;
                 }
 
+                $overtimeMinutes = 0;
+                if ($employee->workSchedule && $attendance->check_in) {
+                    $attendanceDate = Carbon::parse($request->date);
+                    $weekKey = $employee->id . '|' . $attendanceDate->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
+                    $weeklyUsedMinutes = $weeklyUsage[$weekKey] ?? (int) Attendance::query()
+                        ->where('employee_id', $employee->id)
+                        ->whereBetween('attendance_date', [
+                            $attendanceDate->copy()->startOfWeek(Carbon::MONDAY)->toDateString(),
+                            $attendanceDate->copy()->endOfWeek(Carbon::SUNDAY)->toDateString(),
+                        ])
+                        ->where('id', '!=', $attendance->id)
+                        ->whereNotNull('check_out')
+                        ->whereIn('status', ['hadir', 'terlambat'])
+                        ->sum('overtime_minutes');
+                    $checkInTime = Carbon::parse($request->date . ' ' . $attendance->check_in);
+                    $checkOutDateTime = Carbon::parse($request->date . ' ' . $checkOutTime);
+                    $overtimeMinutes = $calculator->calculate(
+                        $attendance,
+                        $attendanceDate,
+                        $checkInTime,
+                        $checkOutDateTime,
+                        $employee->workSchedule,
+                        $employee->isEligibleForWeekdayOvertime(),
+                        $weeklyUsedMinutes
+                    );
+                    $weeklyUsage[$weekKey] = $weeklyUsedMinutes + $overtimeMinutes;
+                }
+
                 // [FIX 2026-08-06] Kumpulkan data untuk batch update
                 // Hindari $attendance->save() per-loop agar AttendanceObserver
                 // tidak fire N×2 queries ke attendance_monthly_summaries saat peak checkout
                 $attendanceUpdates[$attendance->id] = [
                     'check_out'        => $checkOutTime,
                     'photo_out'        => $log->photo_url,
-                    'overtime_minutes' => 0,
+                    'overtime_minutes' => $overtimeMinutes,
+                    'overtime_category' => $calculator->categoryForMinutes($overtimeMinutes),
                     'notes'            => $notes,
                 ];
 
@@ -1097,6 +1157,8 @@ class AttendanceController extends Controller
                 $checkOutCase  = 'CASE id';
                 $photoCase     = 'CASE id';
                 $notesCase     = 'CASE id';
+                $overtimeMinutesCase = 'CASE id';
+                $overtimeCategoryCase = 'CASE id';
                 $bindings      = [];
 
                 foreach ($attendanceUpdates as $attId => $fields) {
@@ -1111,11 +1173,21 @@ class AttendanceController extends Controller
                     $notesCase    .= " WHEN ? THEN ?";
                     $bindings[]    = $attId;
                     $bindings[]    = $fields['notes'];
+
+                    $overtimeMinutesCase .= " WHEN ? THEN ?";
+                    $bindings[] = $attId;
+                    $bindings[] = $fields['overtime_minutes'];
+
+                    $overtimeCategoryCase .= " WHEN ? THEN ?";
+                    $bindings[] = $attId;
+                    $bindings[] = $fields['overtime_category'];
                 }
 
                 $checkOutCase .= ' END';
                 $photoCase    .= ' END';
                 $notesCase    .= ' END';
+                $overtimeMinutesCase .= ' END';
+                $overtimeCategoryCase .= ' END';
 
                 $placeholders = implode(',', array_fill(0, count($ids), '?'));
                 $bindings     = array_merge($bindings, $ids);
@@ -1124,7 +1196,8 @@ class AttendanceController extends Controller
                     "UPDATE attendances
                      SET check_out = {$checkOutCase},
                          photo_out = {$photoCase},
-                         overtime_minutes = 0,
+                         overtime_minutes = {$overtimeMinutesCase},
+                         overtime_category = {$overtimeCategoryCase},
                          notes = {$notesCase}
                      WHERE id IN ({$placeholders})",
                     $bindings
@@ -1320,7 +1393,8 @@ class AttendanceController extends Controller
                     }
 
                     $checkInTime = Carbon::parse($attendanceDate->format('Y-m-d') . ' ' . ($attendance->check_in instanceof Carbon ? $attendance->check_in->format('H:i:s') : $attendance->check_in));
-                    $overtimeMinutes = app(\App\Services\OvertimeCalculator::class)->calculate(
+                    $calculator = app(\App\Services\OvertimeCalculator::class);
+                    $overtimeMinutes = $calculator->calculate(
                         $attendance,
                         $attendanceDate,
                         $checkInTime,
@@ -1329,10 +1403,12 @@ class AttendanceController extends Controller
                         $attendance->employee->isEligibleForWeekdayOvertime(),
                         $currentWeeklyUsed
                     );
+                    $overtimeCategory = $calculator->categoryForMinutes($overtimeMinutes);
 
                     // Update if different from current value
-                    if ($attendance->overtime_minutes != $overtimeMinutes) {
+                    if ($attendance->overtime_minutes != $overtimeMinutes || $attendance->overtime_category !== $overtimeCategory) {
                         $attendance->overtime_minutes = $overtimeMinutes;
+                        $attendance->overtime_category = $overtimeCategory;
                         $attendance->save();
                         $updated++;
                         $weeklyUsage[$weekKey] = $currentWeeklyUsed + $overtimeMinutes;

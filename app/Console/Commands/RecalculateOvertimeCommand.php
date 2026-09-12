@@ -129,7 +129,8 @@ class RecalculateOvertimeCommand extends Command
                         }
 
                         $checkInTime = Carbon::parse($attendanceDate->format('Y-m-d') . ' ' . ($attendance->check_in instanceof Carbon ? $attendance->check_in->format('H:i:s') : $attendance->check_in));
-                        $overtimeMinutes = app(\App\Services\OvertimeCalculator::class)->calculate(
+                        $calculator = app(\App\Services\OvertimeCalculator::class);
+                        $overtimeMinutes = $calculator->calculate(
                             $attendance,
                             $attendanceDate,
                             $checkInTime,
@@ -138,14 +139,16 @@ class RecalculateOvertimeCommand extends Command
                             $attendance->employee->isEligibleForWeekdayOvertime(),
                             $currentWeeklyUsed
                         );
+                        $overtimeCategory = $calculator->categoryForMinutes($overtimeMinutes, $schedule);
 
                         $weeklyUsage[$weekKey] = $currentWeeklyUsed + $overtimeMinutes;
 
                         // Collect update if different from current value
-                        if ($attendance->overtime_minutes != $overtimeMinutes) {
+                        if ($attendance->overtime_minutes != $overtimeMinutes || $attendance->overtime_category !== $overtimeCategory) {
                             $chunkUpdates[] = [
                                 'id' => $attendance->id,
-                                'overtime_minutes' => $overtimeMinutes
+                                'overtime_minutes' => $overtimeMinutes,
+                                'overtime_category' => $overtimeCategory,
                             ];
                             $updated++;
                         }
@@ -201,7 +204,7 @@ class RecalculateOvertimeCommand extends Command
     /**
      * Perform a bulk UPDATE using CASE WHEN statement.
      *
-     * @param array $updates Array of ['id' => int, 'overtime_minutes' => int]
+     * @param array $updates Array of overtime values keyed by attendance ID
      */
     private function performBulkUpdate(array $updates): void
     {
@@ -216,6 +219,14 @@ class RecalculateOvertimeCommand extends Command
         $casesStr = implode(' ', $cases);
         $idsStr = implode(',', $ids);
 
-        DB::update("UPDATE attendances SET overtime_minutes = CASE id {$casesStr} END WHERE id IN ({$idsStr})");
+        $categoryCases = [];
+        foreach ($updates as $update) {
+            $category = $update['overtime_category'] === null
+                ? 'NULL'
+                : "'" . addslashes($update['overtime_category']) . "'";
+            $categoryCases[] = "WHEN {$update['id']} THEN {$category}";
+        }
+
+        DB::update("UPDATE attendances SET overtime_minutes = CASE id {$casesStr} END, overtime_category = CASE id " . implode(' ', $categoryCases) . " END WHERE id IN ({$idsStr})");
     }
 }

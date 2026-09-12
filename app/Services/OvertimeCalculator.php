@@ -9,6 +9,7 @@ use Carbon\Carbon;
 class OvertimeCalculator
 {
     private const WEEKLY_MAX_MINUTES = 3600;
+    private const DEFAULT_OVERTIME_THRESHOLD = 40;
 
     public function calculate(
         object $attendance,
@@ -27,7 +28,8 @@ class OvertimeCalculator
             $allowWeekdayOvertime
         );
 
-        if ($rawMinutes <= 0) {
+        $threshold = (int) ($schedule->overtime_threshold ?? self::DEFAULT_OVERTIME_THRESHOLD);
+        if ($rawMinutes < $threshold) {
             return 0;
         }
 
@@ -35,7 +37,7 @@ class OvertimeCalculator
         $remainingMinutes = max(0, self::WEEKLY_MAX_MINUTES - $usedMinutes);
         $countedMinutes = min($rawMinutes, $remainingMinutes);
 
-        return $this->roundDownToHour($countedMinutes);
+        return $countedMinutes;
     }
 
     private function calculateRawMinutes(
@@ -50,7 +52,23 @@ class OvertimeCalculator
         }
 
         if ($attendanceDate->isWeekend()) {
-            return $checkInTime->diffInMinutes($checkOutTime);
+            [$startHour, $startMinute] = $this->extractTimeParts($schedule->start_time, 8, 0);
+            $scheduledStartTime = $attendanceDate->copy()->setTime($startHour, $startMinute, 0);
+            $effectiveStartTime = $checkInTime->greaterThan($scheduledStartTime)
+                ? $checkInTime
+                : $scheduledStartTime;
+
+            if ($checkOutTime->lessThanOrEqualTo($effectiveStartTime)) {
+                return 0;
+            }
+
+            $breakStart = $attendanceDate->copy()->setTime(12, 0);
+            $breakEnd = $attendanceDate->copy()->setTime(13, 0);
+            $breakStart = max($breakStart->timestamp, $effectiveStartTime->timestamp);
+            $breakEnd = min($breakEnd->timestamp, $checkOutTime->timestamp);
+            $breakMinutes = max(0, intdiv($breakEnd - $breakStart, 60));
+
+            return $effectiveStartTime->diffInMinutes($checkOutTime) - $breakMinutes;
         }
 
         if (!$allowWeekdayOvertime) {
@@ -59,14 +77,7 @@ class OvertimeCalculator
 
         [$endHour, $endMinute] = $this->extractTimeParts($schedule->end_time, 17, 0);
         $scheduledEndTime = $attendanceDate->copy()->setTime($endHour, $endMinute, 0);
-        $overtimeThreshold = $schedule->overtime_threshold ?? 50;
-        $thresholdTime = $scheduledEndTime->copy()->addMinutes($overtimeThreshold);
-
-        if ($checkOutTime->greaterThan($thresholdTime)) {
-            return $scheduledEndTime->diffInMinutes($checkOutTime);
-        }
-
-        return 0;
+        return max(0, $scheduledEndTime->diffInMinutes($checkOutTime, false));
     }
 
     /**
@@ -124,8 +135,13 @@ class OvertimeCalculator
         ];
     }
 
-    private function roundDownToHour(int $minutes): int
+    public function categoryForMinutes(int $minutes, ?WorkSchedule $schedule = null): ?string
     {
-        return intdiv(max(0, $minutes), 60) * 60;
+        $threshold = (int) ($schedule?->overtime_threshold ?? self::DEFAULT_OVERTIME_THRESHOLD);
+        if ($minutes < $threshold) {
+            return null;
+        }
+
+        return 'OT' . min(intdiv($minutes - $threshold, 60) + 1, 8);
     }
 }

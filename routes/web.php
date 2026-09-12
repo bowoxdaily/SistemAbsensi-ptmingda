@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AttendanceController;
+use App\Http\Controllers\Admin\OvertimeController;
 use App\Http\Controllers\Admin\AttendanceEditRequestController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\SubDepartmentController;
@@ -147,6 +148,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Attendance - Read Only
         Route::get('/admin/attendance', [AttendanceController::class, 'index'])->name('admin.attendance.index');
+        Route::get('/admin/overtime', [OvertimeController::class, 'index'])->name('admin.overtime.index');
         Route::get('/admin/attendance/report', [AttendanceController::class, 'report'])->name('admin.attendance.report');
         Route::get('/admin/attendance/export', [AttendanceController::class, 'export'])->name('admin.attendance.export');
 

@@ -164,9 +164,6 @@
                                 <i class='bx bx-download me-1'></i> Export Excel
                             </button>
                             @if(!$isViewer)
-                            <button type="button" class="btn btn-warning text-white" id="recalculateOvertimeBtn">
-                                <i class='bx bx-refresh me-1'></i> Hitung Ulang Lembur
-                            </button>
                             <button type="button" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#bulkCheckoutModal">
                                 <i class='bx bx-log-out-circle me-1'></i> Bulk Pulang
                             </button>
@@ -222,7 +219,6 @@
                                 <th>Foto Out</th>
                                 <th>Status</th>
                                 <th>Terlambat</th>
-                                <th>Lembur</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -355,14 +351,6 @@
                                         @endif
                                     </td>
                                     <td>
-                                        @if ($attendance->overtime_minutes > 0)
-                                            <span class="badge bg-label-info">{{ $attendance->overtime_minutes }}
-                                                menit</span>
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
-                                    <td>
                                         <div class="dropdown">
                                             <button type="button" class="btn btn-sm btn-icon dropdown-toggle hide-arrow"
                                                 data-bs-toggle="dropdown">
@@ -407,7 +395,7 @@
                                 @endif
                             @empty
                                 <tr>
-                                    <td colspan="15" class="text-center py-4">
+                                    <td colspan="14" class="text-center py-4">
                                         <i class='bx bx-info-circle bx-lg text-muted'></i>
                                         <p class="mt-2 mb-0 text-muted">Tidak ada data absensi</p>
                                     </td>
@@ -615,11 +603,6 @@
                                         @if ($attendance->late_minutes > 0)
                                             <span class="badge bg-label-warning">
                                                 <i class='bx bx-time'></i> {{ $attendance->late_minutes }} menit
-                                            </span>
-                                        @endif
-                                        @if ($attendance->overtime_minutes > 0)
-                                            <span class="badge bg-label-info ms-1">
-                                                <i class='bx bx-time-five'></i> Lembur {{ $attendance->overtime_minutes }} menit
                                             </span>
                                         @endif
                                     </div>
@@ -1731,101 +1714,6 @@
                             },
                             error: function(xhr) {
                                 let errorMessage = 'Gagal menghapus data absensi';
-                                if (xhr.responseJSON && xhr.responseJSON.message) {
-                                    errorMessage = xhr.responseJSON.message;
-                                }
-
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Gagal!',
-                                    text: errorMessage,
-                                    confirmButtonText: 'OK'
-                                });
-                            }
-                        });
-                    }
-                });
-            });
-
-            // Recalculate overtime button
-            $('#recalculateOvertimeBtn').on('click', function() {
-                const dateFrom = $('input[name="date_from"]').val();
-                const dateTo = $('input[name="date_to"]').val();
-
-                Swal.fire({
-                    title: 'Hitung Ulang Lembur?',
-                    html: dateFrom && dateTo
-                        ? `Menghitung ulang lembur untuk periode:<br><strong>${dateFrom}</strong> sampai <strong>${dateTo}</strong>`
-                        : 'Menghitung ulang lembur untuk <strong>semua data</strong>',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Ya, Hitung Ulang',
-                    cancelButtonText: 'Batal',
-                    confirmButtonColor: '#ffc107',
-                    reverseButtons: true
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Show loading
-                        Swal.fire({
-                            title: 'Menghitung Ulang Lembur...',
-                            html: 'Mohon tunggu, proses sedang berjalan...',
-                            allowOutsideClick: false,
-                            allowEscapeKey: false,
-                            didOpen: () => {
-                                Swal.showLoading();
-                            }
-                        });
-
-                        // Send recalculate request
-                        $.ajax({
-                            url: '{{ route('admin.attendance.recalculate-overtime') }}',
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Accept': 'application/json',
-                                'Content-Type': 'application/json'
-                            },
-                            data: JSON.stringify({
-                                from: dateFrom || null,
-                                to: dateTo || null
-                            }),
-                            success: function(response) {
-                                const data = response.data;
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Berhasil!',
-                                    html: `
-                                        <div class="text-start">
-                                            <p>${response.message}</p>
-                                            <hr>
-                                            <table class="table table-sm">
-                                                <tr>
-                                                    <td>Total Diproses</td>
-                                                    <td class="text-end"><strong>${data.total_processed}</strong></td>
-                                                </tr>
-                                                <tr>
-                                                    <td>Diupdate</td>
-                                                    <td class="text-end"><strong class="text-success">${data.updated}</strong></td>
-                                                </tr>
-                                                <tr>
-                                                    <td>Dilewati</td>
-                                                    <td class="text-end"><strong class="text-warning">${data.skipped}</strong></td>
-                                                </tr>
-                                                <tr>
-                                                    <td>Tidak Berubah</td>
-                                                    <td class="text-end"><strong>${data.no_changes}</strong></td>
-                                                </tr>
-                                            </table>
-                                        </div>
-                                    `,
-                                    confirmButtonText: 'OK'
-                                }).then(() => {
-                                    // Reload page
-                                    window.location.reload();
-                                });
-                            },
-                            error: function(xhr) {
-                                let errorMessage = 'Gagal menghitung ulang lembur';
                                 if (xhr.responseJSON && xhr.responseJSON.message) {
                                     errorMessage = xhr.responseJSON.message;
                                 }

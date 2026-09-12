@@ -84,6 +84,11 @@
                             <div data-i18n="Daftar Absensi">Daftar Absensi</div>
                         </a>
                     </li>
+                    <li class="menu-item {{ request()->routeIs('admin.overtime.index') ? 'active' : '' }}">
+                        <a href="{{ route('admin.overtime.index') }}" class="menu-link">
+                            <div data-i18n="Overtime">Overtime</div>
+                        </a>
+                    </li>
                     <li class="menu-item {{ request()->routeIs('admin.attendance.manual') ? 'active' : '' }}">
                         <a href="{{ route('admin.attendance.manual') }}" class="menu-link">
                             <div data-i18n="Absensi Manual">Absensi Manual</div>

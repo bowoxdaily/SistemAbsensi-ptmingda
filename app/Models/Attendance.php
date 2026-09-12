@@ -23,6 +23,7 @@ class Attendance extends Model
         'location_out',
         'late_minutes',
         'overtime_minutes',
+        'overtime_category',
         'gps_accuracy_in',
         'gps_accuracy_out',
         'is_mocked_in',
@@ -39,6 +40,7 @@ class Attendance extends Model
         'check_out' => 'string', // kolom TIME di DB, tidak perlu cast datetime
         'late_minutes' => 'integer',
         'overtime_minutes' => 'integer',
+        'overtime_category' => 'string',
         'is_mocked_in' => 'boolean',
         'is_mocked_out' => 'boolean',
         'is_suspicious_in' => 'boolean',
