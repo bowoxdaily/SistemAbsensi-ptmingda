@@ -149,6 +149,7 @@ Route::middleware(['auth'])->group(function () {
         // Attendance - Read Only
         Route::get('/admin/attendance', [AttendanceController::class, 'index'])->name('admin.attendance.index');
         Route::get('/admin/overtime', [OvertimeController::class, 'index'])->name('admin.overtime.index');
+        Route::get('/admin/overtime/export', [OvertimeController::class, 'export'])->name('admin.overtime.export');
         Route::get('/admin/attendance/report', [AttendanceController::class, 'report'])->name('admin.attendance.report');
         Route::get('/admin/attendance/export', [AttendanceController::class, 'export'])->name('admin.attendance.export');
 

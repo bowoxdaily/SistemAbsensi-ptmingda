@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Exports\OvertimeExport;
 use App\Models\Attendance;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class OvertimeController extends Controller
 {
@@ -32,5 +34,18 @@ class OvertimeController extends Controller
             ->withQueryString();
 
         return view('admin.overtime.index', compact('overtimes', 'from', 'to', 'category', 'search'));
+    }
+
+    public function export(Request $request)
+    {
+        $from = $request->get('date_from', now()->startOfMonth()->toDateString());
+        $to = $request->get('date_to', now()->toDateString());
+        $category = $request->get('category');
+        $search = trim($request->get('search', ''));
+
+        return Excel::download(
+            new OvertimeExport($from, $to, $category ?: null, $search ?: null),
+            'overtime_' . $from . '_' . $to . '.xlsx'
+        );
     }
 }
