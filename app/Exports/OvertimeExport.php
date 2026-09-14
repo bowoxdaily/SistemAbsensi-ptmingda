@@ -19,14 +19,16 @@ class OvertimeExport implements FromQuery, WithHeadings, WithMapping, WithStyles
     protected string $dateTo;
     protected ?string $category;
     protected ?string $search;
+    protected ?int $employeeId;
     protected int $rowNumber = 0;
 
-    public function __construct(string $dateFrom, string $dateTo, ?string $category = null, ?string $search = null)
+    public function __construct(string $dateFrom, string $dateTo, ?string $category = null, ?string $search = null, ?int $employeeId = null)
     {
         $this->dateFrom = $dateFrom;
         $this->dateTo = $dateTo;
         $this->category = $category;
         $this->search = $search;
+        $this->employeeId = $employeeId;
     }
 
     public function query()
@@ -35,6 +37,7 @@ class OvertimeExport implements FromQuery, WithHeadings, WithMapping, WithStyles
             ->whereBetween('attendance_date', [$this->dateFrom, $this->dateTo])
             ->whereNotNull('check_out')
             ->whereNotNull('overtime_category')
+            ->when($this->employeeId, fn ($query) => $query->where('employee_id', $this->employeeId))
             ->when($this->search, function ($query) {
                 $query->whereHas('employee', function ($q) {
                     $q->where('name', 'like', "%{$this->search}%")
@@ -52,15 +55,22 @@ class OvertimeExport implements FromQuery, WithHeadings, WithMapping, WithStyles
         $hours = intdiv($attendance->overtime_minutes, 60);
         $minutes = $attendance->overtime_minutes % 60;
 
+        $otHours = 0;
+        if (preg_match('/^OT(\d+)$/', (string) $attendance->overtime_category, $match)) {
+            $otHours = (int) $match[1];
+        }
+        $otMinutes = $otHours * 60;
+
         return [
             $this->rowNumber,
             $attendance->employee->employee_code ?? '-',
             $attendance->employee->name ?? '-',
             $attendance->attendance_date->format('d-m-Y'),
             substr($attendance->check_out, 0, 5),
-            $attendance->overtime_minutes,
             sprintf('%d:%02d', $hours, $minutes),
             $attendance->overtime_category,
+            $otHours,
+            $otMinutes,
         ];
     }
 
@@ -72,9 +82,10 @@ class OvertimeExport implements FromQuery, WithHeadings, WithMapping, WithStyles
             'Nama Karyawan',
             'Tanggal',
             'Jam Pulang',
-            'Durasi (menit)',
-            'Durasi (jam:menit)',
+            'Durasi Riil (jam:menit)',
             'Kategori',
+            'Lembur Diakui (Jam)',
+            'Lembur Diakui (Menit)',
         ];
     }
 
@@ -100,13 +111,18 @@ class OvertimeExport implements FromQuery, WithHeadings, WithMapping, WithStyles
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
                 $highestRow = $sheet->getHighestRow();
+                if ($highestRow < 2) {
+                    return;
+                }
+
                 $totalRow = $highestRow + 1;
 
                 $sheet->setCellValue('A' . $totalRow, 'TOTAL');
-                $sheet->mergeCells('A' . $totalRow . ':E' . $totalRow);
-                $sheet->setCellValue('F' . $totalRow, '=SUM(F2:F' . $highestRow . ')');
+                $sheet->mergeCells('A' . $totalRow . ':G' . $totalRow);
+                $sheet->setCellValue('H' . $totalRow, '=SUM(H2:H' . $highestRow . ')');
+                $sheet->setCellValue('I' . $totalRow, '=SUM(I2:I' . $highestRow . ')');
 
-                $sheet->getStyle('A' . $totalRow . ':H' . $totalRow)->applyFromArray([
+                $sheet->getStyle('A' . $totalRow . ':I' . $totalRow)->applyFromArray([
                     'font' => ['bold' => true, 'size' => 11],
                     'fill' => [
                         'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
@@ -115,6 +131,10 @@ class OvertimeExport implements FromQuery, WithHeadings, WithMapping, WithStyles
                     'borders' => [
                         'top' => [
                             'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THICK,
+                            'color' => ['rgb' => '000000'],
+                        ],
+                        'bottom' => [
+                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_DOUBLE,
                             'color' => ['rgb' => '000000'],
                         ],
                     ],
@@ -131,3 +151,4 @@ class OvertimeExport implements FromQuery, WithHeadings, WithMapping, WithStyles
         return 'Laporan Overtime';
     }
 }
+
