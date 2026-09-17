@@ -69,11 +69,46 @@
             <a href="{{ route('admin.overtime.index') }}" class="btn btn-secondary">
                 <i class="bx bx-reset me-1"></i>Reset
             </a>
-            <button type="submit" formaction="{{ route('admin.overtime.export') }}" class="btn btn-success">
-                <i class="bx bx-download me-1"></i>Export Excel
-            </button>
         </div>
     </form>
+    <form method="POST" action="{{ route('admin.overtime.export') }}" class="d-inline" id="exportForm">
+        @csrf
+        <input type="hidden" name="date_from" value="{{ $from }}">
+        <input type="hidden" name="date_to" value="{{ $to }}">
+        <input type="hidden" name="category" value="{{ $category }}">
+        <input type="hidden" name="search" value="{{ $search }}">
+        <input type="hidden" name="employee_id" value="{{ $employeeId }}">
+        <button type="submit" class="btn btn-success" id="btnExport">
+            <i class="bx bx-download me-1"></i>Export Excel
+        </button>
+    </form>
+
+    {{-- Export status alerts --}}
+    @if(session('export_queued'))
+        <div class="alert alert-info alert-dismissible fade show" role="alert" id="exportQueuedAlert">
+            <i class="bx bx-loader-alt bx-spin me-1"></i>
+            <span id="exportStatusText">{{ session('export_queued') }}</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if($pendingExport)
+        <div class="alert alert-info" id="exportPendingAlert">
+            <i class="bx bx-loader-alt bx-spin me-1"></i>
+            <span id="exportStatusText2">Export <strong>{{ $pendingExport->filename }}</strong> sedang diproses...</span>
+        </div>
+    @endif
+
+    @if($doneExport)
+        <div class="alert alert-success alert-dismissible fade show" id="exportDoneAlert">
+            <i class="bx bx-check-circle me-1"></i>
+            Export <strong>{{ $doneExport->filename }}</strong> siap!
+            <a href="{{ route('admin.overtime.export.download', $doneExport) }}" class="btn btn-sm btn-success ms-2">
+                <i class="bx bx-download me-1"></i>Download
+            </a>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
     <div class="card">
         <div class="table-responsive">
             <table class="table table-hover">
@@ -136,6 +171,42 @@
                     }
                 }
             });
+        }
+
+        // Poll export status when there's a pending/queued export
+        var hasPending = {{ ($pendingExport || session('export_queued')) ? 'true' : 'false' }};
+        if (hasPending) {
+            var pollInterval = setInterval(function() {
+                fetch('{{ route("admin.overtime.export.status") }}')
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.status === 'done') {
+                            clearInterval(pollInterval);
+                            // Replace alerts with download button
+                            var html = '<div class="alert alert-success alert-dismissible fade show">' +
+                                '<i class="bx bx-check-circle me-1"></i>' +
+                                'Export <strong>' + data.filename + '</strong> siap! ' +
+                                '<a href="/admin/overtime/export/' + data.id + '/download" class="btn btn-sm btn-success ms-2">' +
+                                '<i class="bx bx-download me-1"></i>Download</a>' +
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
+                            var container = document.getElementById('exportQueuedAlert') ||
+                                            document.getElementById('exportPendingAlert');
+                            if (container) {
+                                container.outerHTML = html;
+                            }
+                        } else if (data.status === 'failed') {
+                            clearInterval(pollInterval);
+                            var container = document.getElementById('exportQueuedAlert') ||
+                                            document.getElementById('exportPendingAlert');
+                            if (container) {
+                                container.outerHTML = '<div class="alert alert-danger alert-dismissible fade show">' +
+                                    '<i class="bx bx-error me-1"></i>Export gagal: ' + (data.error || 'Unknown error') +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
+                            }
+                        }
+                    })
+                    .catch(function() {}); // silent on network error, will retry
+            }, 5000); // poll every 5 seconds
         }
     });
 </script>
