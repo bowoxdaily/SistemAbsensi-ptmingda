@@ -506,6 +506,13 @@ class AttendanceController extends Controller
 
     /**
      * Get attendance history for current employee
+     *
+     * Riwayat absensi karyawan yang sedang login, dengan pagination dan filter opsional.
+     *
+     * @queryParam per_page int Jumlah data per halaman. Default: 10. Example: 10
+     * @queryParam month int Bulan (1-12). Default: bulan sekarang. Example: 9
+     * @queryParam year int Tahun. Default: tahun sekarang. Example: 2026
+     * @queryParam filterstatus string Filter berdasarkan status absensi. Nilai yang tersedia: `hadir`, `terlambat`, `izin`, `sakit`, `alpha`, `cuti`. Example: hadir
      */
     public function history(Request $request)
     {
@@ -523,12 +530,19 @@ class AttendanceController extends Controller
             $perPage = $request->get('per_page', 10);
             $month = $request->get('month', now()->month);
             $year = $request->get('year', now()->year);
+            $filterStatus = $request->get('filterstatus');
 
-            $attendances = Attendance::where('employee_id', $employee->id)
+            $query = Attendance::where('employee_id', $employee->id)
                 ->whereYear('attendance_date', $year)
-                ->whereMonth('attendance_date', $month)
-                ->orderBy('attendance_date', 'desc')
-                ->paginate($perPage);
+                ->whereMonth('attendance_date', $month);
+
+            if ($filterStatus) {
+                $query->where('status', $filterStatus);
+            }
+
+            $attendances = $query->orderBy('attendance_date', 'desc')
+                ->paginate($perPage)
+                ->appends($request->query());
 
             return response()->json([
                 'success' => true,
