@@ -247,8 +247,12 @@ class AttendanceController extends Controller
                         'late_tolerance' => $schedule->late_tolerance ?? 0,
                     ]);
                     
+                    // Hari pertama kerja berdasarkan join_date selalu dianggap hadir.
+                    $isFirstWorkDay = $employee->join_date
+                        && today()->isSameDay(Carbon::parse($employee->join_date));
+
                     // Calculate late minutes if check-in is after scheduled time
-                    if ($checkInTime->gt($scheduledTime)) {
+                    if (!$isFirstWorkDay && $checkInTime->gt($scheduledTime)) {
                         // Use absolute value to ensure positive result
                         $lateMinutes = abs($checkInTime->diffInMinutes($scheduledTime, false));
                         

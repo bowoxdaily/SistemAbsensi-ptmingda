@@ -24,12 +24,14 @@ class OvertimeController extends Controller
         $category = $request->get('category');
         $search = trim($request->get('search', ''));
         $employeeId = $request->filled('employee_id') ? (int) $request->get('employee_id') : null;
+        $status = $request->get('status');
 
-        $overtimes = Attendance::with('employee')
+        $overtimes = Attendance::with(['employee', 'overtimeApprover'])
             ->whereBetween('attendance_date', [$from, $to])
             ->whereNotNull('check_out')
             ->whereNotNull('overtime_category')
             ->when($employeeId, fn ($query) => $query->where('employee_id', $employeeId))
+            ->when($status, fn ($query) => $query->where('overtime_approval_status', $status))
             ->when($search, function ($query) use ($search) {
                 $query->whereHas('employee', function ($employeeQuery) use ($search) {
                     $employeeQuery->where('name', 'like', "%{$search}%")
@@ -59,8 +61,46 @@ class OvertimeController extends Controller
 
         return view('admin.overtime.index', compact(
             'overtimes', 'from', 'to', 'category', 'search', 'employeeId', 'employees',
-            'pendingExport', 'doneExport'
+            'pendingExport', 'doneExport', 'status'
         ));
+    }
+
+    public function approve(Request $request, Attendance $attendance)
+    {
+        $data = $request->validate([
+            'approved_overtime_minutes' => 'required|integer|min:0',
+        ]);
+
+        if ((int) $attendance->overtime_minutes <= 0) {
+            return redirect()->back()->with('error', 'Data lembur tidak memiliki menit lembur.');
+        }
+
+        $attendance->update([
+            'approved_overtime_minutes' => $data['approved_overtime_minutes'],
+            'overtime_approval_status' => 'approved',
+            'overtime_approved_by' => auth()->id(),
+            'overtime_approved_at' => now(),
+            'overtime_rejection_reason' => null,
+        ]);
+
+        return redirect()->back()->with('success', 'Lembur berhasil disetujui.');
+    }
+
+    public function reject(Request $request, Attendance $attendance)
+    {
+        $data = $request->validate([
+            'overtime_rejection_reason' => 'required|string|max:255',
+        ]);
+
+        $attendance->update([
+            'approved_overtime_minutes' => 0,
+            'overtime_approval_status' => 'rejected',
+            'overtime_approved_by' => auth()->id(),
+            'overtime_approved_at' => now(),
+            'overtime_rejection_reason' => $data['overtime_rejection_reason'],
+        ]);
+
+        return redirect()->back()->with('success', 'Lembur ditolak.');
     }
 
     public function export(Request $request)

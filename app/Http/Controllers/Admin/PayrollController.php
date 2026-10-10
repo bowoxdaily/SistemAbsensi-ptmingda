@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\Attendance;
 use App\Services\WhatsAppService;
 use App\Services\HrisPayslipService;
+use App\Services\PayrollCalculatorService;
 use App\Exports\PayrollExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\Request;
@@ -21,11 +22,13 @@ class PayrollController extends Controller
 {
     protected $whatsappService;
     protected $hrisService;
+    protected $calculator;
 
-    public function __construct(WhatsAppService $whatsappService, HrisPayslipService $hrisService)
+    public function __construct(WhatsAppService $whatsappService, HrisPayslipService $hrisService, PayrollCalculatorService $calculator)
     {
         $this->whatsappService = $whatsappService;
         $this->hrisService = $hrisService;
+        $this->calculator = $calculator;
     }
 
     /**
@@ -701,6 +704,107 @@ class PayrollController extends Controller
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Preview automatic payroll calculation for one employee.
+     * Does not save anything.
+     */
+    public function calculateAuto(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'employee_id' => 'required|exists:employees,id',
+            'period_month' => 'required|date_format:Y-m',
+            'permission_hours' => 'nullable|integer|min:0',
+            'no_work_no_pay_days' => 'nullable|numeric|min:0',
+            'deduction_tax' => 'nullable|numeric|min:0',
+            'deduction_loan' => 'nullable|numeric|min:0',
+            'deduction_sick_leave' => 'nullable|numeric|min:0',
+            'deduction_others' => 'nullable|numeric|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'message' => 'Validasi gagal', 'errors' => $validator->errors()], 422);
+        }
+
+        $employee = Employee::findOrFail($request->employee_id);
+        $data = $this->calculator->calculate($employee, $request->period_month, $request->only([
+            'permission_hours', 'no_work_no_pay_days', 'deduction_tax', 'deduction_loan',
+            'deduction_sick_leave', 'deduction_others',
+        ]));
+
+        return response()->json(['success' => true, 'data' => $data]);
+    }
+
+    /**
+     * Preview automatic payroll for all active employees.
+     * Existing payroll records are not changed.
+     */
+    public function bulkPreview(Request $request)
+    {
+        $validator = Validator::make($request->all(), ['period_month' => 'required|date_format:Y-m']);
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'message' => 'Periode harus berformat YYYY-MM'], 422);
+        }
+
+        $rows = Employee::where('status', 'active')->orderBy('name')->get()->map(function ($employee) use ($request) {
+            $calculation = $this->calculator->calculate($employee, $request->period_month);
+            return array_merge([
+                'employee_code' => $employee->employee_code,
+                'name' => $employee->name,
+                'department' => $employee->department?->name,
+                'position' => $employee->position?->name,
+            ], $calculation);
+        });
+
+        return response()->json(['success' => true, 'data' => $rows, 'count' => $rows->count()]);
+    }
+
+    /**
+     * Generate payroll records for all active employees.
+     * Existing records are skipped; sent/paid records are never overwritten.
+     */
+    public function bulkGenerate(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'period_month' => 'required|date_format:Y-m',
+            'payment_date' => 'required|date',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'message' => 'Validasi gagal', 'errors' => $validator->errors()], 422);
+        }
+
+        $created = 0;
+        $skipped = 0;
+        $errors = [];
+
+        DB::transaction(function () use ($request, &$created, &$skipped, &$errors) {
+            Employee::where('status', 'active')->orderBy('id')->get()->each(function ($employee) use ($request, &$created, &$skipped, &$errors) {
+                if (Payroll::where('employee_id', $employee->id)->where('period_month', $request->period_month)->exists()) {
+                    $skipped++;
+                    return;
+                }
+
+                try {
+                    $data = $this->calculator->calculate($employee, $request->period_month);
+                    $data['payroll_code'] = Payroll::generatePayrollCode($request->period_month);
+                    $data['payment_date'] = $request->payment_date;
+                    $data['status'] = 'draft';
+                    $data['generated_by'] = 'auto';
+                    $data['created_by'] = Auth::id();
+                    Payroll::create($data);
+                    $created++;
+                } catch (\Throwable $e) {
+                    $errors[] = ['employee_id' => $employee->id, 'name' => $employee->name, 'message' => $e->getMessage()];
+                }
+            });
+        });
+
+        return response()->json([
+            'success' => empty($errors),
+            'message' => "Payroll otomatis selesai: {$created} dibuat, {$skipped} dilewati",
+            'data' => compact('created', 'skipped', 'errors'),
+        ], empty($errors) ? 200 : 207);
     }
 
     // ─── HRIS Payslip Integration ──────────────────────────────────────────────

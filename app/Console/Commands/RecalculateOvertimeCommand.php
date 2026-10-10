@@ -110,6 +110,13 @@ class RecalculateOvertimeCommand extends Command
                         continue;
                     }
 
+                    // Skip already-approved or rejected records (protect manual approval)
+                    if (in_array($attendance->overtime_approval_status ?? '', ['approved', 'rejected'])) {
+                        $skipped++;
+                        $progressBar->advance();
+                        continue;
+                    }
+
                     $schedule = $attendance->employee->workSchedule;
 
                     try {

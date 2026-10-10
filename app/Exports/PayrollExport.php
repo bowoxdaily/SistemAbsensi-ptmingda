@@ -58,28 +58,47 @@ class PayrollExport implements FromQuery, WithHeadings, WithMapping, WithStyles,
             $payroll->employee->employee_code,
             $payroll->employee->name,
             $payroll->employee->department->name ?? '-',
+            $payroll->employee->subDepartment->name ?? ($payroll->employee->sub_department ?? '-'),
             $payroll->employee->position->name ?? '-',
-            $this->formatPeriod($payroll->period_month),
-            $payroll->payment_date ? date('d-m-Y', strtotime($payroll->payment_date)) : '-',
+            $payroll->employee->gender ?? '-',
+            $payroll->employee->marital_status ?? '-',
+            $payroll->employee->ktp ?? '-',
+            $payroll->employee->tax_npwp ?? '-',
+            $payroll->employee->bpjs_kesehatan ?? '-',
+            $payroll->employee->bpjs_ketenagakerjaan ?? '-',
+            $payroll->employee->nomor_rekening ?? '-',
             $payroll->basic_salary,
-            $payroll->allowance_transport,
-            $payroll->allowance_meal,
             $payroll->allowance_position,
-            $payroll->allowance_others,
-            $payroll->overtime_pay,
             $payroll->bonus,
-            $payroll->total_earnings,
-            $payroll->deduction_late,
+            $payroll->basic_salary + $payroll->allowance_position + $payroll->bonus, // Total Gaji
+            $payroll->hourly_rate,
+            $payroll->daily_rate,
+            $payroll->days_leave ?? 0,
+            $payroll->days_sick ?? 0,
+            $payroll->total_days_present,
+            $payroll->total_days_present + ($payroll->days_leave ?? 0) + ($payroll->days_sick ?? 0), // Total hari dibayar
+            $payroll->meal_allowance ?? $payroll->allowance_meal,
+            $payroll->overtime_150_minutes ?? 0,
+            round(($payroll->overtime_150_minutes ?? 0) / 60 * 1.5, 2), // Jam x rate
+            $payroll->overtime_150_pay ?? 0,
+            $payroll->overtime_200_minutes ?? 0,
+            round(($payroll->overtime_200_minutes ?? 0) / 60 * 2, 2),
+            $payroll->overtime_200_pay ?? 0,
+            $payroll->overtime_pay,
+            $payroll->company_bpjs_total ?? 0,
             $payroll->deduction_absent,
-            $payroll->deduction_loan,
-            $payroll->deduction_bpjs,
+            $payroll->deduction_permission ?? 0,
+            $payroll->deduction_late,
+            $payroll->late_minutes_total ?? 0,
+            $payroll->total_earnings,
             $payroll->deduction_tax,
-            $payroll->deduction_others,
+            $payroll->deduction_bpjs,
+            $payroll->deduction_union,
             $payroll->total_deductions,
             $payroll->net_salary,
             $payroll->employee->bank ?? '-',
-            $payroll->employee->nomor_rekening ?? '-',
             $this->formatStatus($payroll->status),
+            $payroll->generated_by ?? 'manual',
             $payroll->notes ?? '-',
         ];
     }
@@ -91,31 +110,50 @@ class PayrollExport implements FromQuery, WithHeadings, WithMapping, WithStyles,
     {
         return [
             'Kode Payroll',
-            'NIP',
-            'Nama Karyawan',
+            'NIK',
+            'Nama',
             'Departemen',
+            'Bagian',
             'Jabatan',
-            'Periode',
-            'Tanggal Bayar',
-            'Gaji Pokok',
-            'Tunj. Transport',
-            'Tunj. Makan',
+            'Gender',
+            'Status Kawin',
+            'KTP',
+            'NPWP',
+            'BPJS Kesehatan',
+            'BPJS Ketenagakerjaan',
+            'No Rekening',
+            'Upah Pokok',
             'Tunj. Jabatan',
-            'Tunj. Lainnya',
-            'Uang Lembur',
-            'Bonus',
-            'Total Pendapatan',
-            'Pot. Terlambat',
+            'Tunj. Bonus',
+            'Total Gaji',
+            'Biaya Lembur/Jam',
+            'Gaji/Hari',
+            'Cuti',
+            'Sakit',
+            'Hadir Kerja Normal',
+            'Total Hari Dibayar',
+            'Tunj. Makan',
+            'OT Jam ke-1 (menit)',
+            'OT Jam ke-1 (jam x 1.5)',
+            'OT Jam ke-1 (Rp)',
+            'OT Jam ke-2+ (menit)',
+            'OT Jam ke-2+ (jam x 2)',
+            'OT Jam ke-2+ (Rp)',
+            'Total Tunj. Lembur',
+            'Tunj. BPJS Perusahaan',
             'Pot. Alpha',
-            'Pot. Pinjaman',
-            'Pot. BPJS',
-            'Pot. Pajak',
-            'Pot. Lainnya',
+            'Pot. Izin',
+            'Pot. Terlambat',
+            'Menit Terlambat',
+            'Total Pendapatan',
+            'Pot. PPh21',
+            'Pot. BPJS Karyawan',
+            'Pot. Serikat',
             'Total Potongan',
             'Gaji Bersih',
             'Bank',
-            'No. Rekening',
             'Status',
+            'Metode',
             'Catatan',
         ];
     }
@@ -172,57 +210,41 @@ class PayrollExport implements FromQuery, WithHeadings, WithMapping, WithStyles,
 
                 // Set label "TOTAL" di kolom pertama
                 $sheet->setCellValue('A' . $totalRow, 'TOTAL');
-                $sheet->mergeCells('A' . $totalRow . ':G' . $totalRow);
+                $sheet->mergeCells('A' . $totalRow . ':N' . $totalRow);
 
-                // Sum formula untuk kolom-kolom numerik
-                // Kolom H-N: Gaji Pokok (H) sampai Bonus (N)
-                $sheet->setCellValue('H' . $totalRow, '=SUM(H2:H' . $highestRow . ')');
-                $sheet->setCellValue('I' . $totalRow, '=SUM(I2:I' . $highestRow . ')');
-                $sheet->setCellValue('J' . $totalRow, '=SUM(J2:J' . $highestRow . ')');
-                $sheet->setCellValue('K' . $totalRow, '=SUM(K2:K' . $highestRow . ')');
-                $sheet->setCellValue('L' . $totalRow, '=SUM(L2:L' . $highestRow . ')');
-                $sheet->setCellValue('M' . $totalRow, '=SUM(M2:M' . $highestRow . ')');
-                $sheet->setCellValue('N' . $totalRow, '=SUM(N2:N' . $highestRow . ')');
+                // Kolom numerik: O=Upah Pokok, P=Tunj. Jabatan, Q=Tunj. Bonus, R=Total Gaji,
+                // S=Gaji/Jam, T=Gaji/Hari, U=Cuti, V=Sakit, W=Hadir Normal, X=Total Hari Dibayar,
+                // Y=Tunj. Makan, Z=OT1 menit, AA=OT1 jam, AB=OT1 Rp, AC=OT2+ menit, AD=OT2+ jam,
+                // AE=OT2+ Rp, AF=Total Lembur, AG=BPJS Perusahaan, AH=Pot. Alpha, AI=Pot. Izin,
+                // AJ=Pot. Terlambat, AK=Menit Terlambat, AL=Total Pendapatan, AM=Pot. PPh21,
+                // AN=Pot. BPJS Karyawan, AO=Pot. Serikat, AP=Total Potongan, AQ=Gaji Bersih
 
-                // Kolom O: Total Pendapatan
-                $sheet->setCellValue('O' . $totalRow, '=SUM(O2:O' . $highestRow . ')');
+                $numericCols = ['O','P','Q','R','S','T','U','V','W','X','Y','Z',
+                    'AA','AB','AC','AD','AE','AF','AG','AH','AI','AJ','AK','AL','AM','AN','AO','AP','AQ'];
 
-                // Kolom P-U: Pot. Terlambat (P) sampai Pot. Lainnya (U)
-                $sheet->setCellValue('P' . $totalRow, '=SUM(P2:P' . $highestRow . ')');
-                $sheet->setCellValue('Q' . $totalRow, '=SUM(Q2:Q' . $highestRow . ')');
-                $sheet->setCellValue('R' . $totalRow, '=SUM(R2:R' . $highestRow . ')');
-                $sheet->setCellValue('S' . $totalRow, '=SUM(S2:S' . $highestRow . ')');
-                $sheet->setCellValue('T' . $totalRow, '=SUM(T2:T' . $highestRow . ')');
-                $sheet->setCellValue('U' . $totalRow, '=SUM(U2:U' . $highestRow . ')');
+                foreach ($numericCols as $col) {
+                    $sheet->setCellValue($col . $totalRow, "=SUM({$col}2:{$col}{$highestRow})");
+                }
 
-                // Kolom V-W: Total Potongan (V), Gaji Bersih (W)
-                $sheet->setCellValue('V' . $totalRow, '=SUM(V2:V' . $highestRow . ')');
-                $sheet->setCellValue('W' . $totalRow, '=SUM(W2:W' . $highestRow . ')');
-
-                // Style total row: Bold, background kuning, border atas
-                $sheet->getStyle('A' . $totalRow . ':AA' . $totalRow)->applyFromArray([
+                // Style total row
+                $lastCol = 'AQ';
+                $sheet->getStyle('A' . $totalRow . ':' . $lastCol . $totalRow)->applyFromArray([
                     'font' => ['bold' => true, 'size' => 11],
                     'fill' => [
                         'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => 'FEF3C7'] // Yellow-100
+                        'startColor' => ['rgb' => 'FEF3C7']
                     ],
                     'borders' => [
-                        'top' => [
-                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THICK,
-                            'color' => ['rgb' => '000000']
-                        ]
+                        'top' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THICK, 'color' => ['rgb' => '000000']]
                     ],
                     'alignment' => [
                         'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
-                        'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+                        'vertical'   => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
                     ]
                 ]);
 
-                // Format currency untuk kolom total (H-W adalah kolom angka)
-                $currencyColumns = ['H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W'];
-                foreach ($currencyColumns as $col) {
-                    $sheet->getStyle($col . $totalRow)->getNumberFormat()
-                        ->setFormatCode('#,##0');
+                foreach ($numericCols as $col) {
+                    $sheet->getStyle($col . $totalRow)->getNumberFormat()->setFormatCode('#,##0');
                 }
             }
         ];

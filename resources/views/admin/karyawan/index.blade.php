@@ -333,11 +333,20 @@
             </div>
         </div>
 
+        @if(session('success'))
+            <div class="alert alert-success">{{ session('success') }}</div>
+        @endif
+
         <!-- Karyawan List Card -->
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Data Karyawan</h5>
-                <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+                    @if(Auth::user()->role === 'manager')
+                        <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#operatorSalaryModal">
+                            <i class="bx bx-edit-alt me-1"></i><span class="d-none d-md-inline">Atur UMK Operator</span><span class="d-md-none">UMK</span>
+                        </button>
+                    @endif
                     <div class="d-flex align-items-center gap-2">
                         <small class="text-muted d-none d-md-inline">Tampilkan:</small>
                         <select class="form-select form-select-sm" id="perPageSelect" style="width: auto;"
@@ -401,6 +410,29 @@
                     <div class="text-muted small d-none d-md-block" id="paginationInfo"></div>
                     <div id="paginationLinks"></div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="operatorSalaryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="POST" action="{{ route('admin.karyawan.update-operator-salary-base') }}">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title">Update UMK Operator</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label for="operator_salary_base" class="form-label">Salary base baru (Rp)</label>
+                        <input type="number" name="salary_base" id="operator_salary_base" class="form-control" min="0" step="0.01" required>
+                        <small class="text-muted">Hanya posisi persis “Operator” yang diperbarui.</small>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button class="btn btn-warning" type="submit" onclick="return confirm('Update salary base semua karyawan dengan posisi Operator?')">Update Semua Operator</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -824,6 +856,34 @@
 
                             <!-- Tab Administrasi -->
                             <div class="tab-pane fade" id="tabAdministrasi" role="tabpanel">
+                                <h6 class="text-primary mb-2 small fw-bold">Komponen Gaji</h6>
+                                <div class="row g-2 g-md-3">
+                                    <div class="col-sm-4 mb-2">
+                                        <label for="salary_base" class="form-label small">Upah Pokok (Rp)</label>
+                                        <input type="number" class="form-control form-control-sm" id="salary_base"
+                                            name="salary_base" min="0" step="0.01" value="0">
+                                        <div class="invalid-feedback" id="salary_baseError"></div>
+                                    </div>
+                                    <div class="col-sm-4 mb-2">
+                                        <label for="allowance_position" class="form-label small">Tunjangan Jabatan
+                                            (Rp)</label>
+                                        <input type="number" class="form-control form-control-sm" id="allowance_position"
+                                            name="allowance_position" min="0" step="0.01" value="0">
+                                        <div class="invalid-feedback" id="allowance_positionError"></div>
+                                    </div>
+                                    <div class="col-sm-4 mb-2">
+                                        <label for="bonus" class="form-label small">Tunjangan Bonus (Rp)</label>
+                                        <input type="number" class="form-control form-control-sm" id="bonus"
+                                            name="bonus" min="0" step="0.01" value="0">
+                                        <div class="invalid-feedback" id="bonusError"></div>
+                                    </div>
+                                </div>
+                                <div class="alert alert-info p-2">
+                                    <small><i class='bx bx-info-circle'></i> Total Gaji = Upah Pokok + Tunjangan Jabatan +
+                                        Bonus. Gaji/Jam = (Pokok + TjJabatan) / 173, Gaji/Hari = Total Gaji / 21.</small>
+                                </div>
+
+                                <hr class="my-2">
                                 <h6 class="text-primary mb-2 small fw-bold">Data Keuangan</h6>
                                 <div class="row g-2 g-md-3">
                                     <div class="col-sm-6 mb-2">
@@ -1076,6 +1136,22 @@
                                 <tr>
                                     <th>Nomor Rekening</th>
                                     <td id="detailNomorRekening">-</td>
+                                </tr>
+                            </table>
+
+                            <h6 class="text-primary mb-3 mt-4">Komponen Gaji</h6>
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <th width="45%">Upah Pokok</th>
+                                    <td id="detailSalaryBase">-</td>
+                                </tr>
+                                <tr>
+                                    <th>Tunjangan Jabatan</th>
+                                    <td id="detailAllowancePosition">-</td>
+                                </tr>
+                                <tr>
+                                    <th>Tunjangan Bonus</th>
+                                    <td id="detailBonus">-</td>
                                 </tr>
                             </table>
 
@@ -2174,8 +2250,15 @@
                     $('#emergency_contact_name').val(k.emergency_contact_name);
                     $('#emergency_contact_phone').val(k.emergency_contact_phone);
 
+                    // Komponen Gaji
+                    $('#salary_base').val(k.salary_base ?? 0);
+                    $('#allowance_position').val(k.allowance_position ?? 0);
+                    $('#bonus').val(k.bonus ?? 0);
+
                     // Data Administrasi
-                    $('#bank').val(k.bank);
+                    $('#bank').val(k.bank); 
+
+
                     $('#nomor_rekening').val(k.nomor_rekening);
                     $('#tax_npwp').val(k.tax_npwp);
                     $('#bpjs_kesehatan').val(k.bpjs_kesehatan);
@@ -2225,6 +2308,9 @@
                 tanggal_pending: formatDateForSubmission($('#tanggal_pending').val()),
                 bank: $('#bank').val(),
                 nomor_rekening: $('#nomor_rekening').val(),
+                salary_base: $('#salary_base').val() || 0,
+                allowance_position: $('#allowance_position').val() || 0,
+                bonus: $('#bonus').val() || 0,
                 tax_npwp: $('#tax_npwp').val(),
                 bpjs_kesehatan: $('#bpjs_kesehatan').val(),
                 bpjs_ketenagakerjaan: $('#bpjs_ketenagakerjaan').val(),
@@ -2449,6 +2535,12 @@
                     // Data Keuangan
                     $('#detailBank').text(k.bank || '-');
                     $('#detailNomorRekening').text(k.nomor_rekening || '-');
+
+                    // Komponen Gaji
+                    const formatRupiah = (val) => val ? 'Rp ' + Number(val).toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 0}) : '-';
+                    $('#detailSalaryBase').text(formatRupiah(k.salary_base));
+                    $('#detailAllowancePosition').text(formatRupiah(k.allowance_position));
+                    $('#detailBonus').text(formatRupiah(k.bonus));
 
                     // Data Administrasi & Pajak
                     $('#detailTaxNpwp').text(k.tax_npwp || '-');

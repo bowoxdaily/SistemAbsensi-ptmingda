@@ -32,6 +32,24 @@ class KaryawanController extends Controller
         return view('admin.karyawan.index');
     }
 
+    public function updateOperatorSalaryBase(Request $request)
+    {
+        abort_unless(Auth::user()?->role === 'manager', 403);
+
+        $validated = $request->validate([
+            'salary_base' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $updated = Karyawans::whereHas('position', function ($query) {
+            $query->where('name', 'Operator');
+        })->update(['salary_base' => $validated['salary_base']]);
+
+        return redirect()->route('admin.karyawan.index')->with(
+            'success',
+            "Salary base {$updated} karyawan Operator berhasil diperbarui."
+        );
+    }
+
     public function index(Request $request)
     {
         $perPage = $request->get('per_page', 10);
@@ -107,6 +125,10 @@ class KaryawanController extends Controller
             'termination_recommendation' => 'nullable|in:can_rehire,considered,not_recommended,blacklist',
             'bank' => 'nullable|string|max:50',
             'nomor_rekening' => 'nullable|string|max:50',
+            'salary_base' => 'nullable|numeric|min:0',
+            'allowance_position' => 'nullable|numeric|min:0',
+            'bonus' => 'nullable|numeric|min:0',
+
             'tax_npwp' => 'nullable|string|max:20',
             'bpjs_kesehatan' => 'nullable|string|max:20',
             'bpjs_ketenagakerjaan' => 'nullable|string|max:20',
@@ -278,6 +300,9 @@ class KaryawanController extends Controller
             'tanggal_phk' => 'nullable|date',
             'tanggal_mangkir' => 'nullable|date',
             'tanggal_gagal_probation' => 'nullable|date',
+            'salary_base' => 'nullable|numeric|min:0',
+            'allowance_position' => 'nullable|numeric|min:0',
+            'bonus' => 'nullable|numeric|min:0',
             'tanggal_pending' => 'nullable|date',
             'termination_recommendation' => 'nullable|in:can_rehire,considered,not_recommended,blacklist',
             'bank' => 'nullable|string|max:50',

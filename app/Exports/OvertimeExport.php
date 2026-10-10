@@ -62,14 +62,12 @@ class OvertimeExport implements FromArray, WithHeadings, WithStyles, ShouldAutoS
                 $excelRow++;
                 $h = intdiv($att->overtime_minutes, 60);
                 $m = $att->overtime_minutes % 60;
-                $otH = 0;
-                if (preg_match('/^OT(\d+)$/', (string) $att->overtime_category, $match)) {
-                    $otH = (int) $match[1];
-                }
+                $approvedMinutes = (int) $att->effective_overtime_minutes;
+                $approvedHours = round($approvedMinutes / 60, 2);
                 $empName = $att->employee->name ?? '-';
-                $rows[] = [$no, $att->employee->employee_code ?? '-', $empName, $att->attendance_date->format('d-m-Y'), substr($att->check_out, 0, 5), sprintf('%d:%02d', $h, $m), $att->overtime_category, $otH, $otH * 60];
-                $subJam += $otH;
-                $subMenit += $otH * 60;
+                $rows[] = [$no, $att->employee->employee_code ?? '-', $empName, $att->attendance_date->format('d-m-Y'), substr($att->check_out, 0, 5), sprintf('%d:%02d', $h, $m), $att->overtime_category, $approvedHours, $approvedMinutes];
+                $subJam += $approvedHours;
+                $subMenit += $approvedMinutes;
             }
             $excelRow++;
             $rows[] = ['', '', 'SUBTOTAL ' . mb_strtoupper($empName), '', '', '', '', $subJam, $subMenit];

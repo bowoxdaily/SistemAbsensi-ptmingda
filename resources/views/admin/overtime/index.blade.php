@@ -62,6 +62,15 @@
                 @endforeach
             </select>
         </div>
+        <div class="col-md-2">
+            <label class="form-label">Status</label>
+            <select name="status" class="form-select">
+                <option value="">Semua</option>
+                <option value="pending" @selected(($status ?? '') === 'pending')>Pending</option>
+                <option value="approved" @selected(($status ?? '') === 'approved')>Approved</option>
+                <option value="rejected" @selected(($status ?? '') === 'rejected')>Rejected</option>
+            </select>
+        </div>
         <div class="col-12 d-flex gap-2">
             <button type="submit" class="btn btn-primary">
                 <i class="bx bx-filter-alt me-1"></i>Filter
@@ -82,6 +91,19 @@
             <i class="bx bx-download me-1"></i>Export Excel
         </button>
     </form>
+
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bx bx-check-circle me-1"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bx bx-error me-1"></i>{{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
 
     {{-- Export status alerts --}}
     @if(session('export_queued'))
@@ -120,12 +142,20 @@
                         <th>Durasi Riil</th>
                         <th>Kategori</th>
                         <th>Dihitung Lembur</th>
+                        <th>Menit Disetujui</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($overtimes as $item)
                         @php
                             $otNum = preg_match('/^OT(\d+)$/', (string) $item->overtime_category, $m) ? (int) $m[1] : 0;
+                            $statusClass = match($item->overtime_approval_status ?? 'pending') {
+                                'approved' => 'bg-label-success',
+                                'rejected' => 'bg-label-danger',
+                                default => 'bg-label-warning',
+                            };
                         @endphp
                         <tr>
                             <td>{{ $item->attendance_date->format('d-m-Y') }}</td>
@@ -137,19 +167,114 @@
                             <td>{{ intdiv($item->overtime_minutes, 60) }} jam {{ $item->overtime_minutes % 60 }} menit</td>
                             <td><span class="badge bg-label-primary">{{ $item->overtime_category }}</span></td>
                             <td>
-                                <strong>{{ $otNum }} Jam</strong>
-                                <span class="text-muted">({{ $otNum * 60 }} menit)</span>
+                                <strong>{{ intdiv($item->overtime_minutes, 60) }} jam {{ $item->overtime_minutes % 60 }} menit</strong>
+                                <span class="text-muted">(deteksi mesin)</span>
+                            </td>
+                            <td>
+                                @if($item->overtime_approval_status === 'approved')
+                                    {{ intdiv($item->approved_overtime_minutes, 60) }} jam {{ $item->approved_overtime_minutes % 60 }} menit
+                                @elseif($item->overtime_approval_status === 'rejected')
+                                    <span class="text-danger">Ditolak</span>
+                                @else
+                                    <span class="text-muted">Belum disetujui</span>
+                                @endif
+                            </td>
+                            <td>
+                                <span class="badge {{ $statusClass }}">
+                                    {{ ucfirst($item->overtime_approval_status ?? 'pending') }}
+                                </span>
+                                @if($item->overtime_approved_at)
+                                    <br><small class="text-muted">oleh {{ $item->overtimeApprover?->name ?? '-' }}</small>
+                                @endif
+                            </td>
+                            <td>
+                                @if(($item->overtime_approval_status ?? 'pending') !== 'approved' && ($item->overtime_approval_status ?? 'pending') !== 'rejected')
+                                    <button type="button" class="btn btn-sm btn-success btn-approve"
+                                        data-id="{{ $item->id }}"
+                                        data-name="{{ $item->employee->name }}"
+                                        data-date="{{ $item->attendance_date->format('d-m-Y') }}"
+                                        data-overtime="{{ $item->overtime_minutes }}"
+                                        data-category="{{ $item->overtime_category }}">
+                                        <i class='bx bx-check me-1'></i>Approve
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-danger btn-reject"
+                                        data-id="{{ $item->id }}"
+                                        data-name="{{ $item->employee->name }}"
+                                        data-date="{{ $item->attendance_date->format('d-m-Y') }}">
+                                        <i class='bx bx-x me-1'></i>Reject
+                                    </button>
+                                @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center py-4">Tidak ada data overtime.</td>
+                            <td colspan="9" class="text-center py-4">Tidak ada data overtime.</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
         <div class="px-3 pt-3">{{ $overtimes->links() }}</div>
+    </div>
+
+    {{-- Approve Modal --}}
+    <div class="modal fade" id="approveModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="approveForm" method="POST">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bx bx-check-circle text-success me-1"></i>Approve Lembur</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Karyawan: <strong id="approveEmployeeName"></strong></p>
+                        <p>Tanggal: <strong id="approveDate"></strong></p>
+                        <p>Kategori: <span class="badge bg-label-primary" id="approveCategory"></span></p>
+                        <p>Durasi terdeteksi mesin: <strong id="approveDetected"></strong></p>
+                        <hr>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Menit lembur disetujui (sesuai form fisik)</label>
+                            <input type="number" class="form-control" name="approved_overtime_minutes"
+                                id="approveMinutesInput" min="0" required>
+                            <small class="text-muted">Isi sesuai durasi di form fisik. Jika sama dengan mesin, biarkan default.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-success"><i class="bx bx-check me-1"></i>Approve</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Reject Modal --}}
+    <div class="modal fade" id="rejectModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="rejectForm" method="POST">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bx bx-x-circle text-danger me-1"></i>Reject Lembur</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Karyawan: <strong id="rejectEmployeeName"></strong></p>
+                        <p>Tanggal: <strong id="rejectDate"></strong></p>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Alasan penolakan <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="overtime_rejection_reason" rows="3"
+                                required placeholder="Contoh: Form fisik tidak ada, jam tidak sesuai, dll"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-danger"><i class="bx bx-x me-1"></i>Reject</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 @endsection
@@ -172,6 +297,28 @@
                 }
             });
         }
+
+        // Approve handler
+        $(document).on('click', '.btn-approve', function() {
+            var btn = $(this);
+            var minutes = parseInt(btn.data('overtime'), 10) || 0;
+            $('#approveForm').attr('action', '/admin/overtime/' + btn.data('id') + '/approve');
+            $('#approveEmployeeName').text(btn.data('name'));
+            $('#approveDate').text(btn.data('date'));
+            $('#approveCategory').text(btn.data('category'));
+            $('#approveDetected').text(Math.floor(minutes / 60) + ' jam ' + (minutes % 60) + ' menit (' + minutes + ' menit)');
+            $('#approveMinutesInput').val(minutes).removeAttr('max');
+            $('#approveModal').modal('show');
+        });
+
+        // Reject handler
+        $(document).on('click', '.btn-reject', function() {
+            var btn = $(this);
+            $('#rejectForm').attr('action', '/admin/overtime/' + btn.data('id') + '/reject');
+            $('#rejectEmployeeName').text(btn.data('name'));
+            $('#rejectDate').text(btn.data('date'));
+            $('#rejectModal').modal('show');
+        });
 
         // Poll export status when there's a pending/queued export
         var hasPending = {{ ($pendingExport || session('export_queued')) ? 'true' : 'false' }};

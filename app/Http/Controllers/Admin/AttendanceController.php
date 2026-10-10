@@ -397,6 +397,12 @@ class AttendanceController extends Controller
                 }
             }
 
+            // Hari pertama kerja selalu hadir, meskipun check-in terlambat.
+            if ($employee->join_date && Carbon::parse($employee->join_date)->isSameDay(Carbon::parse($dateString))) {
+                $status = 'hadir';
+                $lateMinutes = 0;
+            }
+
             // Create or update attendance
             $attendance = Attendance::updateOrCreate(
                 [
@@ -949,8 +955,13 @@ class AttendanceController extends Controller
                     $startTime = substr($schedule->start_time, 0, 5); // Get HH:MM only
                     $scheduledTime = Carbon::createFromFormat('Y-m-d H:i', $request->attendance_date . ' ' . $startTime);
 
+                    // Hari pertama kerja berdasarkan join_date selalu dianggap hadir.
+                    $attendanceDate = Carbon::parse($request->attendance_date);
+                    $isFirstWorkDay = $attendance->employee->join_date
+                        && $attendanceDate->isSameDay(Carbon::parse($attendance->employee->join_date));
+
                     // Calculate late minutes if check-in is after scheduled time
-                    if ($checkInTime->gt($scheduledTime)) {
+                    if (!$isFirstWorkDay && $checkInTime->gt($scheduledTime)) {
                         $lateMinutes = $scheduledTime->diffInMinutes($checkInTime);
                     }
                 } catch (\Exception $e) {
@@ -1372,6 +1383,12 @@ class AttendanceController extends Controller
 
                 // Skip if no work schedule
                 if (!$attendance->employee || !$attendance->employee->workSchedule) {
+                    $skipped++;
+                    continue;
+                }
+
+                // Skip already-approved or rejected records (protect manual approval)
+                if (in_array($attendance->overtime_approval_status ?? '', ['approved', 'rejected'])) {
                     $skipped++;
                     continue;
                 }

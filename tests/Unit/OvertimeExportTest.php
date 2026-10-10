@@ -20,6 +20,8 @@ it('builds overtime export rows grouped by employee with subtotals', function ()
     $att1->attendance_date = Carbon::parse('2026-09-01');
     $att1->check_out = '18:15:00';
     $att1->overtime_minutes = 75;
+    $att1->approved_overtime_minutes = 90;
+    $att1->overtime_approval_status = 'approved';
     $att1->overtime_category = 'OT1';
 
     $att2 = new Attendance();
@@ -28,6 +30,8 @@ it('builds overtime export rows grouped by employee with subtotals', function ()
     $att2->attendance_date = Carbon::parse('2026-09-05');
     $att2->check_out = '19:40:00';
     $att2->overtime_minutes = 160;
+    $att2->approved_overtime_minutes = 120;
+    $att2->overtime_approval_status = 'approved';
     $att2->overtime_category = 'OT2';
 
     // Set static data BEFORE constructing — constructor calls buildRows() immediately
@@ -43,22 +47,22 @@ it('builds overtime export rows grouped by employee with subtotals', function ()
     expect($rows[0][0])->toBe(1);
     expect($rows[0][1])->toBe('EMP001');
     expect($rows[0][2])->toBe('Budi Santoso');
-    expect($rows[0][7])->toBe(1); // OT1 = 1 jam
-    expect($rows[0][8])->toBe(60);
+    expect($rows[0][7])->toBe(1.5);
+    expect($rows[0][8])->toBe(90);
 
     // Second data row
-    expect($rows[1][7])->toBe(2); // OT2 = 2 jam
+    expect($rows[1][7])->toBe(2.0);
     expect($rows[1][8])->toBe(120);
 
     // Subtotal row
     expect($rows[2][2])->toBe('SUBTOTAL BUDI SANTOSO');
-    expect($rows[2][7])->toBe(3); // 1+2
-    expect($rows[2][8])->toBe(180); // 60+120
+    expect($rows[2][7])->toBe(3.5);
+    expect($rows[2][8])->toBe(210);
 
     // Grand total row
     expect($rows[3][2])->toBe('GRAND TOTAL');
-    expect($rows[3][7])->toBe(3);
-    expect($rows[3][8])->toBe(180);
+    expect($rows[3][7])->toBe(3.5);
+    expect($rows[3][8])->toBe(210);
 });
 
 it('returns empty array when no data', function () {

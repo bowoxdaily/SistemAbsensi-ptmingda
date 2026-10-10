@@ -140,6 +140,12 @@ class AttendanceClarificationController extends Controller
             } catch (\Exception $e) { $lateMinutes = 0; }
         }
 
+        // Hari pertama kerja selalu hadir, meskipun check-in terlambat.
+        if ($attendance->employee->join_date && Carbon::parse($attendance->employee->join_date)->isSameDay(Carbon::parse($attendance->attendance_date))) {
+            $newStatus = 'hadir';
+            $lateMinutes = 0;
+        }
+
         $attendance->status       = $newStatus;
         $attendance->late_minutes = $lateMinutes;
         if ($newCheckIn)  { $attendance->check_in  = $newCheckIn  . ':00'; }

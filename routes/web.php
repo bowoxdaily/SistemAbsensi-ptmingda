@@ -74,6 +74,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/department/export', [DepartmentController::class, 'export'])->name('admin.department.export');
         Route::get('/admin/sub-departments', [SubDepartmentController::class, 'index'])->name('admin.sub-departments.index');
         Route::post('/admin/karyawan/import', [KaryawanController::class, 'import'])->name('admin.karyawan.import');
+        Route::post('/admin/karyawan/update-operator-salary-base', [KaryawanController::class, 'updateOperatorSalaryBase'])->name('admin.karyawan.update-operator-salary-base');
         Route::get('/admin/karyawan/template', [KaryawanController::class, 'downloadTemplate'])->name('admin.karyawan.template');
         Route::get('/admin/positions', [PositionController::class, 'dashboard'])->name('admin.positions.index');
 
@@ -159,6 +160,8 @@ Route::middleware(['auth'])->group(function () {
         // Attendance - Read Only
         Route::get('/admin/attendance', [AttendanceController::class, 'index'])->name('admin.attendance.index');
         Route::get('/admin/overtime', [OvertimeController::class, 'index'])->name('admin.overtime.index');
+        Route::post('/admin/overtime/{attendance}/approve', [OvertimeController::class, 'approve'])->name('admin.overtime.approve');
+        Route::post('/admin/overtime/{attendance}/reject', [OvertimeController::class, 'reject'])->name('admin.overtime.reject');
         Route::post('/admin/overtime/export', [OvertimeController::class, 'export'])->name('admin.overtime.export');
         Route::get('/admin/overtime/export/status', [OvertimeController::class, 'exportStatus'])->name('admin.overtime.export.status');
         Route::get('/admin/overtime/export/{exportFile}/download', [OvertimeController::class, 'exportDownload'])->name('admin.overtime.export.download');

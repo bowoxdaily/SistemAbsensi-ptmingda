@@ -120,7 +120,7 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('departments')->group(functi
     Route::delete('/{id}', [DepartmentController::class, 'destroy']);
 });
 
-Route::middleware(['auth:sanctum', 'admin'])->prefix('sub-departments')->group(function () {
+Route::middleware(['web', 'auth', 'admin'])->prefix('sub-departments')->group(function () {
     Route::get('/', [SubDepartmentController::class, 'list']);
     Route::post('/', [SubDepartmentController::class, 'store']);
     Route::get('/by-department/{departmentId}', [SubDepartmentController::class, 'getByDepartment']);
@@ -250,6 +250,9 @@ Route::middleware(['web', 'auth', 'manager'])->prefix('payroll')->group(function
     Route::post('/', [PayrollController::class, 'store']);
     Route::get('/employees', [PayrollController::class, 'getEmployees']);
     Route::get('/attendance-summary', [PayrollController::class, 'getAttendanceSummary']);
+    Route::post('/calculate-auto', [PayrollController::class, 'calculateAuto']);
+    Route::get('/bulk-preview', [PayrollController::class, 'bulkPreview']);
+    Route::post('/bulk-generate', [PayrollController::class, 'bulkGenerate']);
     Route::get('/{id}', [PayrollController::class, 'show']);
     Route::put('/{id}', [PayrollController::class, 'update']);
     Route::delete('/{id}', [PayrollController::class, 'destroy']);

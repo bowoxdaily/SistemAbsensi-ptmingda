@@ -37,6 +37,9 @@ class Karyawans extends Model
         'work_schedule_id',
         'supervisor_id',
         'salary_base',
+        'allowance_position',
+        'bonus',
+        'union_deduction',
         'tanggal_resign',
         'tanggal_phk',
         'tanggal_mangkir',
@@ -73,7 +76,10 @@ class Karyawans extends Model
         'tanggal_gagal_probation' => 'date',
         'tanggal_pending'         => 'date',
         'salary_base' => 'decimal:2',
-        'tanggungan_anak' => 'integer',
+        'allowance_position' => 'decimal:2',
+        'bonus' => 'decimal:2',
+        'union_deduction' => 'decimal:2',
+        'tanggungan_anak' => 'integer'
     ];
 
     public function department(): BelongsTo

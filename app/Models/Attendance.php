@@ -24,6 +24,11 @@ class Attendance extends Model
         'late_minutes',
         'overtime_minutes',
         'overtime_category',
+        'approved_overtime_minutes',
+        'overtime_approval_status',
+        'overtime_approved_by',
+        'overtime_approved_at',
+        'overtime_rejection_reason',
         'gps_accuracy_in',
         'gps_accuracy_out',
         'is_mocked_in',
@@ -40,6 +45,8 @@ class Attendance extends Model
         'check_out' => 'string', // kolom TIME di DB, tidak perlu cast datetime
         'late_minutes' => 'integer',
         'overtime_minutes' => 'integer',
+        'approved_overtime_minutes' => 'integer',
+        'overtime_approved_at' => 'datetime',
         'overtime_category' => 'string',
         'is_mocked_in' => 'boolean',
         'is_mocked_out' => 'boolean',
@@ -55,5 +62,25 @@ class Attendance extends Model
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    /**
+     * User yang melakukan approval overtime
+     */
+    public function overtimeApprover(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class, 'overtime_approved_by');
+    }
+
+    /**
+     * Menit lembur efektif untuk payroll.
+     * Hanya mengembalikan nilai jika sudah approved.
+     */
+    public function getEffectiveOvertimeMinutesAttribute(): int
+    {
+        if ($this->overtime_approval_status !== 'approved') {
+            return 0;
+        }
+        return $this->approved_overtime_minutes ?: $this->overtime_minutes;
     }
 }

@@ -10,6 +10,9 @@
             </div>
             <div class="col-12 col-md-6">
                 <div class="d-flex flex-column flex-md-row gap-2 justify-content-md-end">
+                    <button type="button" class="btn btn-warning" id="btnGenerateAuto">
+                        <i class='bx bx-calculator me-1'></i> Generate Otomatis
+                    </button>
                     <button type="button" class="btn btn-success" id="btnExport">
                         <i class='bx bxs-file-export me-1'></i> Export Excel
                     </button>
@@ -164,9 +167,10 @@
                                             name="allowance_others" min="0" step="0.01" value="0">
                                     </div>
                                     <div class="col-12 col-md-6">
-                                        <label>Uang Lembur</label>
+                                        <label>Penyesuaian Lembur (Manual)</label>
                                         <input type="number" class="form-control earnings-field" id="overtime_pay"
                                             name="overtime_pay" min="0" step="0.01" value="0">
+                                        <small class="text-muted">Nilai otomatis dari lembur disetujui. Ubah jika perlu penyesuaian manual.</small>
                                     </div>
                                     <div class="col-12 col-md-6">
                                         <label>Bonus</label>
@@ -411,6 +415,67 @@
             </div>
         </div>
     </div>
+
+    <!-- Bulk Generate Modal -->
+    <div class="modal fade" id="bulkGenerateModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title text-white"><i class='bx bx-calculator me-1'></i> Generate Payroll Otomatis</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class='bx bx-info-circle me-1'></i> Sistem akan mengkalkulasi gaji seluruh karyawan aktif berdasarkan absensi, jam lembur, tunjangan, dan BPJS sesuai format baku perusahaan.
+                    </div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-md-5">
+                            <label class="form-label fw-bold">Periode Payroll <span class="text-danger">*</span></label>
+                            <input type="month" class="form-control" id="autoPeriodMonth" required>
+                        </div>
+                        <div class="col-12 col-md-5">
+                            <label class="form-label fw-bold">Tanggal Pembayaran <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="autoPaymentDate" required>
+                        </div>
+                        <div class="col-12 col-md-2 d-flex align-items-end">
+                            <button type="button" class="btn btn-outline-primary w-100" id="btnPreviewAuto">
+                                <i class='bx bx-search me-1'></i> Preview
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="autoPreviewContainer" style="display: none;">
+                        <h6 class="fw-bold mb-2 text-secondary">Hasil Kalkulasi Preview (<span id="autoPreviewCount">0</span> Karyawan)</h6>
+                        <div class="table-responsive border rounded mb-3" style="max-height: 380px;">
+                            <table class="table table-sm table-striped table-hover mb-0 align-middle">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th>NIP</th>
+                                        <th>Nama Karyawan</th>
+                                        <th class="text-end">Pokok</th>
+                                        <th class="text-end">Tj.Jabatan</th>
+                                        <th class="text-center">Hadir/Cuti</th>
+                                        <th class="text-end">OT 150%</th>
+                                        <th class="text-end">OT 200%</th>
+                                        <th class="text-end">Pendapatan</th>
+                                        <th class="text-end">Potongan</th>
+                                        <th class="text-end fw-bold">Gaji Bersih</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="autoPreviewTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" id="btnSubmitBulkGenerate">
+                        <i class='bx bx-check-circle me-1'></i> Proses & Simpan Semua Payroll
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('styles')
@@ -538,6 +603,18 @@
             $(document).on('click', '#btnResetFilter', function() {
                 console.log('🔘 Reset Filter button clicked');
                 resetFilters();
+            });
+            $(document).on('click', '#btnGenerateAuto', function() {
+                console.log('🔘 Generate Auto button clicked');
+                openBulkGenerateModal();
+            });
+            $(document).on('click', '#btnPreviewAuto', function() {
+                console.log('🔘 Preview Auto clicked');
+                previewBulkPayroll();
+            });
+            $(document).on('click', '#btnSubmitBulkGenerate', function() {
+                console.log('🔘 Submit Bulk Generate clicked');
+                submitBulkGenerate();
             });
             $(document).on('click', '.btn-view-detail', function() {
                 let id = $(this).data('id');
@@ -673,6 +750,101 @@
             });
 
             // Functions
+            function openBulkGenerateModal() {
+                const now = new Date();
+                const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                $('#autoPeriodMonth').val($('#filterPeriod').val() || month);
+                $('#autoPaymentDate').val(now.toISOString().slice(0, 10));
+                $('#autoPreviewContainer').hide();
+                $('#autoPreviewTableBody').empty();
+                $('#bulkGenerateModal').modal('show');
+            }
+
+            function formatAutoMoney(value) {
+                return 'Rp ' + Number(value || 0).toLocaleString('id-ID');
+            }
+
+            function previewBulkPayroll() {
+                const period = $('#autoPeriodMonth').val();
+                if (!period) {
+                    toastr.warning('Pilih periode payroll terlebih dahulu');
+                    return;
+                }
+
+                const button = $('#btnPreviewAuto');
+                button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Memuat...');
+                $.get('/api/payroll/bulk-preview', { period_month: period })
+                    .done(function(res) {
+                        if (!res.success) {
+                            toastr.error(res.message || 'Preview gagal');
+                            return;
+                        }
+
+                        const rows = res.data || [];
+                        $('#autoPreviewCount').text(res.count || rows.length);
+                        $('#autoPreviewTableBody').html(rows.length ? rows.map(function(row) {
+                            return `<tr>
+                                <td>${escapeHtml(row.employee_code || '-')}</td>
+                                <td>${escapeHtml(row.name || '-')}</td>
+                                <td class="text-end">${formatAutoMoney(row.basic_salary)}</td>
+                                <td class="text-end">${formatAutoMoney(row.allowance_position)}</td>
+                                <td class="text-center">${row.total_days_present || 0}/${row.days_leave || 0}</td>
+                                <td class="text-end">${formatAutoMoney(row.overtime_150_pay)}</td>
+                                <td class="text-end">${formatAutoMoney(row.overtime_200_pay)}</td>
+                                <td class="text-end">${formatAutoMoney(row.total_earnings)}</td>
+                                <td class="text-end">${formatAutoMoney(row.total_deductions)}</td>
+                                <td class="text-end fw-bold text-success">${formatAutoMoney(row.net_salary)}</td>
+                            </tr>`;
+                        }).join('') : '<tr><td colspan="10" class="text-center text-muted">Tidak ada karyawan aktif</td></tr>');
+                        $('#autoPreviewContainer').show();
+                    })
+                    .fail(function(xhr) {
+                        toastr.error(xhr.responseJSON?.message || 'Preview payroll gagal');
+                    })
+                    .always(function() {
+                        button.prop('disabled', false).html('<i class="bx bx-search me-1"></i> Preview');
+                    });
+            }
+
+            function submitBulkGenerate() {
+                const period = $('#autoPeriodMonth').val();
+                const paymentDate = $('#autoPaymentDate').val();
+                if (!period || !paymentDate) {
+                    toastr.warning('Periode dan tanggal pembayaran wajib diisi');
+                    return;
+                }
+                if (!$('#autoPreviewContainer').is(':visible')) {
+                    toastr.warning('Lakukan preview terlebih dahulu');
+                    return;
+                }
+                if (!confirm('Generate payroll otomatis untuk seluruh karyawan aktif?')) return;
+
+                const button = $('#btnSubmitBulkGenerate');
+                button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Memproses...');
+                $.ajax({
+                    url: '/api/payroll/bulk-generate',
+                    method: 'POST',
+                    data: { period_month: period, payment_date: paymentDate, _token: $('meta[name="csrf-token"]').attr('content') }
+                }).done(function(res) {
+                    const result = res.data || {};
+                    if (res.success || result.errors?.length) {
+                        toastr.success(`${res.message || 'Payroll selesai'} (${result.created || 0} dibuat, ${result.skipped || 0} dilewati)`);
+                        $('#bulkGenerateModal').modal('hide');
+                        loadPayrolls();
+                    } else {
+                        toastr.error(res.message || 'Generate payroll gagal');
+                    }
+                }).fail(function(xhr) {
+                    toastr.error(xhr.responseJSON?.message || 'Generate payroll gagal');
+                }).always(function() {
+                    button.prop('disabled', false).html('<i class="bx bx-check-circle me-1"></i> Proses & Simpan Semua Payroll');
+                });
+            }
+
+            function escapeHtml(value) {
+                return $('<div>').text(value == null ? '' : value).html();
+            }
+
             function loadEmployees() {
                 console.log('👥 Loading employees from API...');
                 $.get('/api/payroll/employees')
@@ -1195,6 +1367,16 @@
                                 <hr>
                                 <h6 class="text-success"><i class='bx bx-money'></i> Rincian Gaji</h6>
                                 <p><strong>Total Pendapatan:</strong> <span class="text-success">${formatCurrency(p.total_earnings)}</span></p>
+
+                                <h6 class="text-danger mt-3"><i class='bx bx-minus-circle'></i> Rincian Potongan</h6>
+                                <p><strong>Potongan Terlambat:</strong> ${formatCurrency(p.deduction_late)}</p>
+                                <p><strong>Potongan Tidak Hadir:</strong> ${formatCurrency(p.deduction_absent)}</p>
+                                <p><strong>Potongan Pinjaman:</strong> ${formatCurrency(p.deduction_loan)}</p>
+                                <p><strong>Potongan BPJS:</strong> ${formatCurrency(p.deduction_bpjs)}</p>
+                                <p><strong>Potongan Pajak:</strong> ${formatCurrency(p.deduction_tax)}</p>
+                                <p><strong>Potongan Sakit:</strong> ${formatCurrency(p.deduction_sick_leave)}</p>
+                                <p><strong>Potongan Serikat:</strong> ${formatCurrency(p.deduction_union)}</p>
+                                <p><strong>Potongan Lainnya:</strong> ${formatCurrency(p.deduction_others)}</p>
                                 <p><strong>Total Potongan:</strong> <span class="text-danger">${formatCurrency(p.total_deductions)}</span></p>
                                 <p><strong>Gaji Bersih:</strong> <span class="text-primary fw-bold fs-5">${formatCurrency(p.net_salary)}</span></p>
 
