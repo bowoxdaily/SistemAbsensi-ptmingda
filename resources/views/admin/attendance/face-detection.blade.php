@@ -311,74 +311,105 @@
                 }
             });
 
-            // Load employees
+            // Load all active employees across pagination pages
             async function loadEmployees() {
                 try {
-                    // Load ALL employees without pagination limit
-                    const response = await fetch('/api/karyawan?per_page=1000&status=active');
-                    const result = await response.json();
+                    const employees = [];
+                    let page = 1;
+
+                    while (true) {
+                        const response = await fetch(
+                            `/api/karyawan?page=${page}&per_page=1000&status=active`);
+                        if (!response.ok) {
+                            throw new Error(`Gagal memuat halaman karyawan: HTTP ${response.status}`);
+                        }
+
+                        const result = await response.json();
+                        if (!result.success || !result.data) {
+                            throw new Error('Format response karyawan tidak valid');
+                        }
+
+                        const pageEmployees = result.data.data || [];
+
+                        employees.push(...pageEmployees);
+
+                        if (!result.data?.next_page_url) {
+                            break;
+                        }
+
+                        page++;
+                    }
 
                     const select = document.getElementById('employeeSelect');
                     select.innerHTML = '<option value="">-- Pilih Karyawan --</option>';
+                    allEmployees = employees;
 
-                    if (result.data && result.data.data) {
-                        allEmployees = result.data.data;
-                        result.data.data.forEach(emp => {
-                            const option = document.createElement('option');
-                            option.value = emp.id;
-                            option.textContent = `${emp.employee_code} - ${emp.name}`;
-                            option.setAttribute('data-name', emp.name);
-                            option.setAttribute('data-code', emp.employee_code);
-                            select.appendChild(option);
-                        });
+                    employees.forEach(emp => {
+                        const option = document.createElement('option');
+                        option.value = emp.id;
+                        option.textContent = `${emp.employee_code} - ${emp.name}`;
+                        option.setAttribute('data-name', emp.name);
+                        option.setAttribute('data-code', emp.employee_code);
+                        select.appendChild(option);
+                    });
 
-                        // Initialize Select2
-                        $('#employeeSelect').select2({
-                            placeholder: '-- Cari dan Pilih Karyawan --',
-                            allowClear: true,
-                            language: {
-                                noResults: function() {
-                                    return "Tidak ada karyawan yang ditemukan";
-                                },
-                                searching: function() {
-                                    return "Mencari...";
-                                }
+                    // Initialize Select2
+                    $('#employeeSelect').select2({
+                        placeholder: '-- Cari dan Pilih Karyawan --',
+                        allowClear: true,
+                        language: {
+                            noResults: function() {
+                                return "Tidak ada karyawan yang ditemukan";
+                            },
+                            searching: function() {
+                                return "Mencari...";
                             }
-                        });
+                        }
+                    });
 
-                        // Handle Select2 change event
-                        $('#employeeSelect').on('change', async function() {
-                            selectedEmployeeId = this.value;
+                    // Handle Select2 change event
+                    $('#employeeSelect').on('change', async function() {
+                        selectedEmployeeId = this.value;
 
-                            if (selectedEmployeeId) {
-                                try {
-                                    const response = await fetch(`/api/karyawan/${selectedEmployeeId}`);
-                                    const result = await response.json();
-                                    const emp = result.data;
-
-                                    document.getElementById('empName').textContent = emp.name;
-                                    document.getElementById('empDetails').textContent =
-                                        `${emp.employee_code} - ${emp.department.name} - ${emp.position.name}`;
-                                    document.getElementById('employeeInfo').style.display = 'block';
-
-                                    // Check attendance by selected date
-                                    checkAttendanceByDate();
-                                } catch (error) {
-                                    console.error('Error loading employee:', error);
-                                    Swal.fire('Error', 'Gagal memuat data karyawan', 'error');
+                        if (selectedEmployeeId) {
+                            try {
+                                const response = await fetch(`/api/karyawan/${selectedEmployeeId}`);
+                                if (!response.ok) {
+                                    throw new Error(`Gagal memuat karyawan: HTTP ${response.status}`);
                                 }
-                            } else {
-                                document.getElementById('employeeInfo').style.display = 'none';
-                                document.getElementById('attendanceForm').style.display = 'none';
-                                document.getElementById('statusToday').style.display = 'none';
+
+                                const result = await response.json();
+                                const emp = result.data;
+
+                                if (!emp) {
+                                    throw new Error('Data karyawan tidak ditemukan');
+                                }
+
+                                const departmentName = emp.department?.name || '-';
+                                const positionName = emp.position?.name || '-';
+
+                                document.getElementById('empName').textContent = emp.name || '-';
+                                document.getElementById('empDetails').textContent =
+                                    `${emp.employee_code || '-'} - ${departmentName} - ${positionName}`;
+                                document.getElementById('employeeInfo').style.display = 'block';
+
+                                // Check attendance by selected date
+                                checkAttendanceByDate();
+                            } catch (error) {
+                                console.error('Error loading employee:', error);
+                                Swal.fire('Error', 'Gagal memuat data karyawan', 'error');
                             }
-                        });
-                    }
+                        } else {
+                            document.getElementById('employeeInfo').style.display = 'none';
+                            document.getElementById('attendanceForm').style.display = 'none';
+                            document.getElementById('statusToday').style.display = 'none';
+                        }
+                    });
                 } catch (error) {
                     console.error('Error loading employees:', error);
                     Swal.fire('Error', 'Gagal memuat data karyawan', 'error');
                 }
-            }
+            } 
 
             // Check attendance by date
             async function checkAttendanceByDate() {
