@@ -45,8 +45,9 @@ class RebuildAttendanceSummary extends Command
                     'updated_at' => now(),
                 ];
             }
-            if (array_key_exists($att->status, $summaries[$att->employee_id])) {
-                $summaries[$att->employee_id][$att->status] = $att->total;
+            $summaryStatus = $att->status === 'cuti_tahunan' ? 'cuti' : $att->status;
+            if (array_key_exists($summaryStatus, $summaries[$att->employee_id])) {
+                $summaries[$att->employee_id][$summaryStatus] += $att->total;
             }
         }
 

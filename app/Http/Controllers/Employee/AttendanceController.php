@@ -590,7 +590,7 @@ class AttendanceController extends Controller
                 'izin' => $query->clone()->where('status', 'izin')->count(),
                 'sakit' => $query->clone()->where('status', 'sakit')->count(),
                 'alpha' => $query->clone()->where('status', 'alpha')->count(),
-                'cuti' => $query->clone()->where('status', 'cuti')->count(),
+                'cuti' => $query->clone()->whereIn('status', ['cuti', 'cuti_tahunan'])->count(),
                 'total_late_minutes' => $query->sum('late_minutes'),
             ];
 

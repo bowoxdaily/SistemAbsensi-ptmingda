@@ -44,7 +44,7 @@ Route::get('/api/attendance/list', [AttendanceController::class, 'list']);
 
 ### Attendance Status Logic
 
-**Status Values:** `hadir`, `terlambat`, `izin`, `sakit`, `alpha`, `cuti`
+**Status Values:** `hadir`, `terlambat`, `izin`, `sakit`, `alpha`, `cuti`, `cuti_tahunan`
 
 **Status Determination (in `AttendanceController::checkIn()`):**
 
@@ -182,7 +182,7 @@ Use Laravel's `Validator::make()` in controllers:
 $validator = Validator::make($request->all(), [
     'employee_id' => 'required|exists:employees,id',
     'date' => 'nullable|date',
-    'status' => 'nullable|in:hadir,terlambat,izin,sakit,alpha,cuti',
+    'status' => 'nullable|in:hadir,terlambat,izin,sakit,alpha,cuti,cuti_tahunan',
 ]);
 
 if ($validator->fails()) {
@@ -299,7 +299,7 @@ $whatsapp->send('628123456789', 'Message text', $imageUrl);
 
 1. **Model Name Mismatch:** Use `Karyawans` model even though table is `employees` - don't create `Employee` model unless intentional refactor
 2. **CSRF Token:** Always include `X-CSRF-TOKEN` header in AJAX requests or use `@csrf` in forms
-3. **Status Values:** Hardcoded enum values - changing requires migration. Current: `hadir|terlambat|izin|sakit|alpha|cuti`
+3. **Status Values:** Hardcoded enum values - changing requires migration. Current: `hadir|terlambat|izin|sakit|alpha|cuti|cuti_tahunan`
 4. **WorkSchedule Check:** Before marking alpha, verify employee has `work_schedule_id` and date is working day for their shift
 5. **Date Formats:** Database stores `Y-m-d` for dates, `H:i:s` for times. Use Carbon for parsing
 6. **API vs Web Routes:** Never put POST/PUT/DELETE in `web.php` - keep data operations in `api.php`

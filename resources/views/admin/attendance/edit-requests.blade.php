@@ -217,7 +217,7 @@
         const map = {
             hadir: 'Hadir', terlambat: 'Terlambat', lembur: 'Lembur',
             izin: 'Izin', sakit: 'Sakit', cuti: 'Cuti',
-            cuti_khusus: 'Cuti Khusus', cuti_bersama: 'Cuti Bersama',
+            cuti_tahunan: 'Cuti Tahunan', cuti_khusus: 'Cuti Khusus', cuti_bersama: 'Cuti Bersama',
             off: 'Off', libur: 'Libur', alpha: 'Alpha',
         };
         return map[status] || status;

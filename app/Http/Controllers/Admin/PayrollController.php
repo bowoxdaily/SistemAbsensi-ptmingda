@@ -438,7 +438,7 @@ class PayrollController extends Controller
             'present' => $attendances->where('status', 'hadir')->count(),
             'late' => $attendances->where('status', 'terlambat')->count(),
             'absent' => $attendances->where('status', 'alpha')->count(),
-            'leave' => $attendances->where('status', 'izin')->count() + $attendances->where('status', 'sakit')->count() + $attendances->where('status', 'cuti')->count(),
+            'leave' => $attendances->where('status', 'izin')->count() + $attendances->where('status', 'sakit')->count() + $attendances->whereIn('status', ['cuti', 'cuti_tahunan'])->count(),
         ];
     }
 

@@ -65,7 +65,7 @@ class PayrollCalculatorService
         $lateDays = $attendances->where('status', 'terlambat')->count();
         $sick = $attendances->where('status', 'sakit')->count();
         $alpha = $attendances->where('status', 'alpha')->count();
-        $leave = $attendances->where('status', 'cuti')->count();
+        $leave = $attendances->whereIn('status', ['cuti', 'cuti_tahunan'])->count();
         $permission = $attendances->where('status', 'izin')->count();
         $lateMinutes = (int) $attendances->sum('late_minutes');
         [$minutes150, $minutes200] = $this->splitOvertimeMinutes($attendances);

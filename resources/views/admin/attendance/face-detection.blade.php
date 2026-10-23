@@ -73,6 +73,7 @@
                                             <option value="izin">Izin</option>
                                             <option value="sakit">Sakit</option>
                                             <option value="cuti">Cuti</option>
+                                            <option value="cuti_tahunan">Cuti Tahunan</option>
                                             <option value="cuti_khusus">Cuti Khusus</option>
                                             <option value="cuti_bersama">Cuti Bersama</option>
                                             <option value="off">Off</option>
@@ -436,6 +437,8 @@
                         // Format status text for display
                         if (att.status === 'cuti_bersama') {
                             statusText = 'CUTI BERSAMA';
+                        } else if (att.status === 'cuti_tahunan') {
+                            statusText = 'CUTI TAHUNAN';
                         } else if (att.status === 'cuti_khusus') {
                             statusText = 'CUTI KHUSUS';
                         }

@@ -32,6 +32,10 @@ class AttendanceObserver
         }
 
         $date = Carbon::parse($attendance->attendance_date);
+
+        // Monthly summaries keep both leave statuses in the existing `cuti` counter.
+        $oldStatus = $oldStatus === 'cuti_tahunan' ? 'cuti' : $oldStatus;
+        $newStatus = $newStatus === 'cuti_tahunan' ? 'cuti' : $newStatus;
         
         $summary = \App\Models\AttendanceMonthlySummary::firstOrCreate(
             [

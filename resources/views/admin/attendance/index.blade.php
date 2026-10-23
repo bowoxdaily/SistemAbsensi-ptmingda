@@ -115,6 +115,7 @@
                                 </option>
                                 <option value="lembur" {{ request('status') == 'lembur' ? 'selected' : '' }}>Lembur</option>
                                 <option value="cuti" {{ request('status') == 'cuti' ? 'selected' : '' }}>Cuti</option>
+                                <option value="cuti_tahunan" {{ request('status') == 'cuti_tahunan' ? 'selected' : '' }}>Cuti Tahunan</option>
                                 <option value="cuti_khusus" {{ request('status') == 'cuti_khusus' ? 'selected' : '' }}>Cuti Khusus</option>
                                 <option value="cuti_bersama" {{ request('status') == 'cuti_bersama' ? 'selected' : '' }}>Cuti Bersama</option>
                                 <option value="izin" {{ request('status') == 'izin' ? 'selected' : '' }}>Izin</option>
@@ -324,6 +325,8 @@
                                             <span class="badge bg-info">LEMBUR</span>
                                         @elseif($attendance->status == 'cuti')
                                             <span class="badge bg-primary">CUTI</span>
+                                        @elseif($attendance->status == 'cuti_tahunan')
+                                            <span class="badge bg-primary">CUTI TAHUNAN</span>
                                         @elseif($attendance->status == 'cuti_khusus')
                                             <span class="badge bg-primary">CUTI KHUSUS</span>
                                         @elseif($attendance->status == 'cuti_bersama')
@@ -581,6 +584,8 @@
                                             <span class="badge bg-info">LEMBUR</span>
                                         @elseif($attendance->status == 'cuti')
                                             <span class="badge bg-primary">CUTI</span>
+                                        @elseif($attendance->status == 'cuti_tahunan')
+                                            <span class="badge bg-primary">CUTI TAHUNAN</span>
                                         @elseif($attendance->status == 'cuti_khusus')
                                             <span class="badge bg-primary">CUTI KHUSUS</span>
                                         @elseif($attendance->status == 'cuti_bersama')
@@ -728,6 +733,7 @@
                                     <option value="izin">Izin</option>
                                     <option value="sakit">Sakit</option>
                                     <option value="cuti">Cuti</option>
+                                    <option value="cuti_tahunan">Cuti Tahunan</option>
                                     <option value="cuti_khusus">Cuti Khusus</option>
                                     <option value="cuti_bersama">Cuti Bersama</option>
                                     <option value="off">Off</option>
@@ -813,6 +819,7 @@
                                     <option value="izin">Izin</option>
                                     <option value="sakit">Sakit</option>
                                     <option value="cuti">Cuti</option>
+                                    <option value="cuti_tahunan">Cuti Tahunan</option>
                                     <option value="cuti_khusus">Cuti Khusus</option>
                                     <option value="cuti_bersama">Cuti Bersama</option>
                                     <option value="off">Off</option>
@@ -1165,6 +1172,7 @@
                                                 ${data.status === 'terlambat' ? '<span class="badge bg-warning">TERLAMBAT</span>' : ''}
                                                 ${data.status === 'lembur' ? '<span class="badge bg-info">LEMBUR</span>' : ''}
                                                 ${data.status === 'cuti' ? '<span class="badge bg-primary">CUTI</span>' : ''}
+                                                ${data.status === 'cuti_tahunan' ? '<span class="badge bg-primary">CUTI TAHUNAN</span>' : ''}
                                                 ${data.status === 'cuti_khusus' ? '<span class="badge bg-primary">CUTI KHUSUS</span>' : ''}
                                                 ${data.status === 'cuti_bersama' ? '<span class="badge bg-info">CUTI BERSAMA</span>' : ''}
                                                 ${data.status === 'izin' ? '<span class="badge bg-info">IZIN</span>' : ''}

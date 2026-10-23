@@ -62,6 +62,7 @@
                                             Terlambat</option>
                                         <option value="cuti" {{ request('status') == 'cuti' ? 'selected' : '' }}>Cuti
                                         </option>
+                                        <option value="cuti_tahunan" {{ request('status') == 'cuti_tahunan' ? 'selected' : '' }}>Cuti Tahunan</option>
                                         <option value="izin" {{ request('status') == 'izin' ? 'selected' : '' }}>Izin
                                         </option>
                                         <option value="sakit" {{ request('status') == 'sakit' ? 'selected' : '' }}>Sakit
@@ -156,6 +157,8 @@
                                                         @endif
                                                     @elseif($attendance->status == 'cuti')
                                                         <span class="badge bg-primary">Cuti</span>
+                                                    @elseif($attendance->status == 'cuti_tahunan')
+                                                        <span class="badge bg-primary">Cuti Tahunan</span>
                                                     @elseif($attendance->status == 'izin')
                                                         <span class="badge bg-info">Izin</span>
                                                     @elseif($attendance->status == 'sakit')
@@ -229,6 +232,8 @@
                                                         @endif
                                                     @elseif($attendance->status == 'cuti')
                                                         <span class="badge bg-primary">Cuti</span>
+                                                    @elseif($attendance->status == 'cuti_tahunan')
+                                                        <span class="badge bg-primary">Cuti Tahunan</span>
                                                     @elseif($attendance->status == 'izin')
                                                         <span class="badge bg-info">Izin</span>
                                                     @elseif($attendance->status == 'sakit')

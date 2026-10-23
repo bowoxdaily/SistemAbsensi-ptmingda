@@ -212,7 +212,7 @@ class DashboardController extends Controller
             'totalIzinBulanIni' => Attendance::where('employee_id', $employee->id)
                 ->whereMonth('attendance_date', $thisMonth)
                 ->whereYear('attendance_date', $thisYear)
-                ->whereIn('status', ['izin', 'sakit', 'cuti'])
+                ->whereIn('status', ['izin', 'sakit', 'cuti', 'cuti_tahunan'])
                 ->count(),
             'riwayatAbsensi' => Attendance::where('employee_id', $employee->id)
                 ->orderBy('attendance_date', 'desc')

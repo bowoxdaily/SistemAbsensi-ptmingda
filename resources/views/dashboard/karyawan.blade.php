@@ -559,7 +559,7 @@
 
             // Convert status to numeric data
             const hadirData = statuses.map(s => ['hadir', 'terlambat'].includes(s) ? 1 : 0);
-            const izinData = statuses.map(s => ['izin', 'sakit', 'cuti'].includes(s) ? 1 : 0);
+            const izinData = statuses.map(s => ['izin', 'sakit', 'cuti', 'cuti_tahunan'].includes(s) ? 1 : 0);
             const alphaData = statuses.map(s => s === 'alpha' ? 1 : 0);
 
             new Chart(ctx, {
