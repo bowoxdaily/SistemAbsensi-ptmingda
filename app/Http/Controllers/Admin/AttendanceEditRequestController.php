@@ -57,23 +57,12 @@ class AttendanceEditRequestController extends Controller
      */
     public function list(Request $request)
     {
-        $query = AttendanceEditRequest::with([
+        $query = $this->filteredRequests($request)->with([
             'attendance.employee.department',
             'attendance.employee.subDepartment',
             'requester',
             'reviewer',
         ]);
-
-        if ($status = $request->get('status')) {
-            $query->where('status', $status);
-        }
-
-        if ($search = trim((string) $request->get('search', ''))) {
-            $query->whereHas('attendance.employee', function ($employeeQuery) use ($search) {
-                $employeeQuery->where('name', 'like', "%{$search}%")
-                    ->orWhere('employee_code', 'like', "%{$search}%");
-            });
-        }
 
         $requests = $query->latest()->paginate($request->get('per_page', 15));
 
@@ -92,6 +81,63 @@ class AttendanceEditRequestController extends Controller
             'success' => true,
             'data'    => $requests,
         ]);
+    }
+
+    /** Export seluruh hasil filter ke CSV */
+    public function export(Request $request)
+    {
+        $request->validate([
+            'status' => 'nullable|in:pending,approved,rejected',
+            'search' => 'nullable|string|max:255',
+        ]);
+
+        return response()->streamDownload(function () use ($request) {
+            $output = fopen('php://output', 'w');
+            fwrite($output, "\xEF\xBB\xBF");
+            fputcsv($output, ['ID', 'Nama Karyawan', 'Kode Karyawan', 'Sub Department', 'Tanggal Absensi', 'Status Lama', 'Status Baru', 'Check In Lama', 'Check In Baru', 'Check Out Lama', 'Check Out Baru', 'Alasan', 'Diajukan Oleh', 'Diajukan Pada', 'Status Request']);
+
+            $this->filteredRequests($request)
+                ->with(['attendance.employee.subDepartment', 'requester'])
+                ->latest()
+                ->chunk(500, function ($requests) use ($output) {
+                    foreach ($requests as $item) {
+                        $employee = $item->attendance?->employee;
+                        fputcsv($output, [
+                            $item->id,
+                            $employee?->name,
+                            $employee?->employee_code,
+                            $employee?->subDepartment?->name,
+                            $item->old_attendance_date,
+                            $item->old_status,
+                            $item->new_status,
+                            $item->old_check_in,
+                            $item->new_check_in,
+                            $item->old_check_out,
+                            $item->new_check_out,
+                            $item->reason,
+                            $item->requester?->name,
+                            $item->created_at?->format('Y-m-d H:i:s'),
+                            $item->status,
+                        ]);
+                    }
+                });
+
+            fclose($output);
+        }, 'request-edit-absensi-' . now()->format('Ymd-His') . '.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    private function filteredRequests(Request $request)
+    {
+        return AttendanceEditRequest::query()
+            ->when($request->filled('status'), fn ($query) => $query->where('status', $request->input('status')))
+            ->when(trim((string) $request->input('search', '')), function ($query, $search) {
+                $query->whereHas('attendance.employee', function ($employeeQuery) use ($search) {
+                    $employeeQuery->where('name', 'like', "%{$search}%")
+                        ->orWhere('employee_code', 'like', "%{$search}%");
+                });
+            });
     }
 
     /**

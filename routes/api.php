@@ -209,6 +209,7 @@ Route::middleware('auth:sanctum')->prefix('mobile/v1')->group(function () {
 // Attendance Edit Requests – submit & read (admin & manager)
 Route::middleware(['web', 'auth', 'admin'])->prefix('admin/attendance-edit-requests')->group(function () {
     Route::get('/', [AttendanceEditRequestController::class, 'list']);
+    Route::get('/export', [AttendanceEditRequestController::class, 'export']);
     Route::get('/pending-count', [AttendanceEditRequestController::class, 'pendingCount']);
     Route::get('/stats', [AttendanceEditRequestController::class, 'stats']);
     Route::get('/{id}/detail', [AttendanceEditRequestController::class, 'detail']);

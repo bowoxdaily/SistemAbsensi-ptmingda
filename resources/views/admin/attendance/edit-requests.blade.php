@@ -94,10 +94,13 @@
                     </div>
                     <select class="form-select form-select-sm" id="filter-status" style="width:auto;">
                         <option value="">Semua Status</option>
-                        <option value="pending" selected>Pending</option>
+                        <option value="pending">Pending</option>
                         <option value="approved">Approved</option>
                         <option value="rejected">Rejected</option>
                     </select>
+                    <button type="button" class="btn btn-sm btn-success" id="btnExport">
+                        <i class='bx bx-download'></i> Export CSV
+                    </button>
                     <button type="button" class="btn btn-sm btn-outline-secondary" id="btnRefresh">
                         <i class='bx bx-refresh'></i>
                     </button>
@@ -566,6 +569,13 @@
     $('#btnSearch').on('click', function() { loadRequests(1); });
     $('#filter-search').on('keydown', function(event) {
         if (event.key === 'Enter') loadRequests(1);
+    });
+    $('#btnExport').on('click', function() {
+        const params = new URLSearchParams({
+            status: $('#filter-status').val(),
+            search: $('#filter-search').val().trim(),
+        });
+        window.location.href = `/api/admin/attendance-edit-requests/export?${params.toString()}`;
     });
     $('#btnRefresh').on('click', function() { loadRequests(currentPage); loadStats(); });
     $(document).on('click', '.btn-page', function() { loadRequests(parseInt($(this).data('page'))); });
