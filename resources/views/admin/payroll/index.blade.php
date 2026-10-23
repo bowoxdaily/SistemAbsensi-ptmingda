@@ -45,6 +45,15 @@
                         <input type="text" class="form-control" id="searchInput"
                             placeholder="Cari kode/nama karyawan...">
                     </div>
+                    <div class="col-12 col-md-6 col-lg-2">
+                        <label class="form-label" for="payrollPerPage">Baris per halaman</label>
+                        <select class="form-select" id="payrollPerPage">
+                            <option value="10" selected>10</option>
+                            <option value="25">25</option>
+                            <option value="100">100</option>
+                            <option value="all">Semua</option>
+                        </select>
+                    </div>
                     <div class="col-12 col-md-6 col-lg-2 d-flex align-items-end">
                         <button class="btn btn-secondary w-100" id="btnResetFilter">
                             <i class='bx bx-reset'></i> Reset
@@ -56,10 +65,15 @@
 
         <!-- Desktop Table View -->
         <div class="card d-none d-lg-block">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <label class="form-check-label"><input class="form-check-input me-1" type="checkbox" id="selectAllDrafts"> Pilih semua draft di halaman ini</label>
+                <button class="btn btn-sm btn-outline-danger bulk-delete-button" disabled>Hapus terpilih (<span class="selected-draft-count">0</span>)</button>
+            </div>
             <div class="table-responsive text-nowrap">
-                <table class="table">
-                    <thead>
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
+                            <th><input class="form-check-input" type="checkbox" id="selectAllDraftRows" aria-label="Pilih semua draft"></th>
                             <th>Kode</th>
                             <th>Karyawan</th>
                             <th>Periode</th>
@@ -71,7 +85,7 @@
                     </thead>
                     <tbody id="payrollTableBody">
                         <tr>
-                            <td colspan="7" class="text-center">Memuat data...</td>
+                            <td colspan="8" class="text-center">Memuat data...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -82,7 +96,13 @@
         </div>
 
         <!-- Mobile Card View -->
-        <div class="d-lg-none" id="mobileView"></div>
+        <div class="d-lg-none">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <label class="form-check-label"><input class="form-check-input me-1" type="checkbox" id="selectAllDraftsMobile"> Pilih semua draft di halaman ini</label>
+                <button class="btn btn-sm btn-outline-danger bulk-delete-button" disabled>Hapus (<span class="selected-draft-count">0</span>)</button>
+            </div>
+            <div id="mobileView"></div>
+        </div>
 
         <!-- Mobile Pagination -->
         <div class="d-lg-none mt-3" id="mobilePagination"></div>
@@ -300,7 +320,7 @@
                             <!-- Summary Tab -->
                             <div class="tab-pane fade" id="summaryTab">
                                 <div class="card bg-light mb-3">
-                                    <div class="card-body">
+                                    <div class="flex-grow-1">
                                         <h6 class="text-success">💰 Total Pendapatan</h6>
                                         <h4 class="text-success mb-0" id="totalEarningsDisplay">Rp 0</h4>
                                     </div>
@@ -452,13 +472,23 @@
                                     <tr>
                                         <th>NIP</th>
                                         <th>Nama Karyawan</th>
-                                        <th class="text-end">Pokok</th>
+                                        <th class="text-end">Gaji Pokok</th>
                                         <th class="text-end">Tj.Jabatan</th>
+                                        <th class="text-end">Tj.Makan</th>
+                                        <th class="text-end">Lembur</th>
                                         <th class="text-center">Hadir/Cuti</th>
-                                        <th class="text-end">OT 150%</th>
-                                        <th class="text-end">OT 200%</th>
-                                        <th class="text-end">Pendapatan</th>
-                                        <th class="text-end">Potongan</th>
+                                        <th class="text-end">Pot.Absen</th>
+                                        <th class="text-end">Pot.Izin</th>
+                                        <th class="text-end">Pot.Terlambat</th>
+                                        <th class="text-end">Pot.BPJS</th>
+                                        <th class="text-end">Pot.Pajak</th>
+                                        <th class="text-end">Pot.Pinjaman</th>
+                                        <th class="text-end">Pot.Sakit</th>
+                                        <th class="text-end">Pot.Serikat</th>
+                                        <th class="text-end">Pot.Lain</th>
+                                        <th class="text-end">Bonus</th>
+                                        <th class="text-end fw-bold">Total Pendapatan</th>
+                                        <th class="text-end fw-bold">Total Potongan</th>
                                         <th class="text-end fw-bold">Gaji Bersih</th>
                                     </tr>
                                 </thead>
@@ -469,8 +499,8 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-primary" id="btnSubmitBulkGenerate">
-                        <i class='bx bx-check-circle me-1'></i> Proses & Simpan Semua Payroll
+                            <button type="button" class="btn btn-primary" id="btnSubmitBulkGenerate">
+                        <i class='bx bx-check-circle me-1'></i> Simpan Semua sebagai Draft
                     </button>
                 </div>
             </div>
@@ -616,6 +646,7 @@
                 console.log('🔘 Submit Bulk Generate clicked');
                 submitBulkGenerate();
             });
+            $(document).on('input', '.auto-edit', updateAutoPreviewTotals);
             $(document).on('click', '.btn-view-detail', function() {
                 let id = $(this).data('id');
                 console.log('🔘 View Detail clicked for ID:', id);
@@ -636,6 +667,14 @@
                 console.log('🔘 Delete Payroll clicked for ID:', id);
                 deletePayroll(id);
             });
+            $(document).on('change', '#selectAllDrafts, #selectAllDraftsMobile, #selectAllDraftRows', function() {
+                const checked = this.checked;
+                $('#payrollTableBody .draft-payroll-checkbox, #mobileView .draft-payroll-checkbox').prop('checked', checked);
+                $('#selectAllDrafts, #selectAllDraftsMobile, #selectAllDraftRows').prop('checked', checked);
+                updateBulkDeleteSelection();
+            });
+            $(document).on('change', '.draft-payroll-checkbox', updateBulkDeleteSelection);
+            $(document).on('click', '.bulk-delete-button', bulkDeletePayrolls);
             $(document).on('click', '.btn-upload-proof', function() {
                 let id = $(this).data('id');
                 console.log('🔘 Upload Proof clicked for ID:', id);
@@ -672,9 +711,12 @@
                 });
                 loadPayrolls();
             });
+            $('#payrollPerPage').on('change', function() {
+                loadPayrolls(1);
+            });
             $('.earnings-field, .deduction-field').on('input', calculateTotals);
 
-            $('#employee_id').on('change', function() {
+            $('#btnGenerateAuto').on('click', function() {
                 let empId = $(this).val();
                 let salary = $(this).find(':selected').data('salary');
                 console.log('👤 Employee changed:', {
@@ -786,16 +828,26 @@
                             return `<tr>
                                 <td>${escapeHtml(row.employee_code || '-')}</td>
                                 <td>${escapeHtml(row.name || '-')}</td>
-                                <td class="text-end">${formatAutoMoney(row.basic_salary)}</td>
-                                <td class="text-end">${formatAutoMoney(row.allowance_position)}</td>
+                                <td>${autoEditInput(row, 'basic_salary', 'Gaji pokok')}</td>
+                                <td>${autoEditInput(row, 'allowance_position', 'Tunjangan jabatan')}</td>
+                                <td>${autoEditInput(row, 'allowance_meal', 'Tunjangan makan')}</td>
+                                <td>${autoEditInput(row, 'overtime_pay', 'Lembur')}</td>
                                 <td class="text-center">${row.total_days_present || 0}/${row.days_leave || 0}</td>
-                                <td class="text-end">${formatAutoMoney(row.overtime_150_pay)}</td>
-                                <td class="text-end">${formatAutoMoney(row.overtime_200_pay)}</td>
-                                <td class="text-end">${formatAutoMoney(row.total_earnings)}</td>
-                                <td class="text-end">${formatAutoMoney(row.total_deductions)}</td>
-                                <td class="text-end fw-bold text-success">${formatAutoMoney(row.net_salary)}</td>
+                                <td>${autoEditInput(row, 'deduction_absent', 'Potongan absen')}</td>
+                                <td>${autoEditInput(row, 'deduction_permission', 'Potongan izin')}</td>
+                                <td>${autoEditInput(row, 'deduction_late', 'Potongan terlambat')}</td>
+                                <td>${autoEditInput(row, 'deduction_bpjs', 'Potongan BPJS')}</td>
+                                <td>${autoEditInput(row, 'deduction_tax', 'Potongan pajak')}</td>
+                                <td>${autoEditInput(row, 'deduction_loan', 'Potongan pinjaman')}</td>
+                                <td>${autoEditInput(row, 'deduction_sick_leave', 'Potongan sakit')}</td>
+                                <td>${autoEditInput(row, 'deduction_union', 'Potongan serikat')}</td>
+                                <td>${autoEditInput(row, 'deduction_others', 'Potongan lain')}</td>
+                                <td>${autoEditInput(row, 'bonus', 'Bonus')}</td>
+                                <td class="text-end fw-bold auto-total-earnings">${formatAutoMoney(row.total_earnings)}</td>
+                                <td class="text-end fw-bold auto-total-deductions">${formatAutoMoney(row.total_deductions)}</td>
+                                <td class="text-end fw-bold text-success auto-net-salary">${formatAutoMoney(row.net_salary)}</td>
                             </tr>`;
-                        }).join('') : '<tr><td colspan="10" class="text-center text-muted">Tidak ada karyawan aktif</td></tr>');
+                        }).join('') : '<tr><td colspan="20" class="text-center text-muted">Tidak ada karyawan aktif</td></tr>');
                         $('#autoPreviewContainer').show();
                     })
                     .fail(function(xhr) {
@@ -824,7 +876,17 @@
                 $.ajax({
                     url: '/api/payroll/bulk-generate',
                     method: 'POST',
-                    data: { period_month: period, payment_date: paymentDate, _token: $('meta[name="csrf-token"]').attr('content') }
+                        data: {
+                            period_month: period,
+                            payment_date: paymentDate,
+                            edits: $('.auto-edit').toArray().reduce(function(edits, input) {
+                                const id = $(input).data('employee-id');
+                                edits[id] = edits[id] || {};
+                                edits[id][$(input).data('field')] = parseAutoMoney(input.value);
+                                return edits;
+                            }, {}),
+                            _token: $('meta[name="csrf-token"]').attr('content')
+                        }
                 }).done(function(res) {
                     const result = res.data || {};
                     if (res.success || result.errors?.length) {
@@ -836,8 +898,8 @@
                     }
                 }).fail(function(xhr) {
                     toastr.error(xhr.responseJSON?.message || 'Generate payroll gagal');
-                }).always(function() {
-                    button.prop('disabled', false).html('<i class="bx bx-check-circle me-1"></i> Proses & Simpan Semua Payroll');
+                        }).always(function() {
+                        button.prop('disabled', false).html('<i class="bx bx-check-circle me-1"></i> Simpan Semua sebagai Draft');
                 });
             }
 
@@ -880,7 +942,7 @@
                 currentPage = page;
                 let params = {
                     page: page,
-                    per_page: 10,
+                    per_page: $('#payrollPerPage').val() === 'all' ? 'all' : (Number($('#payrollPerPage').val()) || 10),
                     search: $('#searchInput').val(),
                     period: $('#filterPeriod').val(),
                     status: $('#filterStatus').val()
@@ -895,20 +957,21 @@
                     .done(function(res) {
                         console.log('✅ Payrolls loaded:', res);
                         if (res.success) {
-                            console.log(`📊 Total payrolls: ${res.data.data.length} of ${res.data.total}`);
+                            const payrollRows = Array.isArray(res.data) ? res.data : res.data.data;
+                            console.log(`📊 Total payrolls: ${payrollRows.length} of ${Array.isArray(res.data) ? payrollRows.length : res.data.total}`);
                             console.log('Data structure:', {
                                 current_page: res.data.current_page,
                                 last_page: res.data.last_page,
                                 per_page: res.data.per_page,
                                 total: res.data.total
                             });
-                            renderTable(res.data.data);
+                            renderTable(payrollRows);
                             renderPagination(res.data);
-                            renderMobileCards(res.data.data);
+                            renderMobileCards(payrollRows);
                         } else {
                             console.warn('⚠️ API returned success=false:', res);
                             $('#payrollTableBody').html(
-                                '<tr><td colspan="7" class="text-center text-warning">Tidak ada data</td></tr>'
+                                '<tr><td colspan="8" class="text-center text-warning">Tidak ada data</td></tr>'
                             );
                         }
                     })
@@ -919,7 +982,7 @@
                         console.error('Response:', xhr.responseJSON);
                         console.error('Response Text:', xhr.responseText);
                         $('#payrollTableBody').html(
-                            '<tr><td colspan="7" class="text-center text-danger">Error: ' + (xhr
+                            '<tr><td colspan="8" class="text-center text-danger">Error: ' + (xhr
                                 .responseJSON?.message || xhr.statusText || 'Gagal memuat data') +
                             '</td></tr>');
                         toastr.error('Gagal memuat data payroll: ' + (xhr.responseJSON?.message || xhr
@@ -932,7 +995,7 @@
                 if (payrolls.length === 0) {
                     console.log('📭 No payroll data to display');
                     $('#payrollTableBody').html(
-                        '<tr><td colspan="7" class="text-center">Tidak ada data payroll</td></tr>');
+                        '<tr><td colspan="8" class="text-center">Tidak ada data payroll</td></tr>');
                     return;
                 }
 
@@ -973,16 +1036,18 @@
                     }
 
                     html += `<tr>
-                <td>${p.payroll_code}</td>
-                <td><div class="fw-bold">${p.employee.name}</div><small class="text-muted">${p.employee.employee_code}</small></td>
+                <td>${p.status === 'draft' ? `<input class="form-check-input draft-payroll-checkbox" type="checkbox" value="${p.id}" aria-label="Pilih payroll ${p.payroll_code || p.id}">` : ''}</td>
+                <td><span class="fw-semibold">${p.payroll_code || '-'}</span></td>
+                <td><div class="fw-bold">${p.employee?.name || '-'}</div><small class="text-muted">MIF: ${p.employee?.employee_code || '-'}</small></td>
                 <td>${formatPeriod(p.period_month)}</td>
                 <td>${formatDate(p.payment_date)}</td>
-                <td class="text-end fw-bold text-primary">${formatCurrency(p.net_salary)}</td>
-                <td>${statusBadge[p.status]}</td>
-                <td>${actions}</td>
+                <td class="text-end fw-bold text-primary text-nowrap">${formatCurrency(p.net_salary)}</td>
+                <td>${statusBadge[p.status] || '<span class="badge bg-secondary">Tidak diketahui</span>'}</td>
+                <td><div class="d-flex gap-1">${actions}</div></td>
             </tr>`;
                 });
                 $('#payrollTableBody').html(html);
+                updateBulkDeleteSelection();
                 console.log('✅ Table rendered successfully');
             }
 
@@ -1003,18 +1068,18 @@
                     let actions = '';
                     if (p.status === 'draft') {
                         actions = `
-                            <div class="btn-group w-100" role="group">
-                                <button class="btn btn-sm btn-info btn-view-detail" data-id="${p.id}" title="Lihat">
-                                    <i class='bx bx-show'></i>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-sm btn-outline-primary btn-view-detail" data-id="${p.id}">
+                                    <i class='bx bx-show me-1'></i> Lihat detail
                                 </button>
-                                <button class="btn btn-sm btn-warning btn-edit-payroll" data-id="${p.id}" title="Edit">
-                                    <i class='bx bx-edit'></i>
+                                <button class="btn btn-sm btn-outline-warning btn-edit-payroll" data-id="${p.id}">
+                                    <i class='bx bx-edit me-1'></i> Edit draft
                                 </button>
-                                <button class="btn btn-sm btn-success btn-send-notification" data-id="${p.id}" title="Kirim WA">
-                                    <i class='bx bxl-whatsapp'></i>
+                                <button class="btn btn-sm btn-outline-success btn-send-notification" data-id="${p.id}">
+                                    <i class='bx bxl-whatsapp me-1'></i> Kirim WhatsApp
                                 </button>
-                                <button class="btn btn-sm btn-danger btn-delete-payroll" data-id="${p.id}" title="Hapus">
-                                    <i class='bx bx-trash'></i>
+                                <button class="btn btn-sm btn-outline-danger btn-delete-payroll" data-id="${p.id}">
+                                    <i class='bx bx-trash me-1'></i> Hapus draft
                                 </button>
                             </div>
                         `;
@@ -1050,8 +1115,9 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
                                     <div class="flex-grow-1">
-                                        <h6 class="mb-1 fw-bold">${p.employee.name}</h6>
-                                        <small class="text-muted">${p.employee.employee_code}</small>
+                                        ${p.status === 'draft' ? `<label class="form-check-label mb-2"><input class="form-check-input draft-payroll-checkbox me-1" type="checkbox" value="${p.id}" aria-label="Pilih payroll ${p.payroll_code || p.id}"> Pilih draft</label>` : ''}
+                                        <h6 class="mb-1 fw-bold">${p.employee?.name || '-'}</h6>
+                                        <small class="text-muted">MIF: ${p.employee?.employee_code || '-'}</small>
                                     </div>
                                     <div>${statusBadge[p.status]}</div>
                                 </div>
@@ -1059,7 +1125,7 @@
                                     <div class="row g-2">
                                         <div class="col-6">
                                             <small class="text-muted d-block">Kode</small>
-                                            <span class="fw-semibold">${p.payroll_code}</span>
+                                            <span class="fw-semibold">${p.payroll_code || '-'}</span>
                                         </div>
                                         <div class="col-6">
                                             <small class="text-muted d-block">Periode</small>
@@ -1071,7 +1137,7 @@
                                         </div>
                                         <div class="col-6">
                                             <small class="text-muted d-block">Gaji Bersih</small>
-                                            <span class="fw-bold text-primary">${formatCurrency(p.net_salary)}</span>
+                                            <span class="fw-bold text-primary fs-6">${formatCurrency(p.net_salary)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1083,9 +1149,66 @@
                     `;
                 });
                 $('#mobileView').html(html);
+                updateBulkDeleteSelection();
+            }
+
+            function updateBulkDeleteSelection() {
+                const ids = [...new Set($('#payrollTableBody .draft-payroll-checkbox:checked, #mobileView .draft-payroll-checkbox:checked').map(function() { return Number(this.value); }).get())];
+                $('.selected-draft-count').text(ids.length);
+                $('.bulk-delete-button').prop('disabled', ids.length === 0);
+                const total = $('#payrollTableBody .draft-payroll-checkbox, #mobileView .draft-payroll-checkbox').length;
+                const allSelected = total > 0 && $('#payrollTableBody .draft-payroll-checkbox:checked, #mobileView .draft-payroll-checkbox:checked').length === total;
+                $('#selectAllDrafts, #selectAllDraftsMobile, #selectAllDraftRows').prop('checked', allSelected);
+            }
+
+            function bulkDeletePayrolls() {
+                const ids = [...new Set($('#payrollTableBody .draft-payroll-checkbox:checked, #mobileView .draft-payroll-checkbox:checked').map(function() { return Number(this.value); }).get())];
+                if (ids.some(id => !Number.isSafeInteger(id) || id < 1)) {
+                    toastr.error('ID payroll tidak valid');
+                    return;
+                }
+                if (!ids.length) return;
+
+                Swal.fire({
+                    title: 'Hapus payroll terpilih?',
+                    text: `${ids.length} payroll draft di halaman ini akan dihapus permanen.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, hapus',
+                    cancelButtonText: 'Batal',
+                    confirmButtonColor: '#d33'
+                }).then(function(result) {
+                    if (!result.isConfirmed) return;
+                    $('.bulk-delete-button').prop('disabled', true);
+                    const batches = Array.from({ length: Math.ceil(ids.length / 100) }, (_, index) => ids.slice(index * 100, (index + 1) * 100));
+                    let deleted = 0;
+                    let skipped = 0;
+                    (async function() {
+                        try {
+                            for (const batch of batches) {
+                                const res = await $.ajax({
+                                    url: '/api/payroll/bulk',
+                                    method: 'DELETE',
+                                    data: { ids: batch, _token: $('meta[name="csrf-token"]').attr('content') }
+                                });
+                                deleted += res.data?.deleted || 0;
+                                skipped += res.data?.skipped || 0;
+                            }
+                            toastr.success(`${deleted} payroll dihapus${skipped ? `, ${skipped} dilewati` : ''}`);
+                            loadPayrolls(currentPage);
+                        } catch (xhr) {
+                            toastr.error(xhr.responseJSON?.message || `Gagal menghapus batch payroll ${Math.floor(deleted / 100) + 1}`);
+                            loadPayrolls(currentPage);
+                        }
+                    })();
+                });
             }
 
             function renderPagination(data) {
+                if (Array.isArray(data)) {
+                    $('#pagination, #mobilePagination').html(`<div class="text-center text-muted small">Menampilkan semua ${data.length} data</div>`);
+                    return;
+                }
                 if (data.last_page <= 1) {
                     $('#pagination').html('');
                     $('#mobilePagination').html('');
@@ -1630,6 +1753,42 @@
                 return 'Rp ' + parseFloat(value || 0).toLocaleString('id-ID', {
                     minimumFractionDigits: 0,
                     maximumFractionDigits: 0
+                });
+            }
+
+            function parseAutoMoney(value) {
+                const normalized = String(value).replace(/[^\d,.-]/g, '');
+                if (normalized.includes(',')) {
+                    return Number(normalized.replace(/\./g, '').replace(',', '.')) || 0;
+                }
+                if ((normalized.match(/\./g) || []).length > 1 || /\.\d{3}$/.test(normalized)) {
+                    return Number(normalized.replace(/\./g, '')) || 0;
+                }
+                return Number(normalized) || 0;
+            }
+
+            function autoEditInput(row, field, label) {
+                return `<input type="text" inputmode="decimal" class="form-control form-control-sm auto-edit" data-employee-id="${row.employee_id}" data-field="${field}" value="${formatAutoMoney(row[field])}" aria-label="${label} ${escapeHtml(row.name)}">`;
+            }
+
+            $(document).on('focus', '.auto-edit', function() {
+                this.value = String(parseAutoMoney(this.value));
+            }).on('blur', '.auto-edit', function() {
+                this.value = formatAutoMoney(parseAutoMoney(this.value));
+            });
+
+            function updateAutoPreviewTotals() {
+                $('#autoPreviewTableBody tr').each(function() {
+                    let earnings = 0;
+                    let deductions = 0;
+                    $(this).find('.auto-edit').each(function() {
+                        const value = parseAutoMoney(this.value);
+                        if ($(this).data('field').startsWith('deduction_')) deductions += value;
+                        else earnings += value;
+                    });
+                    $(this).find('.auto-total-earnings').text(formatAutoMoney(earnings));
+                    $(this).find('.auto-total-deductions').text(formatAutoMoney(deductions));
+                    $(this).find('.auto-net-salary').text(formatAutoMoney(earnings - deductions));
                 });
             }
 

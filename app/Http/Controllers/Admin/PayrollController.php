@@ -49,12 +49,15 @@ class PayrollController extends Controller
         $period = $request->get('period');
         $status = $request->get('status');
 
-        $payrolls = Payroll::with(['employee.department', 'employee.position'])
+        $query = Payroll::with(['employee.department', 'employee.position'])
+            ->whereHas('employee.position', fn($query) => $query->whereIn('name', ['Operator', 'Staff']))
             ->when($search, function ($query, $search) {
-                return $query->whereHas('employee', function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('employee_code', 'like', "%{$search}%");
-                })->orWhere('payroll_code', 'like', "%{$search}%");
+                return $query->where(function ($q) use ($search) {
+                    $q->whereHas('employee', function ($employeeQuery) use ($search) {
+                        $employeeQuery->where('name', 'like', "%{$search}%")
+                            ->orWhere('employee_code', 'like', "%{$search}%");
+                    })->orWhere('payroll_code', 'like', "%{$search}%");
+                });
             })
             ->when($period, function ($query, $period) {
                 return $query->where('period_month', $period);
@@ -63,8 +66,11 @@ class PayrollController extends Controller
                 return $query->where('status', $status);
             })
             ->orderBy('period_month', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage);
+            ->orderBy('created_at', 'desc');
+
+        $payrolls = $perPage === 'all'
+            ? $query->get()
+            : $query->paginate(in_array((int) $perPage, [10, 25, 100], true) ? (int) $perPage : 10);
 
         return response()->json([
             'success' => true,
@@ -78,7 +84,11 @@ class PayrollController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'employee_id' => 'required|exists:employees,id',
+            'employee_id' => ['required', 'exists:employees,id', function ($attribute, $value, $fail) {
+                if (!Employee::whereKey($value)->whereHas('position', fn($query) => $query->whereIn('name', ['Operator', 'Staff']))->exists()) {
+                    $fail('Payroll hanya tersedia untuk jabatan Operator dan Staff.');
+                }
+            }],
             'period_month' => 'required|date_format:Y-m',
             'payment_date' => 'required|date',
             'basic_salary' => 'required|numeric|min:0',
@@ -223,7 +233,9 @@ class PayrollController extends Controller
      */
     public function show($id)
     {
-        $payroll = Payroll::with(['employee.department', 'employee.position', 'creator'])->find($id);
+        $payroll = Payroll::with(['employee.department', 'employee.position', 'creator'])
+            ->whereHas('employee.position', fn($query) => $query->whereIn('name', ['Operator', 'Staff']))
+            ->find($id);
 
         if (!$payroll) {
             return response()->json([
@@ -243,7 +255,7 @@ class PayrollController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $payroll = Payroll::find($id);
+        $payroll = Payroll::whereHas('employee.position', fn($query) => $query->whereIn('name', ['Operator', 'Staff']))->find($id);
 
         if (!$payroll) {
             return response()->json([
@@ -354,7 +366,7 @@ class PayrollController extends Controller
      */
     public function destroy($id)
     {
-        $payroll = Payroll::find($id);
+        $payroll = Payroll::whereHas('employee.position', fn($query) => $query->whereIn('name', ['Operator', 'Staff']))->find($id);
 
         if (!$payroll) {
             return response()->json([
@@ -379,12 +391,33 @@ class PayrollController extends Controller
         ]);
     }
 
+    public function bulkDestroy(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1|max:100',
+            'ids.*' => 'required|integer|distinct|min:1',
+        ]);
+
+        $deleted = Payroll::whereIn('id', $validated['ids'])
+            ->where('status', 'draft')
+            ->whereHas('employee.position', fn($query) => $query->whereIn('name', ['Operator', 'Staff']))
+            ->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$deleted} payroll draft dihapus.",
+            'data' => ['deleted' => $deleted, 'skipped' => count($validated['ids']) - $deleted],
+        ]);
+    }
+
     /**
      * Send payroll notification via WhatsApp
      */
     public function sendNotification($id)
     {
-        $payroll = Payroll::with('employee')->find($id);
+        $payroll = Payroll::with('employee')
+            ->whereHas('employee.position', fn($query) => $query->whereIn('name', ['Operator', 'Staff']))
+            ->find($id);
 
         if (!$payroll) {
             return response()->json([
@@ -448,6 +481,7 @@ class PayrollController extends Controller
     public function getEmployees()
     {
         $employees = Employee::where('status', 'active')
+            ->whereHas('position', fn($query) => $query->whereIn('name', ['Operator', 'Staff']))
             ->select('id', 'employee_code', 'name', 'salary_base')
             ->orderBy('name')
             ->get();
@@ -472,7 +506,7 @@ class PayrollController extends Controller
      */
     public function uploadProof(Request $request, $id)
     {
-        $payroll = Payroll::find($id);
+        $payroll = Payroll::whereHas('employee.position', fn($query) => $query->whereIn('name', ['Operator', 'Staff']))->find($id);
 
         if (!$payroll) {
             return response()->json([
@@ -546,7 +580,7 @@ class PayrollController extends Controller
      */
     public function deleteProof($id)
     {
-        $payroll = Payroll::find($id);
+        $payroll = Payroll::whereHas('employee.position', fn($query) => $query->whereIn('name', ['Operator', 'Staff']))->find($id);
 
         if (!$payroll) {
             return response()->json([
@@ -713,7 +747,11 @@ class PayrollController extends Controller
     public function calculateAuto(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'employee_id' => 'required|exists:employees,id',
+            'employee_id' => ['required', 'exists:employees,id', function ($attribute, $value, $fail) {
+                if (!Employee::whereKey($value)->whereHas('position', fn($query) => $query->whereIn('name', ['Operator', 'Staff']))->exists()) {
+                    $fail('Payroll hanya tersedia untuk jabatan Operator dan Staff.');
+                }
+            }],
             'period_month' => 'required|date_format:Y-m',
             'permission_hours' => 'nullable|integer|min:0',
             'no_work_no_pay_days' => 'nullable|numeric|min:0',
@@ -747,9 +785,12 @@ class PayrollController extends Controller
             return response()->json(['success' => false, 'message' => 'Periode harus berformat YYYY-MM'], 422);
         }
 
-        $rows = Employee::where('status', 'active')->orderBy('name')->get()->map(function ($employee) use ($request) {
+        $rows = Employee::where('status', 'active')
+            ->whereHas('position', fn($query) => $query->whereIn('name', ['Operator', 'Staff']))
+            ->orderBy('employee_code')->get()->map(function ($employee) use ($request) {
             $calculation = $this->calculator->calculate($employee, $request->period_month);
             return array_merge([
+                'employee_id' => $employee->id,
                 'employee_code' => $employee->employee_code,
                 'name' => $employee->name,
                 'department' => $employee->department?->name,
@@ -769,6 +810,21 @@ class PayrollController extends Controller
         $validator = Validator::make($request->all(), [
             'period_month' => 'required|date_format:Y-m',
             'payment_date' => 'required|date',
+            'edits' => 'nullable|array',
+            'edits.*.basic_salary' => 'sometimes|numeric|min:0',
+            'edits.*.allowance_position' => 'sometimes|numeric|min:0',
+            'edits.*.bonus' => 'sometimes|numeric|min:0',
+            'edits.*.allowance_meal' => 'sometimes|numeric|min:0',
+            'edits.*.overtime_pay' => 'sometimes|numeric|min:0',
+            'edits.*.deduction_late' => 'sometimes|numeric|min:0',
+            'edits.*.deduction_absent' => 'sometimes|numeric|min:0',
+            'edits.*.deduction_permission' => 'sometimes|numeric|min:0',
+            'edits.*.deduction_bpjs' => 'sometimes|numeric|min:0',
+            'edits.*.deduction_tax' => 'sometimes|numeric|min:0',
+            'edits.*.deduction_loan' => 'sometimes|numeric|min:0',
+            'edits.*.deduction_sick_leave' => 'sometimes|numeric|min:0',
+            'edits.*.deduction_union' => 'sometimes|numeric|min:0',
+            'edits.*.deduction_others' => 'sometimes|numeric|min:0',
         ]);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'message' => 'Validasi gagal', 'errors' => $validator->errors()], 422);
@@ -779,7 +835,9 @@ class PayrollController extends Controller
         $errors = [];
 
         DB::transaction(function () use ($request, &$created, &$skipped, &$errors) {
-            Employee::where('status', 'active')->orderBy('id')->get()->each(function ($employee) use ($request, &$created, &$skipped, &$errors) {
+            Employee::where('status', 'active')
+                ->whereHas('position', fn($query) => $query->whereIn('name', ['Operator', 'Staff']))
+                ->orderBy('employee_code')->get()->each(function ($employee) use ($request, &$created, &$skipped, &$errors) {
                 if (Payroll::where('employee_id', $employee->id)->where('period_month', $request->period_month)->exists()) {
                     $skipped++;
                     return;
@@ -787,6 +845,18 @@ class PayrollController extends Controller
 
                 try {
                     $data = $this->calculator->calculate($employee, $request->period_month);
+                    foreach ($request->input("edits.{$employee->id}", []) as $field => $value) {
+                        $data[$field] = $value;
+                    }
+                    $data['total_earnings'] = ($data['basic_salary'] ?? 0)
+                        + ($data['allowance_position'] ?? 0) + ($data['bonus'] ?? 0)
+                        + ($data['allowance_meal'] ?? 0) + ($data['overtime_pay'] ?? 0);
+                    $data['total_deductions'] = ($data['deduction_absent'] ?? 0)
+                        + ($data['deduction_permission'] ?? 0) + ($data['deduction_late'] ?? 0)
+                        + ($data['deduction_bpjs'] ?? 0) + ($data['deduction_tax'] ?? 0)
+                        + ($data['deduction_loan'] ?? 0) + ($data['deduction_sick_leave'] ?? 0)
+                        + ($data['deduction_union'] ?? 0) + ($data['deduction_others'] ?? 0);
+                    $data['net_salary'] = $data['total_earnings'] - $data['total_deductions'];
                     $data['payroll_code'] = Payroll::generatePayrollCode($request->period_month);
                     $data['payment_date'] = $request->payment_date;
                     $data['status'] = 'draft';

@@ -32,11 +32,14 @@ class PayrollExport implements FromQuery, WithHeadings, WithMapping, WithStyles,
         $status = $this->request->get('status');
 
         return Payroll::with(['employee.department', 'employee.position'])
+            ->whereHas('employee.position', fn($query) => $query->whereIn('name', ['Operator', 'Staff']))
             ->when($search, function ($query, $search) {
-                return $query->whereHas('employee', function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('employee_code', 'like', "%{$search}%");
-                })->orWhere('payroll_code', 'like', "%{$search}%");
+                return $query->where(function ($q) use ($search) {
+                    $q->whereHas('employee', function ($employeeQuery) use ($search) {
+                        $employeeQuery->where('name', 'like', "%{$search}%")
+                            ->orWhere('employee_code', 'like', "%{$search}%");
+                    })->orWhere('payroll_code', 'like', "%{$search}%");
+                });
             })
             ->when($period, function ($query, $period) {
                 return $query->where('period_month', $period);

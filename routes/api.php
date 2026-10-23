@@ -253,6 +253,7 @@ Route::middleware(['web', 'auth', 'manager'])->prefix('payroll')->group(function
     Route::post('/calculate-auto', [PayrollController::class, 'calculateAuto']);
     Route::get('/bulk-preview', [PayrollController::class, 'bulkPreview']);
     Route::post('/bulk-generate', [PayrollController::class, 'bulkGenerate']);
+    Route::delete('/bulk', [PayrollController::class, 'bulkDestroy']);
     Route::get('/{id}', [PayrollController::class, 'show']);
     Route::put('/{id}', [PayrollController::class, 'update']);
     Route::delete('/{id}', [PayrollController::class, 'destroy']);
