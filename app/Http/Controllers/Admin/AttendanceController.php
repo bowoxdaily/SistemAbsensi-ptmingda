@@ -1165,51 +1165,35 @@ class AttendanceController extends Controller
             // Sesudah: 1 query UPDATE tunggal dengan CASE/WHEN untuk semua attendance sekaligus.
             if (!empty($attendanceUpdates)) {
                 $ids           = array_keys($attendanceUpdates);
-                $checkOutCase  = 'CASE id';
-                $photoCase     = 'CASE id';
-                $notesCase     = 'CASE id';
-                $overtimeMinutesCase = 'CASE id';
-                $overtimeCategoryCase = 'CASE id';
-                $bindings      = [];
+                $cases = [
+                    'check_out' => 'CASE id',
+                    'photo_out' => 'CASE id',
+                    'overtime_minutes' => 'CASE id',
+                    'overtime_category' => 'CASE id',
+                    'notes' => 'CASE id',
+                ];
+                $bindings = [];
 
-                foreach ($attendanceUpdates as $attId => $fields) {
-                    $checkOutCase .= " WHEN ? THEN ?";
-                    $bindings[]    = $attId;
-                    $bindings[]    = $fields['check_out'];
-
-                    $photoCase    .= " WHEN ? THEN ?";
-                    $bindings[]    = $attId;
-                    $bindings[]    = $fields['photo_out'];
-
-                    $notesCase    .= " WHEN ? THEN ?";
-                    $bindings[]    = $attId;
-                    $bindings[]    = $fields['notes'];
-
-                    $overtimeMinutesCase .= " WHEN ? THEN ?";
-                    $bindings[] = $attId;
-                    $bindings[] = $fields['overtime_minutes'];
-
-                    $overtimeCategoryCase .= " WHEN ? THEN ?";
-                    $bindings[] = $attId;
-                    $bindings[] = $fields['overtime_category'];
+                foreach ($cases as $field => &$case) {
+                    foreach ($attendanceUpdates as $attId => $fields) {
+                        $case .= ' WHEN ? THEN ?';
+                        $bindings[] = $attId;
+                        $bindings[] = $fields[$field];
+                    }
+                    $case .= ' END';
                 }
-
-                $checkOutCase .= ' END';
-                $photoCase    .= ' END';
-                $notesCase    .= ' END';
-                $overtimeMinutesCase .= ' END';
-                $overtimeCategoryCase .= ' END';
+                unset($case);
 
                 $placeholders = implode(',', array_fill(0, count($ids), '?'));
                 $bindings     = array_merge($bindings, $ids);
 
                 \Illuminate\Support\Facades\DB::statement(
                     "UPDATE attendances
-                     SET check_out = {$checkOutCase},
-                         photo_out = {$photoCase},
-                         overtime_minutes = {$overtimeMinutesCase},
-                         overtime_category = {$overtimeCategoryCase},
-                         notes = {$notesCase}
+                     SET check_out = {$cases['check_out']},
+                         photo_out = {$cases['photo_out']},
+                         overtime_minutes = {$cases['overtime_minutes']},
+                         overtime_category = {$cases['overtime_category']},
+                         notes = {$cases['notes']}
                      WHERE id IN ({$placeholders})",
                     $bindings
                 );
