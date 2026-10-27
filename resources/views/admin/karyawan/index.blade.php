@@ -1171,6 +1171,17 @@
                                 </tr>
                             </table>
 
+                            <h6 class="text-primary mb-3 mt-4">Cuti Tahunan</h6>
+                            <table class="table table-sm table-borderless">
+                                <tr><th width="45%">Hak Cuti</th><td id="detailAnnualLeaveEntitlement">-</td></tr>
+                                <tr><th>Hutang sebelum hak aktif</th><td id="detailAnnualLeaveDebt">-</td></tr>
+                                <tr><th>Tanggal hutang</th><td id="detailAnnualLeaveDebtDates">-</td></tr>
+                                <tr><th>Periode Hak</th><td id="detailAnnualLeavePeriod">-</td></tr>
+                                <tr><th>Terpakai</th><td id="detailAnnualLeaveUsed">-</td></tr>
+                                <tr><th>Tanggal pemakaian</th><td id="detailAnnualLeaveUsedDates">-</td></tr>
+                                <tr><th>Sisa</th><td id="detailAnnualLeaveRemaining">-</td></tr>
+                            </table>
+
                             <h6 class="text-primary mb-3 mt-4">Rekap Absensi</h6>
                             <table class="table table-sm table-borderless">
                                 <tr>
@@ -2546,6 +2557,23 @@
                     $('#detailTaxNpwp').text(k.tax_npwp || '-');
                     $('#detailBpjsKesehatan').text(k.bpjs_kesehatan || '-');
                     $('#detailBpjsKetenagakerjaan').text(k.bpjs_ketenagakerjaan || '-');
+
+                    const annualLeave = k.annual_leave || {};
+                    $('#detailAnnualLeaveEntitlement').text(annualLeave.period_start ? `${annualLeave.entitlement} hari` : 'Belum tersedia');
+                    $('#detailAnnualLeaveDebt').text(`${annualLeave.debt ?? 0} hari`);
+                    const formatLeaveDates = (dates) => dates?.length
+                        ? dates.map(formatDateToDisplay).join(', ')
+                        : '-';
+                    $('#detailAnnualLeaveDebtDates').text(formatLeaveDates(annualLeave.debt_dates));
+                    const formatLeavePeriod = (date, offsetMonths = 0) => date
+                        ? new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`).setUTCMonth(new Date(`${date}T00:00:00Z`).getUTCMonth() + offsetMonths))
+                        : '';
+                    $('#detailAnnualLeavePeriod').text(annualLeave.period_start && annualLeave.period_end
+                        ? `${formatLeavePeriod(annualLeave.period_start)} - ${formatLeavePeriod(annualLeave.period_start, 11)}`
+                        : (k.join_date ? `Hak mulai ${formatDateToDisplay(annualLeave.first_entitlement_date)}` : 'Tanggal bergabung belum tersedia'));
+                    $('#detailAnnualLeaveUsed').text(`${annualLeave.used ?? 0} hari`);
+                    $('#detailAnnualLeaveUsedDates').text(formatLeaveDates(annualLeave.used_dates));
+                    $('#detailAnnualLeaveRemaining').text(`${annualLeave.remaining ?? 0} hari`);
 
                     // Rekap Absensi
                     const attendanceSummary = k.attendance_summary || {};

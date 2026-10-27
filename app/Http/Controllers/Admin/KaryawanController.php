@@ -253,6 +253,56 @@ class KaryawanController extends Controller
             'izin' => (int) ($attendanceSummary['izin'] ?? 0),
         ];
 
+        $joinDate = $karyawan->join_date ? \Illuminate\Support\Carbon::parse($karyawan->join_date) : null;
+        $today = today();
+        $positionName = mb_strtoupper($karyawan->position->name ?? '');
+        $annualLeaveEntitlement = str_contains($positionName, 'ASS MEN') || str_contains($positionName, 'ASSISTANT MANAGER')
+            ? 16
+            : (str_contains($positionName, 'KABAG') ? 14 : (str_contains($positionName, 'MANAGER') ? 18 : 12));
+        $firstEntitlementDate = $joinDate?->copy()->addYear();
+        $leaveStart = null;
+        if ($firstEntitlementDate && $firstEntitlementDate->lte($today)) {
+            $leaveStart = $firstEntitlementDate->copy()->addYears($firstEntitlementDate->diffInYears($today));
+            if ($leaveStart->gt($today)) {
+                $leaveStart->subYear();
+            }
+        }
+        $leaveEnd = $leaveStart?->copy()->addYear()->subDay();
+        $annualLeaveDebtDates = $leaveStart && $joinDate && $leaveStart->equalTo($firstEntitlementDate)
+            ? Attendance::query()
+                ->where('employee_id', $karyawan->id)
+                ->where('status', 'cuti_tahunan')
+                ->whereBetween('attendance_date', [$joinDate->toDateString(), $firstEntitlementDate->copy()->subDay()->toDateString()])
+                ->orderBy('attendance_date')
+                ->pluck('attendance_date')
+                ->map(fn ($date) => \Illuminate\Support\Carbon::parse($date)->toDateString())
+                ->all()
+            : [];
+        $annualLeaveUsedDates = $leaveStart
+            ? Attendance::query()
+                ->where('employee_id', $karyawan->id)
+                ->where('status', 'cuti_tahunan')
+                ->whereBetween('attendance_date', [$leaveStart->toDateString(), $leaveEnd->toDateString()])
+                ->orderBy('attendance_date')
+                ->pluck('attendance_date')
+                ->map(fn ($date) => \Illuminate\Support\Carbon::parse($date)->toDateString())
+                ->all()
+            : [];
+        $annualLeaveDebt = count($annualLeaveDebtDates);
+        $annualLeaveUsed = count($annualLeaveUsedDates);
+
+        $data['annual_leave'] = [
+            'entitlement' => $leaveStart ? $annualLeaveEntitlement : 0,
+            'debt' => $annualLeaveDebt,
+            'debt_dates' => $annualLeaveDebtDates,
+            'used' => $annualLeaveUsed,
+            'used_dates' => $annualLeaveUsedDates,
+            'remaining' => $leaveStart ? max(0, $annualLeaveEntitlement - $annualLeaveDebt - $annualLeaveUsed) : 0,
+            'first_entitlement_date' => $firstEntitlementDate?->toDateString(),
+            'period_start' => $leaveStart?->toDateString(),
+            'period_end' => $leaveEnd?->toDateString(),
+        ];
+
         return response()->json([
             'success' => true,
             'data' => $data

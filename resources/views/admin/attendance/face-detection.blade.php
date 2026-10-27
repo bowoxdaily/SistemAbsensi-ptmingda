@@ -502,7 +502,7 @@
                         } else if (att.check_in || att.status) {
                             // Sudah ada data absensi (check-in atau status sudah tercatat)
                             // Jika status bukan hadir/terlambat/lembur, tidak perlu form check-out
-                            const statusesWithoutCheckOut = ['alpha', 'cuti', 'sakit', 'izin', 'cuti_khusus', 'cuti_bersama', 'off', 'libur'];
+                            const statusesWithoutCheckOut = ['alpha', 'cuti', 'cuti_tahunan', 'sakit', 'izin', 'cuti_khusus', 'cuti_bersama', 'off', 'libur'];
 
                             if (statusesWithoutCheckOut.includes(att.status.toLowerCase())) {
                                 // Status tanpa check-out, sembunyikan semua form

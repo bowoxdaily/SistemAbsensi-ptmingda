@@ -116,11 +116,11 @@
                                     </div>
                                 </div>
                                 <span>Sisa Cuti Tahunan</span>
-                                <h3 class="card-title text-nowrap mb-1">{{ $cutiTersedia - $cutiTerpakai }} Hari</h3>
+                                <h3 class="card-title text-nowrap mb-1">{{ max(0, $cutiTersedia - $cutiTerpakai) }} Hari</h3>
                                 <small class="text-muted fw-semibold">Dari {{ $cutiTersedia }} hari</small>
                                 <div class="progress mt-2" style="height: 6px;">
                                     <div class="progress-bar bg-info"
-                                        style="width: {{ (($cutiTersedia - $cutiTerpakai) / $cutiTersedia) * 100 }}%">
+                                        style="width: {{ $cutiTersedia ? min(100, max(0, (($cutiTersedia - $cutiTerpakai) / $cutiTersedia) * 100)) : 0 }}%">
                                     </div>
                                 </div>
                             </div>
@@ -522,7 +522,7 @@
                                 <small><i class='bx bx-info-circle'></i> <strong>Catatan Penting:</strong></small><br>
                                 <small>✓ Pengajuan akan diproses oleh admin</small><br>
                                 <small>✓ Anda akan menerima notifikasi setelah disetujui/ditolak</small><br>
-                                <small>✓ Sisa cuti tahunan Anda: <strong>{{ $cutiTersedia - $cutiTerpakai }}
+                                <small>✓ Sisa cuti tahunan Anda: <strong>{{ max(0, $cutiTersedia - $cutiTerpakai) }}
                                         hari</strong></small>
                             </div>
 

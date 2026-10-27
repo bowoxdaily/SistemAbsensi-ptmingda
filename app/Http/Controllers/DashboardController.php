@@ -193,6 +193,34 @@ class DashboardController extends Controller
         $today = Carbon::today();
         $thisMonth = Carbon::now()->month;
         $thisYear = Carbon::now()->year;
+        $joinDate = $employee->join_date ? Carbon::parse($employee->join_date) : null;
+        $positionName = mb_strtoupper($employee->position()->value('name') ?? '');
+        $cutiTersedia = str_contains($positionName, 'ASS MEN') || str_contains($positionName, 'ASSISTANT MANAGER')
+            ? 16
+            : (str_contains($positionName, 'KABAG') ? 14 : (str_contains($positionName, 'MANAGER') ? 18 : 12));
+        $firstEntitlementDate = $joinDate?->copy()->addYear();
+        $leaveStart = null;
+        if ($firstEntitlementDate && $firstEntitlementDate->lte($today)) {
+            $leaveStart = $firstEntitlementDate->copy()->addYears($firstEntitlementDate->diffInYears($today));
+            if ($leaveStart->gt($today)) {
+                $leaveStart->subYear();
+            }
+        }
+        $leaveEnd = $leaveStart?->copy()->addYear()->subDay();
+        $cutiHutang = $leaveStart && $joinDate && $leaveStart->equalTo($firstEntitlementDate)
+            ? Attendance::where('employee_id', $employee->id)
+                ->where('status', 'cuti_tahunan')
+                ->whereBetween('attendance_date', [$joinDate->toDateString(), $firstEntitlementDate->copy()->subDay()->toDateString()])
+                ->distinct('attendance_date')
+                ->count('attendance_date')
+            : 0;
+        $cutiTerpakai = $leaveStart
+            ? Attendance::where('employee_id', $employee->id)
+                ->where('status', 'cuti_tahunan')
+                ->whereBetween('attendance_date', [$leaveStart->toDateString(), $leaveEnd->toDateString()])
+                ->distinct('attendance_date')
+                ->count('attendance_date')
+            : 0;
 
         $data = [
             'employee' => $employee,
@@ -218,11 +246,8 @@ class DashboardController extends Controller
                 ->orderBy('attendance_date', 'desc')
                 ->take(10)
                 ->get(),
-            'cutiTersedia' => 12, // Default 12 hari per tahun
-            'cutiTerpakai' => Leave::where('employee_id', $employee->id)
-                ->whereYear('start_date', $thisYear)
-                ->where('status', 'approved')
-                ->sum('total_days'),
+            'cutiTersedia' => $leaveStart ? $cutiTersedia : 0,
+            'cutiTerpakai' => $cutiTerpakai + $cutiHutang,
             'cutiPending' => Leave::where('employee_id', $employee->id)
                 ->where('status', 'pending')
                 ->latest()
