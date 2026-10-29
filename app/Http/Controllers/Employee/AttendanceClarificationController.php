@@ -48,7 +48,7 @@ class AttendanceClarificationController extends Controller
         $validator = Validator::make($request->all(), [
             'attendance_id' => 'required|exists:attendances,id',
             'reason'        => 'required|string|max:1000',
-            'new_status'    => 'required|in:hadir,terlambat,izin,sakit,cuti,alpha,libur,lembur,off,cuti_khusus,cuti_tahunan',
+            'new_status'    => 'required|in:hadir,terlambat,izin,sakit,cuti,alpha,libur,lembur,off,cuti_khusus,cuti_tahunan,cuti_umrah',
             'new_check_in'  => 'required|date_format:H:i',
             'new_check_out' => 'required|date_format:H:i',
             'attachment'    => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',

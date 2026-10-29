@@ -286,7 +286,7 @@ class AttendanceController extends Controller
             'employee_id' => 'required|exists:employees,id',
             'date' => 'nullable|date',
             'check_in_time' => 'nullable|date_format:H:i',
-            'status' => 'nullable|in:hadir,terlambat,izin,sakit,alpha,cuti,libur,cuti_bersama,lembur,off,cuti_khusus,cuti_tahunan',
+            'status' => 'nullable|in:hadir,terlambat,izin,sakit,alpha,cuti,libur,cuti_bersama,lembur,off,cuti_khusus,cuti_tahunan,cuti_umrah',
             'photo' => 'nullable|string', // Base64 image
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
@@ -710,7 +710,7 @@ class AttendanceController extends Controller
             'attendance_date' => 'required|date',
             'check_in' => 'nullable|date_format:H:i',
             'check_out' => 'nullable|date_format:H:i',
-            'status' => 'required|in:hadir,terlambat,izin,sakit,alpha,cuti,libur,cuti_bersama,lembur,off,cuti_khusus,cuti_tahunan',
+            'status' => 'required|in:hadir,terlambat,izin,sakit,alpha,cuti,libur,cuti_bersama,lembur,off,cuti_khusus,cuti_tahunan,cuti_umrah',
             'notes' => 'nullable|string',
         ]);
 
@@ -920,7 +920,7 @@ class AttendanceController extends Controller
                 'attendance_date' => 'required|date',
                 'check_in' => 'nullable',
                 'check_out' => 'nullable',
-                'status' => 'required|in:hadir,terlambat,izin,sakit,cuti,alpha,libur,cuti_bersama,lembur,off,cuti_khusus,cuti_tahunan',
+                'status' => 'required|in:hadir,terlambat,izin,sakit,cuti,alpha,libur,cuti_bersama,lembur,off,cuti_khusus,cuti_tahunan,cuti_umrah',
                 'late_minutes' => 'nullable|integer|min:0',
                 'notes' => 'nullable|string|max:500'
             ]);

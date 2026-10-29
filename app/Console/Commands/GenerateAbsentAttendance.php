@@ -163,7 +163,7 @@ class GenerateAbsentAttendance extends Command
 
             if ($approvedLeave) {
                 // Employee has approved leave, create attendance with leave status
-                $leaveStatus = $approvedLeave->leave_type; // cuti, izin, or sakit
+                $leaveStatus = $approvedLeave->leave_type; // Leave request type maps directly to attendance status.
 
                 $insertData[] = [
                     'employee_id' => $employee->id,

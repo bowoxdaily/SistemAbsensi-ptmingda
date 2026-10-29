@@ -72,7 +72,7 @@ class LeaveController extends Controller
         $employee = Employee::where('user_id', Auth::id())->firstOrFail();
 
         $validated = $request->validate([
-            'leave_type' => 'required|in:cuti,izin,sakit',
+            'leave_type' => 'required|in:cuti,izin,sakit,cuti_umrah',
             'start_date' => 'required|date|after_or_equal:today',
             'end_date' => 'required|date|after_or_equal:start_date',
             'reason' => 'required|string|max:500',

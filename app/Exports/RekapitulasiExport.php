@@ -94,7 +94,7 @@ class RekapitulasiExport implements FromCollection, WithHeadings, WithMapping, W
                 'terlambat' => $attendances->where('status', 'terlambat')->count(),
                 'izin' => $attendances->where('status', 'izin')->count(),
                 'sakit' => $attendances->where('status', 'sakit')->count(),
-                'cuti' => $attendances->whereIn('status', ['cuti', 'cuti_tahunan'])->count(),
+                'cuti' => $attendances->whereIn('status', ['cuti', 'cuti_tahunan', 'cuti_umrah'])->count(),
                 'alpha' => $attendances->where('status', 'alpha')->count(),
             ];
 

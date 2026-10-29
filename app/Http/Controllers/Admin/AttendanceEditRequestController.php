@@ -177,7 +177,7 @@ class AttendanceEditRequestController extends Controller
             'new_attendance_date' => 'required|date',
             'new_check_in'       => 'nullable|date_format:H:i',
             'new_check_out'      => 'nullable|date_format:H:i',
-            'new_status'         => 'required|in:hadir,terlambat,izin,sakit,cuti,alpha,libur,cuti_bersama,lembur,off,cuti_khusus,cuti_tahunan',
+            'new_status'         => 'required|in:hadir,terlambat,izin,sakit,cuti,alpha,libur,cuti_bersama,lembur,off,cuti_khusus,cuti_tahunan,cuti_umrah',
             'reason'             => 'required|string|max:1000',
         ]);
 

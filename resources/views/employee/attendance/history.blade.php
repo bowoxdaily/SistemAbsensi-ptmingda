@@ -157,6 +157,8 @@
                                                         @endif
                                                     @elseif($attendance->status == 'cuti')
                                                         <span class="badge bg-primary">Cuti</span>
+                                                    @elseif($attendance->status == 'cuti_umrah')
+                                                        <span class="badge bg-success">Cuti Umrah</span>
                                                     @elseif($attendance->status == 'cuti_tahunan')
                                                         <span class="badge bg-primary">Cuti Tahunan</span>
                                                     @elseif($attendance->status == 'izin')
@@ -232,6 +234,8 @@
                                                         @endif
                                                     @elseif($attendance->status == 'cuti')
                                                         <span class="badge bg-primary">Cuti</span>
+                                                    @elseif($attendance->status == 'cuti_umrah')
+                                                        <span class="badge bg-success">Cuti Umrah</span>
                                                     @elseif($attendance->status == 'cuti_tahunan')
                                                         <span class="badge bg-primary">Cuti Tahunan</span>
                                                     @elseif($attendance->status == 'izin')

@@ -1158,6 +1158,7 @@ class WhatsAppService
         // Replace variables
         $leaveTypeLabel = [
             'cuti' => 'Cuti',
+            'cuti_umrah' => 'Cuti Umrah',
             'izin' => 'Izin',
             'sakit' => 'Sakit',
         ];

@@ -322,12 +322,14 @@
                                         <h6 class="mb-1">
                                             @if ($cuti->leave_type == 'cuti')
                                                 <i class='bx bx-calendar text-primary'></i>
+                                            @elseif($cuti->leave_type == 'cuti_umrah')
+                                                <i class='bx bx-kaaba text-success'></i>
                                             @elseif($cuti->leave_type == 'izin')
                                                 <i class='bx bx-time-five text-info'></i>
                                             @else
                                                 <i class='bx bx-first-aid text-secondary'></i>
                                             @endif
-                                            {{ ucfirst($cuti->leave_type) }} - {{ $cuti->total_days }} hari
+                                            {{ $cuti->leave_type == 'cuti_umrah' ? 'Cuti Umrah' : ucfirst($cuti->leave_type) }} - {{ $cuti->total_days }} hari
                                         </h6>
                                         <small class="text-muted">
                                             <i class='bx bx-calendar-check'></i>
@@ -468,6 +470,7 @@
                                     <option value="">Pilih Jenis</option>
                                     <option value="cuti" {{ old('leave_type') == 'cuti' ? 'selected' : '' }}>Cuti
                                     </option>
+                                    <option value="cuti_umrah" {{ old('leave_type') == 'cuti_umrah' ? 'selected' : '' }}>Cuti Umrah</option>
                                     <option value="izin" {{ old('leave_type') == 'izin' ? 'selected' : '' }}>Izin
                                     </option>
                                     <option value="sakit" {{ old('leave_type') == 'sakit' ? 'selected' : '' }}>Sakit

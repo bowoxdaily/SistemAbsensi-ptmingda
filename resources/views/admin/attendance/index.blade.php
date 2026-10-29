@@ -325,6 +325,8 @@
                                             <span class="badge bg-info">LEMBUR</span>
                                         @elseif($attendance->status == 'cuti')
                                             <span class="badge bg-primary">CUTI</span>
+                                        @elseif($attendance->status == 'cuti_umrah')
+                                            <span class="badge bg-success">CUTI UMRAH</span>
                                         @elseif($attendance->status == 'cuti_tahunan')
                                             <span class="badge bg-primary">CUTI TAHUNAN</span>
                                         @elseif($attendance->status == 'cuti_khusus')
@@ -584,6 +586,8 @@
                                             <span class="badge bg-info">LEMBUR</span>
                                         @elseif($attendance->status == 'cuti')
                                             <span class="badge bg-primary">CUTI</span>
+                                        @elseif($attendance->status == 'cuti_umrah')
+                                            <span class="badge bg-success">CUTI UMRAH</span>
                                         @elseif($attendance->status == 'cuti_tahunan')
                                             <span class="badge bg-primary">CUTI TAHUNAN</span>
                                         @elseif($attendance->status == 'cuti_khusus')
@@ -734,6 +738,7 @@
                                     <option value="sakit">Sakit</option>
                                     <option value="cuti">Cuti</option>
                                     <option value="cuti_tahunan">Cuti Tahunan</option>
+                                    <option value="cuti_umrah">Cuti Umrah</option>
                                     <option value="cuti_khusus">Cuti Khusus</option>
                                     <option value="cuti_bersama">Cuti Bersama</option>
                                     <option value="off">Off</option>
@@ -820,6 +825,7 @@
                                     <option value="sakit">Sakit</option>
                                     <option value="cuti">Cuti</option>
                                     <option value="cuti_tahunan">Cuti Tahunan</option>
+                                    <option value="cuti_umrah">Cuti Umrah</option>
                                     <option value="cuti_khusus">Cuti Khusus</option>
                                     <option value="cuti_bersama">Cuti Bersama</option>
                                     <option value="off">Off</option>
@@ -1172,6 +1178,7 @@
                                                 ${data.status === 'terlambat' ? '<span class="badge bg-warning">TERLAMBAT</span>' : ''}
                                                 ${data.status === 'lembur' ? '<span class="badge bg-info">LEMBUR</span>' : ''}
                                                 ${data.status === 'cuti' ? '<span class="badge bg-primary">CUTI</span>' : ''}
+                                                ${data.status === 'cuti_umrah' ? '<span class="badge bg-success">CUTI UMRAH</span>' : ''}
                                                 ${data.status === 'cuti_tahunan' ? '<span class="badge bg-primary">CUTI TAHUNAN</span>' : ''}
                                                 ${data.status === 'cuti_khusus' ? '<span class="badge bg-primary">CUTI KHUSUS</span>' : ''}
                                                 ${data.status === 'cuti_bersama' ? '<span class="badge bg-info">CUTI BERSAMA</span>' : ''}

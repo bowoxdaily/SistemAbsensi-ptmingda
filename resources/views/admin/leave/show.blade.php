@@ -82,6 +82,8 @@
                                         <span class="badge bg-label-primary">
                                             <i class='bx bx-calendar'></i> Cuti
                                         </span>
+                                    @elseif($leave->leave_type == 'cuti_umrah')
+                                        <span class="badge bg-label-success">Cuti Umrah</span>
                                     @elseif($leave->leave_type == 'izin')
                                         <span class="badge bg-label-info">
                                             <i class='bx bx-time-five'></i> Izin
