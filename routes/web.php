@@ -74,8 +74,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/department/export', [DepartmentController::class, 'export'])->name('admin.department.export');
         Route::get('/admin/sub-departments', [SubDepartmentController::class, 'index'])->name('admin.sub-departments.index');
         Route::post('/admin/karyawan/import', [KaryawanController::class, 'import'])->name('admin.karyawan.import');
+        Route::post('/admin/karyawan/import-data-kosong', [KaryawanController::class, 'importDataKosong'])->name('admin.karyawan.import-data-kosong');
         Route::post('/admin/karyawan/update-operator-salary-base', [KaryawanController::class, 'updateOperatorSalaryBase'])->name('admin.karyawan.update-operator-salary-base');
         Route::get('/admin/karyawan/template', [KaryawanController::class, 'downloadTemplate'])->name('admin.karyawan.template');
+        Route::get('/admin/karyawan/export-data-kosong', [KaryawanController::class, 'exportDataKosong'])->name('admin.karyawan.export-data-kosong');
         Route::get('/admin/positions', [PositionController::class, 'dashboard'])->name('admin.positions.index');
 
         // Attendance Edit Requests (admin submit, manager approve)

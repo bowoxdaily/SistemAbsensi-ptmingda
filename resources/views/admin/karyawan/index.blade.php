@@ -242,6 +242,9 @@
                 <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#importModal">
                     <i class='bx bx-download me-1'></i> <span class="d-none d-sm-inline">Import</span>
                 </button>
+                <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#dataKosongModal">
+                    <i class='bx bx-edit me-1'></i> <span class="d-none d-sm-inline">Lengkapi Data</span>
+                </button>
                 @endif
                 <a href="#" class="btn btn-success btn-sm" id="exportBtn" onclick="exportKaryawan(); return false;">
                     <i class='bx bx-upload me-1'></i> <span class="d-none d-sm-inline">Export Excel</span>
@@ -1376,6 +1379,32 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="dataKosongModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form id="dataKosongForm" enctype="multipart/form-data">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Lengkapi Data Karyawan Massal</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Unduh hanya daftar karyawan aktif yang data Bank, Nomor Rekening, NPWP, atau BPJS-nya belum lengkap. Isi data di Excel lalu unggah kembali. Kolom kosong atau tanda - dilewati saat pembaruan.</p>
+                        <a href="{{ route('admin.karyawan.export-data-kosong') }}" class="btn btn-sm btn-outline-primary w-100 mb-3">
+                            <i class='bx bx-download me-1'></i> Unduh Data Belum Lengkap
+                        </a>
+                        <label for="data_kosong_file" class="form-label">File Excel yang sudah dilengkapi</label>
+                        <input type="file" class="form-control" id="data_kosong_file" accept=".xlsx,.xls" required>
+                        <div id="dataKosongProgress" class="d-none text-center mt-3">Sedang memperbarui data...</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary" id="dataKosongBtn">Perbarui Data</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
@@ -1462,6 +1491,38 @@
             $('#importForm').on('submit', function(e) {
                 e.preventDefault();
                 importKaryawan();
+            });
+
+            $('#dataKosongForm').on('submit', function(e) {
+                e.preventDefault();
+                const file = $('#data_kosong_file')[0].files[0];
+                if (!file) return;
+                const formData = new FormData();
+                formData.append('file', file);
+                $('#dataKosongBtn').prop('disabled', true);
+                $('#dataKosongProgress').removeClass('d-none');
+                $.ajax({
+                    url: '{{ route('admin.karyawan.import-data-kosong') }}',
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                    success: function(response) {
+                        bootstrap.Modal.getInstance(document.getElementById('dataKosongModal')).hide();
+                        Swal.fire('Berhasil!', response.message, 'success');
+                        $('#dataKosongForm')[0].reset();
+                        loadKaryawans(1);
+                    },
+                    error: function(xhr) {
+                        const errors = xhr.responseJSON?.errors || [];
+                        Swal.fire('Gagal memperbarui!', errors.length ? errors.join('<br>') : (xhr.responseJSON?.message || 'Terjadi kesalahan.'), 'error');
+                    },
+                    complete: function() {
+                        $('#dataKosongBtn').prop('disabled', false);
+                        $('#dataKosongProgress').addClass('d-none');
+                    }
+                });
             });
 
             if (isHr) {

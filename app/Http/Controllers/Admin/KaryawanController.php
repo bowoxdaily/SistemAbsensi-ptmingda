@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\DB;
 use App\Exports\KaryawanExport;
 use App\Exports\KaryawanTemplateExport;
 use App\Imports\KaryawanImport;
+use App\Imports\KaryawanDataKosongImport;
+use App\Exports\KaryawanDataKosongExport;
 use App\Models\Attendance;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -710,6 +712,31 @@ class KaryawanController extends Controller
     public function downloadTemplate()
     {
         return Excel::download(new KaryawanTemplateExport, 'Template_Import_Karyawan.xlsx');
+    }
+
+    public function exportDataKosong()
+    {
+        return Excel::download(new KaryawanDataKosongExport, 'Data_Karyawan_Belum_Lengkap.xlsx');
+    }
+
+    public function importDataKosong(Request $request)
+    {
+        $validated = $request->validate([
+            'file' => 'required|mimes:xlsx,xls|max:2048',
+        ]);
+
+        $import = new KaryawanDataKosongImport();
+        Excel::import($import, $validated['file']);
+
+        if ($import->failures()->isNotEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sebagian baris gagal diperbarui. Periksa kode karyawan dan format data.',
+                'errors' => $import->failures()->map(fn ($failure) => "Baris {$failure->row()}: " . implode(', ', $failure->errors()))->values(),
+            ], 422);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Data BPJS, rekening, dan NPWP berhasil diperbarui.']);
     }
 
     /**

@@ -201,6 +201,31 @@
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                     </div>
+
+                                    <div class="col-12 mt-2 mb-2">
+                                        <h6 class="text-primary">Data Bank & Jaminan Sosial</h6>
+                                        <small class="text-muted">Informasi ini hanya dapat diubah oleh Admin.</small>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Nama Bank</label>
+                                        <input type="text" class="form-control" value="{{ $employee->bank ?: '-' }}" readonly>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Nomor Rekening</label>
+                                        <input type="text" class="form-control" value="{{ $employee->nomor_rekening ?: '-' }}" readonly>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">NPWP</label>
+                                        <input type="text" class="form-control" value="{{ $employee->tax_npwp ?: '-' }}" readonly>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">BPJS Kesehatan</label>
+                                        <input type="text" class="form-control" value="{{ $employee->bpjs_kesehatan ?: '-' }}" readonly>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">BPJS Ketenagakerjaan</label>
+                                        <input type="text" class="form-control" value="{{ $employee->bpjs_ketenagakerjaan ?: '-' }}" readonly>
+                                    </div>
                                 </div>
 
                                 <div class="alert alert-info d-flex align-items-center mb-3" role="alert">
