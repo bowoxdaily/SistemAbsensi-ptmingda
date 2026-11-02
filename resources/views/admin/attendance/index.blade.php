@@ -111,6 +111,7 @@
                             <select class="form-select" name="status">
                                 <option value="">Semua Status</option>
                                 <option value="hadir" {{ request('status') == 'hadir' ? 'selected' : '' }}>Hadir</option>
+                                <option value="skorsing" {{ request('status') == 'skorsing' ? 'selected' : '' }}>Skorsing</option>
                                 <option value="terlambat" {{ request('status') == 'terlambat' ? 'selected' : '' }}>Terlambat
                                 </option>
                                 <option value="lembur" {{ request('status') == 'lembur' ? 'selected' : '' }}>Lembur</option>
@@ -732,6 +733,7 @@
                                 <label class="form-label">Status <span class="text-danger">*</span></label>
                                 <select class="form-select" id="edit_status" name="status" required>
                                     <option value="hadir">Hadir</option>
+                                    <option value="skorsing">Skorsing</option>
                                     <option value="terlambat">Terlambat</option>
                                     <option value="lembur">Lembur</option>
                                     <option value="izin">Izin</option>
@@ -819,6 +821,7 @@
                                 <label class="form-label">Status Baru <span class="text-danger">*</span></label>
                                 <select class="form-select" id="req_status" name="new_status" required>
                                     <option value="hadir">Hadir</option>
+                                    <option value="skorsing">Skorsing</option>
                                     <option value="terlambat">Terlambat</option>
                                     <option value="lembur">Lembur</option>
                                     <option value="izin">Izin</option>
