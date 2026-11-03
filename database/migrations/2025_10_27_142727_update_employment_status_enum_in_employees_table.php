@@ -16,7 +16,9 @@ return new class extends Migration
         DB::statement("UPDATE employees SET employment_status = 'Probation' WHERE employment_status IN ('Magang', 'Outsource')");
         
         // Alter the enum column to new values
-        DB::statement("ALTER TABLE employees MODIFY COLUMN employment_status ENUM('Tetap', 'Kontrak', 'Probation') COMMENT 'Status kerja'");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE employees MODIFY COLUMN employment_status ENUM('Tetap', 'Kontrak', 'Probation') COMMENT 'Status kerja'");
+        }
     }
 
     /**
@@ -25,7 +27,9 @@ return new class extends Migration
     public function down(): void
     {
         // Restore old enum values
-        DB::statement("ALTER TABLE employees MODIFY COLUMN employment_status ENUM('Tetap', 'Kontrak', 'Magang', 'Outsource') COMMENT 'Status kerja'");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE employees MODIFY COLUMN employment_status ENUM('Tetap', 'Kontrak', 'Magang', 'Outsource') COMMENT 'Status kerja'");
+        }
         
         // Optionally restore the data (convert Probation back to Magang)
         DB::statement("UPDATE employees SET employment_status = 'Magang' WHERE employment_status = 'Probation'");

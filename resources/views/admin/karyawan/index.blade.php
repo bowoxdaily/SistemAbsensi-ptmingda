@@ -1384,18 +1384,31 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <form id="dataKosongForm" enctype="multipart/form-data">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Lengkapi Data Karyawan Massal</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div class="modal-header bg-warning-subtle border-0">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="rounded-circle bg-warning text-white p-2 lh-1"><i class="bx bx-user-check fs-4"></i></span>
+                            <div>
+                                <h5 class="modal-title mb-1">Lengkapi Data Karyawan</h5>
+                                <small class="text-muted">Perbarui data profil secara massal melalui Excel</small>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
                     <div class="modal-body">
-                        <p>Unduh hanya daftar karyawan aktif yang data Bank, Nomor Rekening, NPWP, atau BPJS-nya belum lengkap. Isi data di Excel lalu unggah kembali. Kolom kosong atau tanda - dilewati saat pembaruan.</p>
-                        <a href="{{ route('admin.karyawan.export-data-kosong') }}" class="btn btn-sm btn-outline-primary w-100 mb-3">
-                            <i class='bx bx-download me-1'></i> Unduh Data Belum Lengkap
+                        <p class="text-muted mb-3">Sistem menampilkan karyawan aktif dengan data kosong. Isi kolom yang diperlukan, lalu unggah file yang sama.</p>
+                        <div class="d-flex flex-wrap gap-2 mb-4">
+                            <span class="badge bg-label-primary">Identitas</span>
+                            <span class="badge bg-label-info">Pendidikan</span>
+                            <span class="badge bg-label-success">Alamat & Kontak</span>
+                            <span class="badge bg-label-warning">Rekening & BPJS</span>
+                        </div>
+                        <a href="{{ route('admin.karyawan.export-data-kosong') }}" class="btn btn-primary w-100 mb-3">
+                            <i class='bx bx-download me-1'></i> Unduh Template Data Kosong
                         </a>
-                        <label for="data_kosong_file" class="form-label">File Excel yang sudah dilengkapi</label>
+                        <label for="data_kosong_file" class="form-label fw-semibold">Unggah file Excel yang sudah diisi</label>
                         <input type="file" class="form-control" id="data_kosong_file" accept=".xlsx,.xls" required>
-                        <div id="dataKosongProgress" class="d-none text-center mt-3">Sedang memperbarui data...</div>
+                        <small class="text-muted d-block mt-2"><i class="bx bx-info-circle me-1"></i>Kolom kosong atau tanda “-” tidak akan menimpa data lama.</small>
+                        <div id="dataKosongProgress" class="d-none text-center text-primary mt-3"><span class="spinner-border spinner-border-sm me-2"></span>Sedang memperbarui data...</div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>

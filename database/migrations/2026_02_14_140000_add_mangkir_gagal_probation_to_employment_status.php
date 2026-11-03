@@ -13,7 +13,9 @@ return new class extends Migration
     public function up(): void
     {
         // Add 'Mangkir' and 'Gagal Probation' to employment_status enum
-        DB::statement("ALTER TABLE employees MODIFY COLUMN employment_status ENUM('Tetap', 'Kontrak', 'Probation', 'Mangkir', 'Gagal Probation') COMMENT 'Status kerja'");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE employees MODIFY COLUMN employment_status ENUM('Tetap', 'Kontrak', 'Probation', 'Mangkir', 'Gagal Probation') COMMENT 'Status kerja'");
+        }
     }
 
     /**
@@ -24,6 +26,8 @@ return new class extends Migration
         // Remove 'Mangkir' and 'Gagal Probation' from enum
         // Note: Data with these values will be set to NULL
         DB::statement("UPDATE employees SET employment_status = 'Kontrak' WHERE employment_status IN ('Mangkir', 'Gagal Probation')");
-        DB::statement("ALTER TABLE employees MODIFY COLUMN employment_status ENUM('Tetap', 'Kontrak', 'Probation') COMMENT 'Status kerja'");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE employees MODIFY COLUMN employment_status ENUM('Tetap', 'Kontrak', 'Probation') COMMENT 'Status kerja'");
+        }
     }
 };

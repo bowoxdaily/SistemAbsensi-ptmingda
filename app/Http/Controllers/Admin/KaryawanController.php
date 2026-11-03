@@ -736,7 +736,7 @@ class KaryawanController extends Controller
             ], 422);
         }
 
-        return response()->json(['success' => true, 'message' => 'Data BPJS, rekening, dan NPWP berhasil diperbarui.']);
+        return response()->json(['success' => true, 'message' => 'Data profil karyawan berhasil diperbarui.']);
     }
 
     /**

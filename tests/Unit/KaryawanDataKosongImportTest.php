@@ -12,20 +12,29 @@ class KaryawanDataKosongImportTest extends TestCase
         $import = new KaryawanDataKosongImport();
         $source = file_get_contents(__DIR__ . '/../../app/Imports/KaryawanDataKosongImport.php');
 
-        $this->assertStringContainsString('if ($value !== \'\' && $value !== \'-\')', $source);
+        $this->assertStringContainsString('preg_match', $source);
         $this->assertStringContainsString("'npwp' => 'tax_npwp'", $source);
-        $this->assertStringContainsString("'tax_npwp' => 'tax_npwp'", $source);
-        $this->assertStringContainsString("'bpjs_kesehatan' => 'bpjs_kesehatan'", $source);
-        $this->assertStringContainsString("'bpjs_ketenagakerjaan' => 'bpjs_ketenagakerjaan'", $source);
+        $this->assertStringContainsString('KaryawanDataKosongExport::FIELDS', $source);
+        $this->assertStringContainsString("'pendidikan_terakhir' => 'lulusan_sekolah'", $source);
+        $this->assertStringContainsString("'nama_lengkap' => 'name'", $source);
+        $this->assertStringContainsString("'jenis_kelamin' => 'gender'", $source);
+        $this->assertStringContainsString("'tanggal_lahir' => 'birth_date'", $source);
+        $this->assertStringContainsString("'alamat_lengkap' => 'address'", $source);
+        $this->assertStringContainsString("'kota' => 'city'", $source);
+        $this->assertStringContainsString("'kode_pos' => 'postal_code'", $source);
+        $this->assertStringContainsString("excelToDateTimeObject", $source);
         $this->assertStringContainsString("where('status', 'active')", $source);
-        $this->assertSame([
-            'kode_karyawan' => 'nullable|exists:employees,employee_code',
-            'bank' => 'nullable|max:100',
-            'nomor_rekening' => 'nullable|max:100',
-            'npwp' => 'nullable|max:100',
-            'tax_npwp' => 'nullable|max:100',
-            'bpjs_kesehatan' => 'nullable|max:100',
-            'bpjs_ketenagakerjaan' => 'nullable|max:100',
-        ], $import->rules());
+        $rules = $import->rules();
+        $this->assertSame('nullable|exists:employees,employee_code', $rules['kode_karyawan']);
+        $this->assertSame('nullable|date', $rules['birth_date']);
+        $this->assertSame('nullable|date', $rules['join_date']);
+        $this->assertSame('nullable|integer|exists:departments,id', $rules['department_id']);
+        $this->assertSame('nullable|integer|exists:positions,id', $rules['position_id']);
+        $this->assertSame('nullable|integer|exists:work_schedules,id', $rules['work_schedule_id']);
+        $this->assertSame('nullable|max:255', $rules['lulusan_sekolah']);
+        $this->assertSame('nullable|max:255', $rules['bpjs_kesehatan']);
+        $this->assertSame('nullable|max:255', $rules['bpjs_ketenagakerjaan']);
+        $this->assertArrayHasKey('address', $rules);
+        $this->assertArrayHasKey('emergency_contact_phone', $rules);
     }
 }
