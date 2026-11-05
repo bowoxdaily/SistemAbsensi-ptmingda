@@ -137,6 +137,7 @@
                             <option value="SP1">SP 1</option>
                             <option value="SP2">SP 2</option>
                             <option value="SP3">SP 3</option>
+                            <option value="SP_GABUNGAN">SP Pertama dan Terakhir</option>
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -233,6 +234,7 @@
                                 <option value="SP1">SP 1 - Peringatan Pertama</option>
                                 <option value="SP2">SP 2 - Peringatan Kedua</option>
                                 <option value="SP3">SP 3 - Peringatan Terakhir</option>
+                                <option value="SP_GABUNGAN">SP Pertama dan Terakhir</option>
                             </select>
                         </div>
                         <div class="col-12">
@@ -592,56 +594,47 @@ $(document).ready(function() {
     });
 });
 
-// Load employees for select2
-function loadEmployees() {
-    $.ajax({
-        url: '/api/karyawan?per_page=1000', // Get all employees without pagination
-        type: 'GET',
-        success: function(response) {
-            console.log('Employees response:', response); // Debug log
+// Load all employees across API pagination for select2
+async function loadEmployees() {
+    try {
+        const employees = [];
+        let page = 1;
+        let lastPage = 1;
 
-            let options = '<option value="">Pilih Karyawan</option>';
-            let filterOptions = '<option value="">Semua Karyawan</option>';
+        do {
+            const response = await $.get(`/api/karyawan?page=${page}&per_page=100`);
+            const pagination = response.success ? response.data : response;
+            const rows = Array.isArray(pagination?.data) ? pagination.data : pagination;
 
-            // Handle paginated response
-            let employees = [];
-            if (response.success && response.data) {
-                // If data is paginated (has .data property)
-                employees = response.data.data || response.data;
-            } else if (Array.isArray(response)) {
-                employees = response;
+            if (!Array.isArray(rows)) {
+                throw new Error('Format data karyawan tidak valid');
             }
 
-            console.log('Employees array:', employees); // Debug log
+            employees.push(...rows);
+            lastPage = Number(pagination.last_page || 1);
+            page++;
+        } while (page <= lastPage);
 
-            if (Array.isArray(employees) && employees.length > 0) {
-                employees.forEach(function(emp) {
-                    let displayName = emp.employee_code ? `${emp.employee_code} - ${emp.name}` : emp.name;
-                    options += `<option value="${emp.id}">${displayName}</option>`;
-                    filterOptions += `<option value="${emp.id}">${displayName}</option>`;
-                });
+        let options = '<option value="">Pilih Karyawan</option>';
+        let filterOptions = '<option value="">Semua Karyawan</option>';
 
-                console.log('Total employees loaded:', employees.length);
-            } else {
-                console.warn('No employees found or invalid data structure');
-                toastr.warning('Tidak ada data karyawan');
-            }
+        employees.forEach(function(emp) {
+            let displayName = emp.employee_code ? `${emp.employee_code} - ${emp.name}` : emp.name;
+            options += `<option value="${emp.id}">${displayName}</option>`;
+            filterOptions += `<option value="${emp.id}">${displayName}</option>`;
+        });
 
-            // Update dropdowns
-            $('#createEmployeeSelect').html(options);
-            $('#filterEmployee').html(filterOptions);
+        $('#createEmployeeSelect').html(options);
+        $('#filterEmployee').html(filterOptions);
+        initFilterSelect2();
 
-            // Initialize filter select2 immediately
-            initFilterSelect2();
-        },
-        error: function(xhr, status, error) {
-            console.error('AJAX Error:');
-            console.error('Status:', status);
-            console.error('Error:', error);
-            console.error('Response:', xhr.responseText);
-            toastr.error('Gagal memuat data karyawan: ' + error);
+        if (employees.length === 0) {
+            toastr.warning('Tidak ada data karyawan');
         }
-    });
+    } catch (error) {
+        console.error('Gagal memuat data karyawan:', error);
+        toastr.error('Gagal memuat data karyawan');
+    }
 }
 
 // Initialize filter select2
@@ -720,6 +713,7 @@ function renderTable(data) {
             else if (sp.sp_type === 'SP1') spTypeBadge = '<span class="badge bg-warning">SP 1</span>';
             else if (sp.sp_type === 'SP2') spTypeBadge = '<span class="badge" style="background-color: #ff9800;">SP 2</span>';
             else if (sp.sp_type === 'SP3') spTypeBadge = '<span class="badge bg-danger">SP 3</span>';
+            else if (sp.sp_type === 'SP_GABUNGAN') spTypeBadge = '<span class="badge bg-dark">SP Pertama dan Terakhir</span>';
 
             let statusBadge = '';
             if (sp.status === 'draft') statusBadge = '<span class="badge bg-secondary">Draft</span>';
@@ -839,7 +833,8 @@ function viewDetail(id) {
                 'ST': 'ST - Surat Teguran',
                 'SP1': 'SP 1 - Peringatan Pertama',
                 'SP2': 'SP 2 - Peringatan Kedua',
-                'SP3': 'SP 3 - Peringatan Terakhir'
+                'SP3': 'SP 3 - Peringatan Terakhir',
+                'SP_GABUNGAN': 'SP Pertama dan Terakhir'
             };
 
             let statusBadge = {

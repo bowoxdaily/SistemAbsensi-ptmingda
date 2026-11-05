@@ -166,7 +166,7 @@ class WarningLetterController extends Controller
         // Validation
         $request->validate([
             'employee_id' => 'required|exists:employees,id',
-            'sp_type' => 'required|in:ST,SP1,SP2,SP3',
+            'sp_type' => 'required|in:ST,SP1,SP2,SP3,SP_GABUNGAN',
             'sp_number' => 'required|string|max:100|unique:warning_letters,sp_number',
             'issue_date' => 'required|date',
             'effective_date' => 'required|date|after_or_equal:issue_date',
@@ -596,7 +596,7 @@ class WarningLetterController extends Controller
 
         // Validation
         $request->validate([
-            'sp_type' => 'required|in:ST,SP1,SP2,SP3',
+            'sp_type' => 'required|in:ST,SP1,SP2,SP3,SP_GABUNGAN',
             'issue_date' => 'required|date',
         ]);
 

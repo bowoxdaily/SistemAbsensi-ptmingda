@@ -78,7 +78,8 @@ class WarningLetter extends Model
             'ST'  => 'ST - Surat Teguran',
             'SP1' => 'SP 1 - Peringatan Pertama',
             'SP2' => 'SP 2 - Peringatan Kedua',
-            'SP3' => 'SP 3 - Peringatan Terakhir',
+            'SP3'        => 'SP 3 - Peringatan Terakhir',
+            'SP_GABUNGAN' => 'SP Pertama dan Terakhir',
         ][$this->sp_type] ?? $this->sp_type;
     }
 
@@ -103,7 +104,8 @@ class WarningLetter extends Model
             'ST'  => 'bg-info',
             'SP1' => 'bg-warning',
             'SP2' => 'bg-orange',
-            'SP3' => 'bg-danger',
+            'SP3'        => 'bg-danger',
+            'SP_GABUNGAN' => 'bg-dark',
         ][$this->sp_type] ?? 'bg-secondary';
     }
 
