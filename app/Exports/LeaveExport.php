@@ -78,13 +78,23 @@ class LeaveExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
         $leaveEnd = $leaveStart->copy()->addYear()->subDay();
         $quota = $this->quotaFor($employee->position?->name);
 
-        $usedDates = Attendance::query()
+        $attendanceQuery = Attendance::query()
             ->where('employee_id', $employee->id)
-            ->where('status', 'cuti_tahunan')
+            ->where('status', 'cuti_tahunan');
+
+        $debtDates = (clone $attendanceQuery)
+            ->whereBetween('attendance_date', [$joinDate->toDateString(), $firstEntitlementDate->copy()->subDay()->toDateString()])
+            ->pluck('attendance_date');
+
+        $usedDates = (clone $attendanceQuery)
             ->whereBetween('attendance_date', [$leaveStart->toDateString(), $leaveEnd->toDateString()])
-            ->orderBy('attendance_date')
-            ->pluck('attendance_date')
-            ->map(fn ($date) => Carbon::parse($date)->format('d-m-Y'))
+            ->pluck('attendance_date');
+
+        $leaveDates = $debtDates
+            ->merge($usedDates)
+            ->map(fn ($date) => Carbon::parse($date))
+            ->sort()
+            ->map(fn (Carbon $date) => $date->format('d-m-Y'))
             ->values();
 
         return (object) [
@@ -93,8 +103,8 @@ class LeaveExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
             'position' => $employee->position?->name ?? '-',
             'quota' => $quota,
             'period' => $leaveStart->format('d-m-Y') . ' s/d ' . $leaveEnd->format('d-m-Y'),
-            'used_days' => $usedDates->count(),
-            'used_dates' => $usedDates->isNotEmpty() ? $usedDates->implode(', ') : '-',
+            'used_days' => $leaveDates->count(),
+            'used_dates' => $leaveDates->isNotEmpty() ? $leaveDates->implode(', ') : '-',
         ];
     }
 
