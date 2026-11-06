@@ -327,6 +327,7 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('settings/mailgun-logs')->gr
 // Leave Management API (Admin)
 Route::middleware(['web', 'auth', 'admin'])->prefix('leave')->group(function () {
     Route::get('/', [\App\Http\Controllers\Admin\LeaveController::class, 'index']);
+    Route::get('/export', [\App\Http\Controllers\Admin\LeaveController::class, 'export']);
     Route::get('/{id}', [\App\Http\Controllers\Admin\LeaveController::class, 'show']);
     Route::post('/{id}/approve', [\App\Http\Controllers\Admin\LeaveController::class, 'approve']);
     Route::post('/{id}/reject', [\App\Http\Controllers\Admin\LeaveController::class, 'reject']);

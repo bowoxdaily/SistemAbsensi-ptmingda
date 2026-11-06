@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Exports\LeaveExport;
 use App\Models\Leave;
 use App\Services\WhatsAppService;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -17,8 +19,8 @@ class LeaveController extends Controller
      */
     public function index(Request $request)
     {
-        // Security: Ensure only admin can access
-        if (!Auth::check() || Auth::user()->role !== 'admin' && Auth::user()->role !== 'superadmin') {
+        // Security: Ensure only manager/admin can access
+        if (!Auth::check() || !in_array(Auth::user()->role, ['manager', 'admin', 'superadmin'], true)) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -54,6 +56,18 @@ class LeaveController extends Controller
         ];
 
         return view('admin.leave.index', compact('leaves', 'stats'));
+    }
+
+    public function export(Request $request)
+    {
+        if (!Auth::check() || !in_array(Auth::user()->role, ['manager', 'admin', 'superadmin'], true)) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $year = $request->integer('year', now()->year);
+        abort_if($year < 2000 || $year > 2100, 422, 'Tahun tidak valid.');
+
+        return Excel::download(new LeaveExport($year), "rekap-cuti-{$year}.xlsx");
     }
 
     /**

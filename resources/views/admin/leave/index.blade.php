@@ -68,7 +68,12 @@
         <!-- Filter & Table Card -->
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Daftar Pengajuan Cuti & Izin</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <h5 class="card-title mb-0">Daftar Pengajuan Cuti & Izin</h5>
+                    <a href="{{ url('/api/leave/export?year=' . request('year', now()->year)) }}" class="btn btn-sm btn-success">
+                        <i class='bx bx-download'></i> Export Cuti
+                    </a>
+                </div>
                 <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="collapse"
                     data-bs-target="#filterCollapse">
                     <i class='bx bx-filter-alt'></i> Filter
@@ -76,7 +81,7 @@
             </div>
 
             <!-- Filter Form -->
-            <div class="collapse {{ request()->hasAny(['status', 'leave_type', 'start_date', 'end_date']) ? 'show' : '' }}"
+            <div class="collapse {{ request()->hasAny(['status', 'leave_type', 'year', 'start_date', 'end_date']) ? 'show' : '' }}"
                 id="filterCollapse">
                 <div class="card-body border-bottom">
                     <form method="GET" action="{{ route('admin.leave.index') }}">
@@ -104,6 +109,11 @@
                                     <option value="sakit" {{ request('leave_type') == 'sakit' ? 'selected' : '' }}>Sakit
                                     </option>
                                 </select>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label">Periode Export</label>
+                                <input type="number" name="year" class="form-control" min="2000" max="2100"
+                                    value="{{ request('year', now()->year) }}">
                             </div>
                             <div class="col-md-3 col-sm-6">
                                 <label class="form-label">Dari Tanggal</label>
