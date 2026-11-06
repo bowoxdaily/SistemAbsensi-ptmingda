@@ -82,20 +82,34 @@ class RekapitulasiExport implements FromCollection, WithHeadings, WithMapping, W
             ->orderBy('employee_code')
             ->get();
         
-        $rekapitulasi = collect();
-        
-        foreach ($employees as $employee) {
-            $attendances = Attendance::where('employee_id', $employee->id)
-                ->whereBetween('attendance_date', [$this->startDate->format('Y-m-d'), $this->endDate->format('Y-m-d')])
-                ->get();
+        $summaries = Attendance::query()
+            ->whereBetween('attendance_date', [
+                $this->startDate->format('Y-m-d'),
+                $this->endDate->format('Y-m-d'),
+            ])
+            ->whereIn('employee_id', $employees->pluck('id'))
+            ->selectRaw("employee_id,
+                SUM(CASE WHEN status = 'hadir' THEN 1 ELSE 0 END) AS hadir,
+                SUM(CASE WHEN status = 'terlambat' THEN 1 ELSE 0 END) AS terlambat,
+                SUM(CASE WHEN status = 'izin' THEN 1 ELSE 0 END) AS izin,
+                SUM(CASE WHEN status = 'sakit' THEN 1 ELSE 0 END) AS sakit,
+                SUM(CASE WHEN status IN ('cuti', 'cuti_tahunan', 'cuti_umrah') THEN 1 ELSE 0 END) AS cuti,
+                SUM(CASE WHEN status = 'alpha' THEN 1 ELSE 0 END) AS alpha")
+            ->groupBy('employee_id')
+            ->get()
+            ->keyBy('employee_id');
 
+        $rekapitulasi = collect();
+
+        foreach ($employees as $employee) {
+            $summary = $summaries->get($employee->id);
             $stats = [
-                'hadir' => $attendances->where('status', 'hadir')->count(),
-                'terlambat' => $attendances->where('status', 'terlambat')->count(),
-                'izin' => $attendances->where('status', 'izin')->count(),
-                'sakit' => $attendances->where('status', 'sakit')->count(),
-                'cuti' => $attendances->whereIn('status', ['cuti', 'cuti_tahunan', 'cuti_umrah'])->count(),
-                'alpha' => $attendances->where('status', 'alpha')->count(),
+                'hadir' => (int) ($summary->hadir ?? 0),
+                'terlambat' => (int) ($summary->terlambat ?? 0),
+                'izin' => (int) ($summary->izin ?? 0),
+                'sakit' => (int) ($summary->sakit ?? 0),
+                'cuti' => (int) ($summary->cuti ?? 0),
+                'alpha' => (int) ($summary->alpha ?? 0),
             ];
 
             $workingDays = $this->calculateWorkingDays($employee, $this->startDate, $this->endDate);

@@ -54,22 +54,10 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
         $this->applyFilters($query);
         $query->whereBetween('attendances.attendance_date', [$this->dateFrom, $this->dateTo]);
 
-        $data = $query
-            ->orderBy('attendance_date')
+        return $query
             ->orderBy('employee_id')
+            ->orderBy('attendance_date')
             ->get();
-
-        $weekendPlaceholders = $this->generateWeekendPlaceholders($this->dateFrom, $this->dateTo, $data);
-
-        return $data
-            ->concat($weekendPlaceholders)
-            ->sortBy(function ($attendance) {
-                $employeeCode = $attendance->employee->employee_code ?? '-';
-                $date = $attendance->attendance_date ?? null;
-
-                return [$employeeCode, $date];
-            })
-            ->values();
     }
 
     private function applyFilters(Builder $query): void
