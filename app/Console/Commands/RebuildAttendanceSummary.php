@@ -45,7 +45,7 @@ class RebuildAttendanceSummary extends Command
                     'updated_at' => now(),
                 ];
             }
-            $summaryStatus = in_array($att->status, ['cuti_tahunan', 'cuti_umrah'], true) ? 'cuti' : $att->status;
+            $summaryStatus = in_array($att->status, ['cuti_tahunan', 'cuti_umrah', 'cuti_hamil'], true) ? 'cuti' : $att->status;
             if (array_key_exists($summaryStatus, $summaries[$att->employee_id])) {
                 $summaries[$att->employee_id][$summaryStatus] += $att->total;
             }

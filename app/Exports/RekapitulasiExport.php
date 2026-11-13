@@ -93,7 +93,7 @@ class RekapitulasiExport implements FromCollection, WithHeadings, WithMapping, W
                 SUM(CASE WHEN status = 'terlambat' THEN 1 ELSE 0 END) AS terlambat,
                 SUM(CASE WHEN status = 'izin' THEN 1 ELSE 0 END) AS izin,
                 SUM(CASE WHEN status = 'sakit' THEN 1 ELSE 0 END) AS sakit,
-                SUM(CASE WHEN status IN ('cuti', 'cuti_tahunan', 'cuti_umrah') THEN 1 ELSE 0 END) AS cuti,
+                SUM(CASE WHEN status IN ('cuti', 'cuti_tahunan', 'cuti_umrah', 'cuti_hamil') THEN 1 ELSE 0 END) AS cuti,
                 SUM(CASE WHEN status = 'alpha' THEN 1 ELSE 0 END) AS alpha")
             ->groupBy('employee_id')
             ->get()

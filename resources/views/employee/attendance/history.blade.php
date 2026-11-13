@@ -159,6 +159,8 @@
                                                         <span class="badge bg-primary">Cuti</span>
                                                     @elseif($attendance->status == 'cuti_umrah')
                                                         <span class="badge bg-success">Cuti Umrah</span>
+                                                    @elseif($attendance->status == 'cuti_hamil')
+                                                        <span class="badge bg-info">Cuti Hamil</span>
                                                     @elseif($attendance->status == 'cuti_tahunan')
                                                         <span class="badge bg-primary">Cuti Tahunan</span>
                                                     @elseif($attendance->status == 'izin')
@@ -236,6 +238,8 @@
                                                         <span class="badge bg-primary">Cuti</span>
                                                     @elseif($attendance->status == 'cuti_umrah')
                                                         <span class="badge bg-success">Cuti Umrah</span>
+                                                    @elseif($attendance->status == 'cuti_hamil')
+                                                        <span class="badge bg-info">Cuti Hamil</span>
                                                     @elseif($attendance->status == 'cuti_tahunan')
                                                         <span class="badge bg-primary">Cuti Tahunan</span>
                                                     @elseif($attendance->status == 'izin')
