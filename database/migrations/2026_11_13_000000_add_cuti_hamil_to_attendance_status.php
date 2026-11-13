@@ -7,12 +7,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement("ALTER TABLE attendances MODIFY COLUMN status ENUM('hadir', 'terlambat', 'izin', 'sakit', 'alpha', 'cuti', 'libur', 'cuti_bersama', 'lembur', 'off', 'cuti_khusus', 'cuti_tahunan', 'cuti_umrah', 'cuti_hamil') DEFAULT 'hadir' COMMENT 'Status Kehadiran'");
+        DB::statement("ALTER TABLE attendances MODIFY COLUMN status ENUM('hadir', 'terlambat', 'izin', 'sakit', 'alpha', 'cuti', 'libur', 'cuti_bersama', 'lembur', 'off', 'cuti_khusus', 'cuti_tahunan', 'cuti_umrah', 'skorsing', 'cuti_hamil') DEFAULT 'hadir' COMMENT 'Status Kehadiran'");
     }
 
     public function down(): void
     {
         DB::statement("UPDATE attendances SET status = 'cuti' WHERE status = 'cuti_hamil'");
-        DB::statement("ALTER TABLE attendances MODIFY COLUMN status ENUM('hadir', 'terlambat', 'izin', 'sakit', 'alpha', 'cuti', 'libur', 'cuti_bersama', 'lembur', 'off', 'cuti_khusus', 'cuti_tahunan', 'cuti_umrah') DEFAULT 'hadir' COMMENT 'Status Kehadiran'");
+        DB::statement("ALTER TABLE attendances MODIFY COLUMN status ENUM('hadir', 'terlambat', 'izin', 'sakit', 'alpha', 'cuti', 'libur', 'cuti_bersama', 'lembur', 'off', 'cuti_khusus', 'cuti_tahunan', 'cuti_umrah', 'skorsing') DEFAULT 'hadir' COMMENT 'Status Kehadiran'");
     }
 };
