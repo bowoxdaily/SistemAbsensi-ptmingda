@@ -286,7 +286,7 @@ class AttendanceController extends Controller
             'employee_id' => 'required|exists:employees,id',
             'date' => 'nullable|date',
             'check_in_time' => 'nullable|date_format:H:i',
-            'status' => 'nullable|in:hadir,skorsing,terlambat,izin,sakit,alpha,cuti,libur,cuti_bersama,lembur,off,cuti_khusus,cuti_tahunan,cuti_umrah,cuti_hamil',
+            'status' => 'nullable|in:hadir,skorsing,terlambat,izin,sakit,alpha,cuti,libur,cuti_bersama,lembur,off,cuti_khusus,cuti_tahunan,cuti_umrah,cuti_hamil,cuti_menikah,cuti_duka,cuti_istri_melahirkan,cuti_keguguran,cuti_baptis_anak,cuti_khitanan_anak,cuti_menikahkan_anak,cuti_nasional',
             'photo' => 'nullable|string', // Base64 image
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
@@ -710,7 +710,7 @@ class AttendanceController extends Controller
             'attendance_date' => 'required|date',
             'check_in' => 'nullable|date_format:H:i',
             'check_out' => 'nullable|date_format:H:i',
-            'status' => 'required|in:hadir,skorsing,terlambat,izin,sakit,alpha,cuti,libur,cuti_bersama,lembur,off,cuti_khusus,cuti_tahunan,cuti_umrah,cuti_hamil',
+            'status' => 'required|in:hadir,skorsing,terlambat,izin,sakit,alpha,cuti,libur,cuti_bersama,lembur,off,cuti_khusus,cuti_tahunan,cuti_umrah,cuti_hamil,cuti_menikah,cuti_duka,cuti_istri_melahirkan,cuti_keguguran,cuti_baptis_anak,cuti_khitanan_anak,cuti_menikahkan_anak,cuti_nasional',
             'notes' => 'nullable|string',
         ]);
 
@@ -918,9 +918,9 @@ class AttendanceController extends Controller
             // Validation
             $validator = Validator::make($request->all(), [
                 'attendance_date' => 'required|date',
-                'check_in' => 'nullable',
-                'check_out' => 'nullable',
-                'status' => 'required|in:hadir,skorsing,terlambat,izin,sakit,cuti,alpha,libur,cuti_bersama,lembur,off,cuti_khusus,cuti_tahunan,cuti_umrah,cuti_hamil',
+                'check_in' => 'nullable|date_format:H:i',
+                'check_out' => 'nullable|date_format:H:i',
+                'status' => 'required|in:hadir,skorsing,terlambat,izin,sakit,cuti,alpha,libur,cuti_bersama,lembur,off,cuti_khusus,cuti_tahunan,cuti_umrah,cuti_hamil,cuti_menikah,cuti_duka,cuti_istri_melahirkan,cuti_keguguran,cuti_baptis_anak,cuti_khitanan_anak,cuti_menikahkan_anak,cuti_nasional',
                 'late_minutes' => 'nullable|integer|min:0',
                 'notes' => 'nullable|string|max:500'
             ]);
@@ -934,7 +934,7 @@ class AttendanceController extends Controller
             }
 
             // Validate check_in for specific statuses
-            $statusesRequiringCheckIn = ['hadir', 'terlambat', 'lembur'];
+            $statusesRequiringCheckIn = ['hadir', 'terlambat'];
             if (in_array($request->status, $statusesRequiringCheckIn) && !$request->check_in) {
                 return response()->json([
                     'success' => false,
@@ -942,41 +942,41 @@ class AttendanceController extends Controller
                 ], 422);
             }
 
-            // Calculate late minutes automatically if status is 'terlambat' or 'hadir'
+            // Late minutes apply only to terlambat and are derived from schedule, never browser input.
             $lateMinutes = 0;
             $schedule = $attendance->employee->workSchedule;
 
-            if (in_array($request->status, ['hadir', 'terlambat', 'lembur']) && $schedule && $request->check_in) {
+            if ($request->status === 'terlambat' && !$schedule) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Status TERLAMBAT memerlukan jadwal kerja karyawan.',
+                ], 422);
+            }
+
+            if ($request->status === 'terlambat' && $schedule && $request->check_in) {
                 try {
                     // Parse check-in time
                     $checkInTime = Carbon::createFromFormat('Y-m-d H:i', $request->attendance_date . ' ' . $request->check_in);
 
-                    // Parse schedule start time
-                    $startTime = substr($schedule->start_time, 0, 5); // Get HH:MM only
+                    // Parse schedule start time whether model cast returns Carbon or string.
+                    $startTime = $schedule->start_time instanceof Carbon
+                        ? $schedule->start_time->format('H:i')
+                        : substr((string) $schedule->start_time, 0, 5);
                     $scheduledTime = Carbon::createFromFormat('Y-m-d H:i', $request->attendance_date . ' ' . $startTime);
 
-                    // Hari pertama kerja berdasarkan join_date selalu dianggap hadir.
-                    $attendanceDate = Carbon::parse($request->attendance_date);
-                    $isFirstWorkDay = $attendance->employee->join_date
-                        && $attendanceDate->isSameDay(Carbon::parse($attendance->employee->join_date));
-
-                    // Calculate late minutes if check-in is after scheduled time
-                    if (!$isFirstWorkDay && $checkInTime->gt($scheduledTime)) {
-                        $lateMinutes = $scheduledTime->diffInMinutes($checkInTime);
+                    if ($checkInTime->gt($scheduledTime)) {
+                        $lateMinutes = (int) $scheduledTime->diffInMinutes($checkInTime);
                     }
                 } catch (\Exception $e) {
-                    // If calculation fails, use provided late_minutes or 0
-                    $lateMinutes = $request->late_minutes ?? 0;
+                    $lateMinutes = 0;
                 }
-            } else {
-                // For other statuses (izin, sakit, cuti, alpha), use provided value or 0
-                $lateMinutes = $request->late_minutes ?? 0;
             }
 
             // Update attendance data (overtime dihitung via batch cron, bukan real-time)
+            $keepsAttendanceTimes = in_array($request->status, ['hadir', 'terlambat'], true);
             $attendance->attendance_date = $request->attendance_date;
-            $attendance->check_in = $request->check_in;
-            $attendance->check_out = $request->check_out;
+            $attendance->check_in = $keepsAttendanceTimes ? $request->check_in : null;
+            $attendance->check_out = $keepsAttendanceTimes ? $request->check_out : null;
             $attendance->status = $request->status;
             $attendance->late_minutes = $lateMinutes;
             $attendance->notes = $request->notes;

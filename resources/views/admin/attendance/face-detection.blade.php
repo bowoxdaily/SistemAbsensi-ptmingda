@@ -72,6 +72,16 @@
                                             <option value="lembur">Lembur</option>
                                             <option value="izin">Izin</option>
                                             <option value="sakit">Sakit</option>
+                                            <option value="cuti_menikah">Cuti Menikah</option>
+                                            <option value="cuti_duka">Cuti Duka</option>
+                                            <option value="cuti_hamil">Cuti Hamil</option>
+                                            <option value="cuti_istri_melahirkan">Cuti Istri Melahirkan</option>
+                                            <option value="cuti_tahunan">Cuti Tahunan</option>
+                                            <option value="cuti_keguguran">Cuti Keguguran</option>
+                                            <option value="cuti_baptis_anak">Cuti Baptis Anak</option>
+                                            <option value="cuti_khitanan_anak">Cuti Khitanan Anak</option>
+                                            <option value="cuti_menikahkan_anak">Cuti Menikahkan Anak</option>
+                                            <option value="cuti_nasional">Cuti Nasional</option>
                                             <option value="cuti">Cuti</option>
                                             <option value="cuti_tahunan">Cuti Tahunan</option>
                                             <option value="cuti_umrah">Cuti Umrah</option>

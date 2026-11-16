@@ -468,8 +468,16 @@
                                 <select name="leave_type" class="form-select @error('leave_type') is-invalid @enderror"
                                     required>
                                     <option value="">Pilih Jenis</option>
-                                    <option value="cuti" {{ old('leave_type') == 'cuti' ? 'selected' : '' }}>Cuti
-                                    </option>
+                                    <option value="cuti_menikah">Cuti Menikah</option>
+                                    <option value="cuti_duka">Cuti Duka</option>
+                                    <option value="cuti_hamil">Cuti Hamil</option>
+                                    <option value="cuti_istri_melahirkan">Cuti Istri Melahirkan</option>
+                                    <option value="cuti_tahunan">Cuti Tahunan</option>
+                                    <option value="cuti_keguguran">Cuti Keguguran</option>
+                                    <option value="cuti_baptis_anak">Cuti Baptis Anak</option>
+                                    <option value="cuti_khitanan_anak">Cuti Khitanan Anak</option>
+                                    <option value="cuti_menikahkan_anak">Cuti Menikahkan Anak</option>
+                                    <option value="cuti_nasional">Cuti Nasional</option>
                                     <option value="cuti_umrah" {{ old('leave_type') == 'cuti_umrah' ? 'selected' : '' }}>Cuti Umrah</option>
                                     <option value="izin" {{ old('leave_type') == 'izin' ? 'selected' : '' }}>Izin
                                     </option>

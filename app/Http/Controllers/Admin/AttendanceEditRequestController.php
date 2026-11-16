@@ -177,7 +177,7 @@ class AttendanceEditRequestController extends Controller
             'new_attendance_date' => 'required|date',
             'new_check_in'       => 'nullable|date_format:H:i',
             'new_check_out'      => 'nullable|date_format:H:i',
-            'new_status'         => 'required|in:hadir,skorsing,terlambat,izin,sakit,cuti,alpha,libur,cuti_bersama,lembur,off,cuti_khusus,cuti_tahunan,cuti_umrah,cuti_hamil',
+            'new_status'         => 'required|in:hadir,skorsing,terlambat,izin,sakit,cuti,alpha,libur,cuti_bersama,lembur,off,cuti_khusus,cuti_tahunan,cuti_umrah,cuti_hamil,cuti_menikah,cuti_duka,cuti_istri_melahirkan,cuti_keguguran,cuti_baptis_anak,cuti_khitanan_anak,cuti_menikahkan_anak,cuti_nasional',
             'reason'             => 'required|string|max:1000',
         ]);
 
@@ -201,7 +201,17 @@ class AttendanceEditRequestController extends Controller
             ], 422);
         }
 
-        $attendance = Attendance::findOrFail($request->attendance_id);
+        $attendance = Attendance::with('employee.workSchedule')->findOrFail($request->attendance_id);
+        if ($request->new_status === 'terlambat') {
+            $schedule = $attendance->employee->workSchedule;
+            if (!$schedule) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Status TERLAMBAT memerlukan jadwal kerja karyawan.',
+                ], 422);
+            }
+
+        }
 
         AttendanceEditRequest::create([
             'attendance_id'      => $attendance->id,
@@ -273,10 +283,28 @@ class AttendanceEditRequestController extends Controller
             ? substr($editRequest->new_check_out, 0, 5)
             : null;
         $newStatus   = $editRequest->new_status;
+        if (!in_array($newStatus, ['hadir', 'terlambat'], true)) {
+            $newCheckIn = null;
+            $newCheckOut = null;
+        }
 
-        // Hitung late_minutes
+        // A pending request may predate schedule changes, so revalidate before applying it.
+        if ($newStatus === 'terlambat') {
+            if (!$schedule || !$newCheckIn) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Status TERLAMBAT memerlukan jadwal kerja dan jam check-in.',
+                ], 422);
+            }
+
+            $startTime = $schedule->start_time instanceof Carbon
+                ? $schedule->start_time->format('H:i')
+                : substr((string) $schedule->start_time, 0, 5);
+        }
+
+        // Late minutes apply only to terlambat and use the employee schedule.
         $lateMinutes = 0;
-        if (in_array($newStatus, ['hadir', 'terlambat', 'lembur']) && $schedule && $newCheckIn) {
+        if ($newStatus === 'terlambat' && $schedule && $newCheckIn) {
             try {
                 $checkInTime = Carbon::createFromFormat('Y-m-d H:i', $newDate . ' ' . $newCheckIn);
 
@@ -289,7 +317,7 @@ class AttendanceEditRequestController extends Controller
 
                 $scheduledTime = Carbon::createFromFormat('Y-m-d H:i', $newDate . ' ' . $startStr);
                 if ($checkInTime->gt($scheduledTime)) {
-                    $lateMinutes = $scheduledTime->diffInMinutes($checkInTime);
+                    $lateMinutes = (int) $scheduledTime->diffInMinutes($checkInTime);
                 }
             } catch (\Exception $e) {
                 $lateMinutes = 0;

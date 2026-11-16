@@ -48,7 +48,7 @@ class AttendanceClarificationController extends Controller
         $validator = Validator::make($request->all(), [
             'attendance_id' => 'required|exists:attendances,id',
             'reason'        => 'required|string|max:1000',
-            'new_status'    => 'required|in:hadir,terlambat,izin,sakit,cuti,alpha,libur,lembur,off,cuti_khusus,cuti_tahunan,cuti_umrah,cuti_hamil',
+            'new_status'    => 'required|in:hadir,terlambat,izin,sakit,cuti,alpha,libur,lembur,off,cuti_khusus,cuti_tahunan,cuti_umrah,cuti_hamil,cuti_menikah,cuti_duka,cuti_istri_melahirkan,cuti_keguguran,cuti_baptis_anak,cuti_khitanan_anak,cuti_menikahkan_anak,cuti_nasional',
             'new_check_in'  => 'required|date_format:H:i',
             'new_check_out' => 'required|date_format:H:i',
             'attachment'    => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',

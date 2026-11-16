@@ -114,6 +114,16 @@
                                 <option value="terlambat" {{ request('status') == 'terlambat' ? 'selected' : '' }}>Terlambat
                                 </option>
                                 <option value="lembur" {{ request('status') == 'lembur' ? 'selected' : '' }}>Lembur</option>
+                                <option value="cuti_menikah" {{ request('status') == 'cuti_menikah' ? 'selected' : '' }}>Cuti Menikah</option>
+                                <option value="cuti_duka" {{ request('status') == 'cuti_duka' ? 'selected' : '' }}>Cuti Duka</option>
+                                <option value="cuti_hamil" {{ request('status') == 'cuti_hamil' ? 'selected' : '' }}>Cuti Hamil</option>
+                                <option value="cuti_istri_melahirkan" {{ request('status') == 'cuti_istri_melahirkan' ? 'selected' : '' }}>Cuti Istri Melahirkan</option>
+                                <option value="cuti_tahunan" {{ request('status') == 'cuti_tahunan' ? 'selected' : '' }}>Cuti Tahunan</option>
+                                <option value="cuti_keguguran" {{ request('status') == 'cuti_keguguran' ? 'selected' : '' }}>Cuti Keguguran</option>
+                                <option value="cuti_baptis_anak" {{ request('status') == 'cuti_baptis_anak' ? 'selected' : '' }}>Cuti Baptis Anak</option>
+                                <option value="cuti_khitanan_anak" {{ request('status') == 'cuti_khitanan_anak' ? 'selected' : '' }}>Cuti Khitanan Anak</option>
+                                <option value="cuti_menikahkan_anak" {{ request('status') == 'cuti_menikahkan_anak' ? 'selected' : '' }}>Cuti Menikahkan Anak</option>
+                                <option value="cuti_nasional" {{ request('status') == 'cuti_nasional' ? 'selected' : '' }}>Cuti Nasional</option>
                                 <option value="cuti" {{ request('status') == 'cuti' ? 'selected' : '' }}>Cuti</option>
                                 <option value="cuti_tahunan" {{ request('status') == 'cuti_tahunan' ? 'selected' : '' }}>Cuti Tahunan</option>
                                 <option value="cuti_khusus" {{ request('status') == 'cuti_khusus' ? 'selected' : '' }}>Cuti Khusus</option>
@@ -711,167 +721,42 @@
 
     <!-- Edit Modal -->
     <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit Absensi</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-dialog modal-lg"><div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Edit Absensi</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <form id="editForm"><div class="modal-body">
+                <input type="hidden" id="edit_id" name="id">
+                <div class="mb-3"><label class="form-label">Karyawan</label><input type="text" class="form-control" id="edit_employee_name" readonly></div>
+                <div class="row">
+                    <div class="col-md-6 mb-3"><label class="form-label">Tanggal Absensi <span class="text-danger">*</span></label><input type="date" class="form-control" id="edit_attendance_date" name="attendance_date" required></div>
+                    <div class="col-md-6 mb-3"><label class="form-label">Status <span class="text-danger">*</span></label>
+                        <select class="form-select" id="edit_status" name="status" required>
+                            <option value="hadir">Hadir</option><option value="skorsing">Skorsing</option><option value="terlambat">Terlambat</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alpha">Alpha</option>
+                            <option value="cuti">Cuti</option><option value="cuti_tahunan">Cuti Tahunan</option><option value="cuti_umrah">Cuti Umrah</option><option value="cuti_hamil">Cuti Hamil</option><option value="cuti_menikah">Cuti Menikah</option><option value="cuti_duka">Cuti Duka</option><option value="cuti_istri_melahirkan">Cuti Istri Melahirkan</option><option value="cuti_keguguran">Cuti Keguguran</option><option value="cuti_baptis_anak">Cuti Baptis Anak</option><option value="cuti_khitanan_anak">Cuti Khitanan Anak</option><option value="cuti_menikahkan_anak">Cuti Menikahkan Anak</option><option value="cuti_nasional">Cuti Nasional</option><option value="cuti_khusus">Cuti Khusus</option><option value="cuti_bersama">Cuti Bersama</option><option value="lembur">Lembur</option><option value="off">Off</option><option value="libur">Libur</option>
+                        </select>
+                    </div>
                 </div>
-                <form id="editForm">
-                    <div class="modal-body">
-                        <input type="hidden" id="edit_id" name="id">
-
-                        <div class="mb-3">
-                            <label class="form-label">Karyawan</label>
-                            <input type="text" class="form-control" id="edit_employee_name" readonly>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Tanggal Absensi <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="edit_attendance_date"
-                                    name="attendance_date" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Status <span class="text-danger">*</span></label>
-                                <select class="form-select" id="edit_status" name="status" required>
-                                    <option value="hadir">Hadir</option>
-                                    <option value="skorsing">Skorsing</option>
-                                    <option value="terlambat">Terlambat</option>
-                                    <option value="lembur">Lembur</option>
-                                    <option value="izin">Izin</option>
-                                    <option value="sakit">Sakit</option>
-                                    <option value="cuti">Cuti</option>
-                                    <option value="cuti_tahunan">Cuti Tahunan</option>
-                                    <option value="cuti_umrah">Cuti Umrah</option>
-                                    <option value="cuti_hamil">Cuti Hamil</option>
-                                    <option value="cuti_khusus">Cuti Khusus</option>
-                                    <option value="cuti_bersama">Cuti Bersama</option>
-                                    <option value="off">Off</option>
-                                    <option value="libur">Libur</option>
-                                    <option value="alpha">Alpha</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="row" id="edit_time_section">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Check In <span class="text-danger" id="edit_check_in_required">*</span></label>
-                                <input type="time" class="form-control" id="edit_check_in" name="check_in">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Check Out</label>
-                                <input type="time" class="form-control" id="edit_check_out" name="check_out">
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Terlambat (menit)</label>
-                            <input type="number" class="form-control" id="edit_late_minutes" name="late_minutes"
-                                min="0" placeholder="Otomatis dihitung">
-                            <small class="text-muted">Kosongkan untuk perhitungan otomatis</small>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Catatan</label>
-                            <textarea class="form-control" id="edit_notes" name="notes" rows="3"
-                                placeholder="Catatan tambahan (opsional)"></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary" id="saveEditBtn">
-                            <i class="bx bx-save me-1"></i> Simpan Perubahan
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                <div class="row" id="edit_time_section"><div class="col-md-6 mb-3"><label class="form-label">Check In</label><input type="time" class="form-control" id="edit_check_in" name="check_in"></div><div class="col-md-6 mb-3"><label class="form-label">Check Out</label><input type="time" class="form-control" id="edit_check_out" name="check_out"></div></div>
+                <div class="mb-3" id="edit_late_minutes_section" style="display:none"><label class="form-label">Menit Terlambat</label><input type="number" class="form-control" id="edit_late_minutes" name="late_minutes" min="0" readonly></div>
+                <div class="mb-3"><label class="form-label">Catatan</label><textarea class="form-control" id="edit_notes" name="notes" rows="3"></textarea></div>
+            </div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary" id="saveEditBtn">Simpan Perubahan</button></div></form>
+        </div></div>
     </div>
 
-    {{-- ───── Request Edit Modal (Admin → butuh persetujuan Manager) ───── --}}
-    <div class="modal fade" id="requestEditModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-warning text-dark">
-                    <h5 class="modal-title">
-                        <i class='bx bx-edit-alt me-1'></i> Request Edit Absensi
-                        <small class="d-block fw-normal fs-6">Perlu persetujuan Manager</small>
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form id="requestEditForm">
-                    <div class="modal-body">
-                        <div class="alert alert-info shadow-none border mb-3">
-                            <i class='bx bx-info-circle me-1'></i>
-                            Perubahan <strong>tidak langsung diterapkan</strong>. Manager akan mereview dan menyetujui
-                            request ini sebelum data absensi berubah.
-                        </div>
-
-                        <input type="hidden" id="req_attendance_id" name="attendance_id">
-
-                        <div class="mb-3">
-                            <label class="form-label">Karyawan</label>
-                            <input type="text" class="form-control" id="req_employee_name" readonly>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Tanggal Absensi Baru <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="req_attendance_date"
-                                    name="new_attendance_date" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Status Baru <span class="text-danger">*</span></label>
-                                <select class="form-select" id="req_status" name="new_status" required>
-                                    <option value="hadir">Hadir</option>
-                                    <option value="skorsing">Skorsing</option>
-                                    <option value="terlambat">Terlambat</option>
-                                    <option value="lembur">Lembur</option>
-                                    <option value="izin">Izin</option>
-                                    <option value="sakit">Sakit</option>
-                                    <option value="cuti">Cuti</option>
-                                    <option value="cuti_tahunan">Cuti Tahunan</option>
-                                    <option value="cuti_umrah">Cuti Umrah</option>
-                                    <option value="cuti_hamil">Cuti Hamil</option>
-                                    <option value="cuti_khusus">Cuti Khusus</option>
-                                    <option value="cuti_bersama">Cuti Bersama</option>
-                                    <option value="off">Off</option>
-                                    <option value="libur">Libur</option>
-                                    <option value="alpha">Alpha</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="row" id="req_time_section">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Check In Baru</label>
-                                <input type="time" class="form-control" id="req_check_in" name="new_check_in">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Check Out Baru</label>
-                                <input type="time" class="form-control" id="req_check_out" name="new_check_out">
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Alasan Perubahan <span class="text-danger">*</span></label>
-                            <textarea class="form-control" id="req_reason" name="reason" rows="3"
-                                placeholder="Jelaskan mengapa data absensi perlu diubah..." required></textarea>
-                            <small class="text-muted">Wajib diisi agar manager dapat mengevaluasi request ini.</small>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-warning text-dark fw-semibold" id="saveRequestEditBtn">
-                            <i class="bx bx-send me-1"></i> Kirim Request
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
+    <!-- Request Attendance Edit Modal -->
+    <div class="modal fade" id="requestEditModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Ajukan Perubahan Absensi</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <form id="requestEditForm" method="POST">@csrf<div class="modal-body">
+            <input type="hidden" id="req_attendance_id" name="attendance_id">
+            <div class="mb-3"><label class="form-label">Karyawan</label><input type="text" class="form-control" id="req_employee_name" readonly></div>
+            <div class="row"><div class="col-md-6 mb-3"><label class="form-label">Tanggal Absensi Baru <span class="text-danger">*</span></label><input type="date" class="form-control" id="req_attendance_date" name="new_attendance_date" required></div>
+            <div class="col-md-6 mb-3"><label class="form-label">Status Baru <span class="text-danger">*</span></label><select class="form-select" id="req_status" name="new_status" required>
+                <option value="hadir">Hadir</option><option value="skorsing">Skorsing</option><option value="terlambat">Terlambat</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alpha">Alpha</option><option value="cuti">Cuti</option><option value="cuti_tahunan">Cuti Tahunan</option><option value="cuti_umrah">Cuti Umrah</option><option value="cuti_hamil">Cuti Hamil</option><option value="cuti_menikah">Cuti Menikah</option><option value="cuti_duka">Cuti Duka</option><option value="cuti_istri_melahirkan">Cuti Istri Melahirkan</option><option value="cuti_keguguran">Cuti Keguguran</option><option value="cuti_baptis_anak">Cuti Baptis Anak</option><option value="cuti_khitanan_anak">Cuti Khitanan Anak</option><option value="cuti_menikahkan_anak">Cuti Menikahkan Anak</option><option value="cuti_nasional">Cuti Nasional</option><option value="cuti_khusus">Cuti Khusus</option><option value="cuti_bersama">Cuti Bersama</option><option value="lembur">Lembur</option><option value="off">Off</option><option value="libur">Libur</option>
+            </select></div></div>
+            <div class="row" id="req_time_section"><div class="col-md-6 mb-3"><label class="form-label">Check In Baru</label><input type="time" class="form-control" id="req_check_in" name="new_check_in"></div><div class="col-md-6 mb-3"><label class="form-label">Check Out Baru</label><input type="time" class="form-control" id="req_check_out" name="new_check_out"></div></div>
+            <div class="mb-3" id="req_late_minutes_section" style="display:none"><label class="form-label">Menit Terlambat</label><input type="number" class="form-control" id="req_late_minutes" readonly></div>
+            <div class="mb-3"><label class="form-label fw-semibold">Alasan Perubahan <span class="text-danger">*</span></label><textarea class="form-control" id="req_reason" name="reason" rows="3" required></textarea><small class="text-muted">Wajib diisi agar manager dapat mengevaluasi request ini.</small></div>
+        </div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-warning text-dark fw-semibold" id="saveRequestEditBtn">Kirim Request</button></div></form>
+    </div></div></div>
     <!-- Bulk Alpha Notification Modal -->
     <div class="modal fade" id="bulkAlphaNotifModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
@@ -1329,16 +1214,18 @@
 
                         // Fill form
                         $('#edit_id').val(data.id);
+                        $('#editModal').data('schedule-start', String(emp.work_schedule?.start_time || '').substring(0, 5));
                         $('#edit_employee_name').val(`${emp.employee_code} - ${emp.name}`);
                         $('#edit_attendance_date').val(attendanceDate);
                         $('#edit_check_in').val(data.check_in ? data.check_in.substring(0, 5) : '');
                         $('#edit_check_out').val(data.check_out ? data.check_out.substring(0, 5) : '');
                         $('#edit_status').val(data.status);
-                        $('#edit_late_minutes').val(data.late_minutes || '');
+                        $('#edit_late_minutes').val(data.late_minutes || 0);
                         $('#edit_notes').val(data.notes || '');
 
                         // Trigger status change to show/hide time fields
                         updateEditTimeFields(data.status);
+                        calculateEditLateMinutes();
 
                         modal.show();
                     },
@@ -1355,13 +1242,15 @@
 
             // Update time fields visibility based on status
             function updateEditTimeFields(status) {
+                $('#edit_late_minutes_section').toggle(status === 'terlambat');
                 const timeSection = $('#edit_time_section');
                 const checkInInput = $('#edit_check_in');
                 const checkInRequired = $('#edit_check_in_required');
                 
-                // Statuses that require check-in time
-                const statusesWithCheckIn = ['hadir', 'terlambat', 'lembur'];
+                // Jam absensi hanya berlaku untuk hadir dan terlambat.
+                const statusesWithCheckIn = ['hadir', 'terlambat'];
                 
+                $('#edit_late_minutes_section').toggle(status === 'terlambat');
                 if (statusesWithCheckIn.includes(status)) {
                     timeSection.show();
                     checkInInput.prop('required', true);
@@ -1370,15 +1259,31 @@
                     timeSection.hide();
                     checkInInput.prop('required', false);
                     checkInRequired.hide();
-                    // Nilai check_in & check_out TIDAK dikosongkan,
-                    // agar tidak hilang jika user ganti status lagi
+                    $('#edit_check_in, #edit_check_out').val('');
+                    $('#edit_late_minutes').val(0);
                 }
             }
 
             // Status change handler for edit modal
             $('#edit_status').on('change', function() {
                 updateEditTimeFields($(this).val());
+                calculateEditLateMinutes();
             });
+            $('#edit_check_in, #edit_attendance_date').on('change input', function() {
+                calculateEditLateMinutes();
+            });
+            function calculateEditLateMinutes() {
+                const start = String($('#editModal').data('schedule-start') || '').substring(0, 5);
+                const checkIn = $('#edit_check_in').val();
+                const date = $('#edit_attendance_date').val();
+                if ($('#edit_status').val() !== 'terlambat' || !start || !checkIn || !date) {
+                    $('#edit_late_minutes').val(0);
+                    return;
+                }
+                const scheduled = new Date(`${date}T${start}`);
+                const actual = new Date(`${date}T${checkIn}`);
+                $('#edit_late_minutes').val(Math.max(0, Math.floor((actual - scheduled) / 60000)));
+            }
 
             // Save edit form
             $('#editForm').on('submit', function(e) {
@@ -1389,7 +1294,7 @@
                 const checkIn = $('#edit_check_in').val();
                 
                 // Validate check-in for specific statuses
-                const statusesRequiringCheckIn = ['hadir', 'terlambat', 'lembur'];
+                const statusesRequiringCheckIn = ['hadir', 'terlambat'];
                 if (statusesRequiringCheckIn.includes(status) && !checkIn) {
                     Swal.fire({
                         icon: 'warning',
@@ -1400,10 +1305,11 @@
                     return;
                 }
                 
+                const keepsAttendanceTimes = ['hadir', 'terlambat'].includes(status);
                 const formData = {
                     attendance_date: $('#edit_attendance_date').val(),
-                    check_in: checkIn || null,
-                    check_out: $('#edit_check_out').val() || null,
+                    check_in: keepsAttendanceTimes ? (checkIn || null) : null,
+                    check_out: keepsAttendanceTimes ? ($('#edit_check_out').val() || null) : null,
                     status: status,
                     late_minutes: $('#edit_late_minutes').val() || null,
                     notes: $('#edit_notes').val() || null
@@ -1486,14 +1392,17 @@
                         // Fill form
                         $('#req_attendance_id').val(data.id);
                         $('#req_employee_name').val(`${emp.employee_code} - ${emp.name}`);
+                        $('#requestEditModal').data('schedule-start', String(emp.work_schedule?.start_time || '').substring(0, 5));
                         $('#req_attendance_date').val(attendanceDate);
                         $('#req_check_in').val(data.check_in ? data.check_in.substring(0, 5) : '');
                         $('#req_check_out').val(data.check_out ? data.check_out.substring(0, 5) : '');
                         $('#req_status').val(data.status);
                         $('#req_reason').val('');
+                        $('#req_late_minutes').val(data.late_minutes || 0);
 
                         // Show/hide time section
                         updateReqTimeFields(data.status);
+                        calculateReqLateMinutes();
 
                         new bootstrap.Modal(document.getElementById('requestEditModal')).show();
                     },
@@ -1504,16 +1413,28 @@
             });
 
             function updateReqTimeFields(status) {
-                const hasTime = ['hadir', 'terlambat', 'lembur'];
+                const hasTime = ['hadir', 'terlambat'];
+                $('#req_late_minutes_section').toggle(status === 'terlambat');
                 if (hasTime.includes(status)) {
                     $('#req_time_section').show();
                 } else {
                     $('#req_time_section').hide();
-                    // Nilai check_in & check_out TIDAK dikosongkan,
-                    // agar tidak hilang jika user ganti status lagi
+                    $('#req_check_in, #req_check_out').val('');
+                    $('#req_late_minutes').val(0);
                 }
             }
-            $('#req_status').on('change', function() { updateReqTimeFields($(this).val()); });
+            $('#req_status').on('change', function() { updateReqTimeFields($(this).val()); calculateReqLateMinutes(); });
+            $('#req_check_in, #req_attendance_date').on('change input', calculateReqLateMinutes);
+            function calculateReqLateMinutes() {
+                const start = String($('#requestEditModal').data('schedule-start') || '').substring(0, 5);
+                const checkIn = $('#req_check_in').val();
+                const date = $('#req_attendance_date').val();
+                if ($('#req_status').val() !== 'terlambat' || !start || !checkIn || !date) {
+                    $('#req_late_minutes').val(0);
+                    return;
+                }
+                $('#req_late_minutes').val(Math.max(0, Math.floor((new Date(`${date}T${checkIn}`) - new Date(`${date}T${start}`)) / 60000)));
+            }
 
             // Submit request edit
             $('#requestEditForm').on('submit', function(e) {
