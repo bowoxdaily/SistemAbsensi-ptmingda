@@ -277,7 +277,7 @@
                                     <td>{{ \Carbon\Carbon::parse($attendance->attendance_date)->locale('id')->translatedFormat('l, d F Y') }}
                                     </td>
                                     <td>
-                                        @if ($attendance->check_in)
+                                        @if ($attendance->status !== 'alpha' && $attendance->check_in)
                                             <span
                                                 class="badge bg-label-success">{{ \Carbon\Carbon::parse($attendance->check_in)->format('H:i') }}</span>
                                         @else
@@ -533,7 +533,7 @@
                                     <div class="col-6">
                                         <div class="border rounded p-2 text-center">
                                             <small class="text-muted d-block">Check In</small>
-                                            @if ($attendance->check_in)
+                                            @if ($attendance->status !== 'alpha' && $attendance->check_in)
                                                 <strong
                                                     class="text-success">{{ \Carbon\Carbon::parse($attendance->check_in)->format('H:i') }}</strong>
                                             @else
@@ -1058,7 +1058,7 @@
                                         </tr>
                                         <tr>
                                             <th>Check In</th>
-                                            <td><span class="badge bg-label-success">${data.check_in || '-'}</span></td>
+                                            <td><span class="badge bg-label-success">${data.status === 'alpha' ? '-' : (data.check_in || '-')}</span></td>
                                         </tr>
                                         <tr>
                                             <th>Check Out</th>
@@ -1121,7 +1121,7 @@
                                                     <small><a href="${photoUrl}" target="_blank">Buka di tab baru</a></small>
                                                 </div>
                                                 <p class="text-muted mt-2 mb-0">
-                                                    <small><i class='bx bx-time-five'></i> ${data.check_in || '-'}</small>
+                                                    <small><i class='bx bx-time-five'></i> ${data.status === 'alpha' ? '-' : (data.check_in || '-')}</small>
                                                 </p>
                                             </div>
                                         `;

@@ -127,7 +127,7 @@
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    @if ($attendance->check_in)
+                                                    @if ($attendance->status !== 'alpha' && $attendance->check_in)
                                                         <span class="badge bg-label-success">
                                                             <i class='bx bx-time-five'></i>
                                                             {{ \Carbon\Carbon::parse($attendance->check_in)->format('H:i') }}
@@ -262,7 +262,7 @@
                                                         <small class="text-muted d-block mb-1">
                                                             <i class='bx bx-log-in'></i> Check In
                                                         </small>
-                                                        @if ($attendance->check_in)
+                                                        @if ($attendance->status !== 'alpha' && $attendance->check_in)
                                                             <strong class="text-success">
                                                                 {{ \Carbon\Carbon::parse($attendance->check_in)->format('H:i') }}
                                                             </strong>
@@ -640,7 +640,7 @@
                                             </tr>
                                             <tr>
                                                 <td><strong>Check In</strong></td>
-                                                <td>: ${data.check_in || '-'}</td>
+                                                <td>: ${data.status === 'alpha' ? '-' : (data.check_in || '-')}</td>
                                             </tr>
                                             <tr>
                                                 <td><strong>Check Out</strong></td>

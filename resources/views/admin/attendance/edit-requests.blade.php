@@ -375,12 +375,17 @@
             // ── Pagination ──
             let pagHtml = `<span class="text-muted small">Menampilkan ${meta.from ?? 0}–${meta.to ?? 0} dari ${meta.total} data</span>`;
             if (meta.last_page > 1) {
-                pagHtml += `<nav><ul class="pagination pagination-sm mb-0">`;
-                for (let p = 1; p <= meta.last_page; p++) {
-                    pagHtml += `<li class="page-item ${p === page ? 'active' : ''}">
-                        <button class="page-link btn-page" data-page="${p}">${p}</button></li>`;
+                const start = Math.max(1, page - 2);
+                const end = Math.min(meta.last_page, page + 2);
+                pagHtml += '<nav aria-label="Navigasi halaman"><ul class="pagination pagination-sm mb-0">';
+                pagHtml += `<li class="page-item ${page <= 1 ? 'disabled' : ''}"><button class="page-link btn-page" data-page="${page - 1}" ${page <= 1 ? 'disabled' : ''} aria-label="Sebelumnya">&lsaquo;</button></li>`;
+                if (start > 1) pagHtml += '<li class="page-item disabled"><span class="page-link">…</span></li>';
+                for (let p = start; p <= end; p++) {
+                    pagHtml += `<li class="page-item ${p === page ? 'active' : ''}"><button class="page-link btn-page" data-page="${p}" ${p === page ? 'aria-current="page"' : ''}>${p}</button></li>`;
                 }
-                pagHtml += `</ul></nav>`;
+                if (end < meta.last_page) pagHtml += '<li class="page-item disabled"><span class="page-link">…</span></li>';
+                pagHtml += `<li class="page-item ${page >= meta.last_page ? 'disabled' : ''}"><button class="page-link btn-page" data-page="${page + 1}" ${page >= meta.last_page ? 'disabled' : ''} aria-label="Berikutnya">&rsaquo;</button></li>`;
+                pagHtml += '</ul></nav>';
             }
             $('#paginationArea').html(pagHtml);
         });

@@ -225,6 +225,7 @@
                 if (requests.length === 0) {
                     tbody.html(`<tr><td colspan="${tableColspan}" class="text-center py-4 text-muted">Tidak ada data request edit absensi</td></tr>`);
                     $('#mobileCards').html('<div class="text-center py-4 text-muted"><i class="bx bx-inbox"></i><p>Tidak ada data request edit absensi</p></div>');
+                    renderPagination(response.data);
                     return;
                 }
 
@@ -307,26 +308,25 @@
 
         const totalPages = pagination.last_page;
         const currentPage = pagination.current_page;
-        const links = pagination.links;
+        const total = pagination.total;
+        const from = pagination.from ?? 0;
+        const to = pagination.to ?? 0;
 
-        if (totalPages <= 1) return;
+        if (totalPages <= 1) {
+            paginationArea.html(`<small class="text-muted">Menampilkan ${from}–${to} dari ${total} data</small>`);
+            return;
+        }
 
-        let paginationHtml = '<nav aria-label="Page navigation"><ul class="pagination mb-0">';
-
-        links.forEach(link => {
-            const isActive = link.active ? 'active' : '';
-            const isDisabled = link.url === null ? 'disabled' : '';
-            const page = new URL(link.url || '#', window.location.origin).searchParams.get('page') || 1;
-            const label = link.label.replace('&laquo;', '«').replace('&raquo;', '»');
-
-            if (link.url === null) {
-                paginationHtml += `<li class="page-item ${isDisabled}"><span class="page-link">${label}</span></li>`;
-            } else {
-                paginationHtml += `<li class="page-item ${isActive}"><a class="page-link" href="javascript:void(0)" onclick="loadData(${page}, $('#filter-status').val())">${label}</a></li>`;
-            }
-        });
-
-        paginationHtml += '</ul></nav>';
+        const start = Math.max(1, currentPage - 2);
+        const end = Math.min(totalPages, currentPage + 2);
+        let paginationHtml = `<small class="text-muted">Menampilkan ${from}–${to} dari ${total} data</small><nav aria-label="Navigasi halaman"><ul class="pagination pagination-sm mb-0">`;
+        paginationHtml += `<li class="page-item ${currentPage <= 1 ? 'disabled' : ''}"><button class="page-link" ${currentPage <= 1 ? 'disabled' : ''} onclick="loadData(${currentPage - 1}, $('#filter-status').val())" aria-label="Sebelumnya">&lsaquo;</button></li>`;
+        if (start > 1) paginationHtml += '<li class="page-item disabled"><span class="page-link">…</span></li>';
+        for (let page = start; page <= end; page++) {
+            paginationHtml += `<li class="page-item ${page === currentPage ? 'active' : ''}"><button class="page-link" ${page === currentPage ? 'aria-current="page"' : `onclick="loadData(${page}, $('#filter-status').val())"`}>${page}</button></li>`;
+        }
+        if (end < totalPages) paginationHtml += '<li class="page-item disabled"><span class="page-link">…</span></li>';
+        paginationHtml += `<li class="page-item ${currentPage >= totalPages ? 'disabled' : ''}"><button class="page-link" ${currentPage >= totalPages ? 'disabled' : ''} onclick="loadData(${currentPage + 1}, $('#filter-status').val())" aria-label="Berikutnya">&rsaquo;</button></li></ul></nav>`;
         paginationArea.html(paginationHtml);
     }
 

@@ -343,7 +343,7 @@ function renderRecentAttendance(rows) {
     let html = '';
     rows.forEach(function(a) {
         const s = ATTENDANCE_STATUS[a.status] || { label: a.status, cls: 'bg-secondary' };
-        const cin  = a.check_in  ? String(a.check_in).substring(0,5)  : '-';
+        const cin  = a.status === 'alpha' ? '-' : (a.check_in ? String(a.check_in).substring(0,5) : '-');
         const cout = a.check_out ? String(a.check_out).substring(0,5) : '-';
         html += `<div class="att-row">
             <div class="att-avatar">${initials(a.name)}</div>

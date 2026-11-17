@@ -186,7 +186,7 @@ function renderTable(rows, meta) {
         const dept = emp.department ? emp.department.name : '-';
         const pos  = emp.position  ? emp.position.name   : '-';
         const date = a.attendance_date ? a.attendance_date.substring(0, 10).split('-').reverse().join('/') : '-';
-        const cin  = a.check_in_fmt  ?? (a.check_in  ? String(a.check_in).substring(11, 16)  : '-');
+        const cin  = a.status === 'alpha' ? '-' : (a.check_in_fmt ?? (a.check_in ? String(a.check_in).substring(11, 16) : '-'));
         const cout = a.check_out_fmt ?? (a.check_out ? String(a.check_out).substring(11, 16) : '-');
         const late = a.late_minutes > 0 ? `<span class="text-warning">${a.late_minutes} mnt</span>` : '-';
 

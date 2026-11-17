@@ -34,6 +34,14 @@ Schedule::command('attendance:generate-absent')
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/generate-absent.log'));
 
+// Finalize incomplete check-ins after two weekdays, unless any clarification exists.
+Schedule::command('attendance:finalize-incomplete')
+    ->weekdays()
+    ->dailyAt('02:30')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/finalize-incomplete-attendance.log'));
+
 // Schedule: Auto sync Fingerspot data
 // JADWAL DIOPTIMASI: Tidak jalan saat jam puncak absen masuk (07:00-08:59)
 // dan jam puncak absen pulang (16:00-18:59) — menghindari kompetisi disk I/O & table lock

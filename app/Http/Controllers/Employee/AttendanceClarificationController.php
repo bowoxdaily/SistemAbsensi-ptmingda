@@ -80,6 +80,19 @@ class AttendanceClarificationController extends Controller
             ->where('employee_id', $employee->id)
             ->firstOrFail();
 
+        $monthStart = now()->startOfMonth();
+        $monthEnd = now()->endOfMonth();
+        $monthlyClarifications = AttendanceClarification::where('employee_id', $employee->id)
+            ->whereBetween('created_at', [$monthStart, $monthEnd])
+            ->count();
+
+        if ($monthlyClarifications >= 2) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Maksimal 2 pengajuan klarifikasi absensi per karyawan per bulan.',
+            ], 422);
+        }
+
         // Cegah duplikat pending untuk absensi yang sama
         $alreadyPending = AttendanceClarification::where('attendance_id', $attendance->id)
             ->where('status', 'pending')

@@ -205,6 +205,26 @@ class AttendanceEditRequestController extends Controller
         }
 
         $attendance = Attendance::with('employee.workSchedule')->findOrFail($request->attendance_id);
+
+        if ($attendance->status === 'alpha' && in_array($request->new_status, ['hadir', 'terlambat'], true)) {
+            $monthStart = now()->startOfMonth();
+            $monthEnd = now()->endOfMonth();
+            $monthlyRequests = AttendanceEditRequest::whereHas('attendance', function ($query) use ($attendance) {
+                $query->where('employee_id', $attendance->employee_id);
+            })
+                ->where('old_status', 'alpha')
+                ->whereIn('new_status', ['hadir', 'terlambat'])
+                ->whereBetween('created_at', [$monthStart, $monthEnd])
+                ->count();
+
+            if ($monthlyRequests >= 2) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Maksimal 2 request perubahan Alpha menjadi Hadir/Terlambat per karyawan per bulan.',
+                ], 422);
+            }
+        }
+
         if ($request->new_status === 'terlambat') {
             $schedule = $attendance->employee->workSchedule;
             if (!$schedule) {
