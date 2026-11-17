@@ -8,6 +8,7 @@ use App\Models\AttendanceEditRequest;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class AttendanceEditRequestController extends Controller
@@ -88,6 +89,7 @@ class AttendanceEditRequestController extends Controller
     {
         $request->validate([
             'status' => 'nullable|in:pending,approved,rejected',
+            'attendance_status' => 'nullable|in:hadir,skorsing,terlambat,izin,sakit,cuti,alpha,libur,cuti_bersama,lembur,off,cuti_khusus,cuti_tahunan,cuti_umrah,cuti_hamil,cuti_menikah,cuti_duka,cuti_istri_melahirkan,cuti_keguguran,cuti_baptis_anak,cuti_khitanan_anak,cuti_menikahkan_anak,cuti_nasional',
             'search' => 'nullable|string|max:255',
         ]);
 
@@ -132,6 +134,7 @@ class AttendanceEditRequestController extends Controller
     {
         return AttendanceEditRequest::query()
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->input('status')))
+            ->when($request->filled('attendance_status'), fn ($query) => $query->where('new_status', $request->input('attendance_status')))
             ->when(trim((string) $request->input('search', '')), function ($query, $search) {
                 $query->whereHas('attendance.employee', function ($employeeQuery) use ($search) {
                     $employeeQuery->where('name', 'like', "%{$search}%")
@@ -324,24 +327,25 @@ class AttendanceEditRequestController extends Controller
             }
         }
 
-        // Terapkan perubahan ke attendance (overtime dihitung via batch cron, bukan real-time)
-        $attendance->attendance_date   = $newDate;
-        $attendance->check_in          = $newCheckIn;
-        $attendance->check_out         = $newCheckOut;
-        $attendance->status            = $newStatus;
-        $attendance->late_minutes      = $lateMinutes;
-        if ($attendance->isDirty('check_out')) {
-            $attendance->overtime_minutes = 0;
-        }
-        $attendance->save();
+        DB::transaction(function () use ($attendance, $editRequest, $newDate, $newCheckIn, $newCheckOut, $newStatus, $lateMinutes, $request) {
+            // Terapkan perubahan ke attendance (overtime dihitung via batch cron, bukan real-time)
+            $attendance->attendance_date   = $newDate;
+            $attendance->check_in          = $newCheckIn;
+            $attendance->check_out         = $newCheckOut;
+            $attendance->status            = $newStatus;
+            $attendance->late_minutes      = $lateMinutes;
+            if ($attendance->isDirty('check_out')) {
+                $attendance->overtime_minutes = 0;
+            }
+            $attendance->save();
 
-        // Update status request
-        $editRequest->update([
-            'status'       => 'approved',
-            'reviewed_by'  => Auth::id(),
-            'reviewed_at'  => now(),
-            'review_notes' => $request->review_notes,
-        ]);
+            $editRequest->update([
+                'status'       => 'approved',
+                'reviewed_by'  => Auth::id(),
+                'reviewed_at'  => now(),
+                'review_notes' => $request->review_notes,
+            ]);
+        });
 
         return response()->json([
             'success' => true,

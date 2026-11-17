@@ -92,11 +92,37 @@
                             <i class='bx bx-search'></i>
                         </button>
                     </div>
-                    <select class="form-select form-select-sm" id="filter-status" style="width:auto;">
-                        <option value="">Semua Status</option>
+                    <select class="form-select form-select-sm" id="filter-status" style="width:auto;" aria-label="Filter status request">
+                        <option value="">Semua Status Request</option>
                         <option value="pending">Pending</option>
                         <option value="approved">Approved</option>
                         <option value="rejected">Rejected</option>
+                    </select>
+                    <select class="form-select form-select-sm" id="filter-attendance-status" style="width:auto;" aria-label="Filter status absensi">
+                        <option value="">Semua Status Absensi</option>
+                        <option value="hadir">Hadir</option>
+                        <option value="terlambat">Terlambat</option>
+                        <option value="skorsing">Skorsing</option>
+                        <option value="lembur">Lembur</option>
+                        <option value="izin">Izin</option>
+                        <option value="sakit">Sakit</option>
+                        <option value="cuti">Cuti</option>
+                        <option value="cuti_tahunan">Cuti Tahunan</option>
+                        <option value="cuti_khusus">Cuti Khusus</option>
+                        <option value="cuti_bersama">Cuti Bersama</option>
+                        <option value="cuti_umrah">Cuti Umrah</option>
+                        <option value="cuti_hamil">Cuti Hamil</option>
+                        <option value="cuti_menikah">Cuti Menikah</option>
+                        <option value="cuti_duka">Cuti Duka</option>
+                        <option value="cuti_istri_melahirkan">Cuti Istri Melahirkan</option>
+                        <option value="cuti_keguguran">Cuti Keguguran</option>
+                        <option value="cuti_baptis_anak">Cuti Baptis Anak</option>
+                        <option value="cuti_khitanan_anak">Cuti Khitanan Anak</option>
+                        <option value="cuti_menikahkan_anak">Cuti Menikahkan Anak</option>
+                        <option value="cuti_nasional">Cuti Nasional</option>
+                        <option value="off">Off</option>
+                        <option value="libur">Libur</option>
+                        <option value="alpha">Alpha</option>
                     </select>
                     <button type="button" class="btn btn-sm btn-success" id="btnExport">
                         <i class='bx bx-download'></i> Export CSV
@@ -221,6 +247,11 @@
             hadir: 'Hadir', terlambat: 'Terlambat', lembur: 'Lembur',
             izin: 'Izin', sakit: 'Sakit', cuti: 'Cuti',
             cuti_tahunan: 'Cuti Tahunan', cuti_khusus: 'Cuti Khusus', cuti_bersama: 'Cuti Bersama',
+            cuti_umrah: 'Cuti Umrah', cuti_hamil: 'Cuti Hamil', cuti_menikah: 'Cuti Menikah',
+            cuti_duka: 'Cuti Duka', cuti_istri_melahirkan: 'Cuti Istri Melahirkan',
+            cuti_keguguran: 'Cuti Keguguran', cuti_baptis_anak: 'Cuti Baptis Anak',
+            cuti_khitanan_anak: 'Cuti Khitanan Anak', cuti_menikahkan_anak: 'Cuti Menikahkan Anak',
+            cuti_nasional: 'Cuti Nasional', skorsing: 'Skorsing',
             off: 'Off', libur: 'Libur', alpha: 'Alpha',
         };
         return map[status] || status;
@@ -254,9 +285,10 @@
         page = page || 1;
         currentPage = page;
         const status = $('#filter-status').val();
+        const attendanceStatus = $('#filter-attendance-status').val();
         const search = $('#filter-search').val().trim();
 
-        $.get('/api/admin/attendance-edit-requests', { status: status, search: search, per_page: 15, page: page }, function(res) {
+        $.get('/api/admin/attendance-edit-requests', { status: status, attendance_status: attendanceStatus, search: search, per_page: 15, page: page }, function(res) {
             if (!res.success) return;
             const rows   = res.data.data;
             const meta   = res.data;
@@ -565,7 +597,7 @@
     });
 
     // ── Filter & refresh ──
-    $('#filter-status').on('change', function() { loadRequests(1); });
+    $('#filter-status, #filter-attendance-status').on('change', function() { loadRequests(1); });
     $('#btnSearch').on('click', function() { loadRequests(1); });
     $('#filter-search').on('keydown', function(event) {
         if (event.key === 'Enter') loadRequests(1);
@@ -573,6 +605,7 @@
     $('#btnExport').on('click', function() {
         const params = new URLSearchParams({
             status: $('#filter-status').val(),
+            attendance_status: $('#filter-attendance-status').val(),
             search: $('#filter-search').val().trim(),
         });
         window.location.href = `/api/admin/attendance-edit-requests/export?${params.toString()}`;

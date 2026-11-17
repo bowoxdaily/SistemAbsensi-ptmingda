@@ -1419,7 +1419,6 @@
                     $('#req_time_section').show();
                 } else {
                     $('#req_time_section').hide();
-                    $('#req_check_in, #req_check_out').val('');
                     $('#req_late_minutes').val(0);
                 }
             }
