@@ -192,7 +192,9 @@
                     <i class="menu-icon tf-icons bx bx-error-circle"></i>
                     <div data-i18n="WarningLetter">Surat Peringatan</div>
                     @php
-                        $activeSpCount = \App\Models\WarningLetter::where('status', 'aktif')->count();
+                        $activeSpCount = \App\Models\WarningLetter::where('status', 'aktif')
+                            ->where(fn ($query) => $query->whereNull('completion_date')->orWhereDate('completion_date', '>', today()))
+                            ->count();
                     @endphp
                     @if($activeSpCount > 0)
                         <span class="badge bg-danger badge-notifications ms-auto">{{ $activeSpCount }}</span>
@@ -390,7 +392,9 @@
                     <i class="menu-icon tf-icons bx bx-error-circle"></i>
                     <div data-i18n="WarningLetter">Surat Peringatan</div>
                     @php
-                        $activeSpCount = \App\Models\WarningLetter::where('status', 'aktif')->count();
+                        $activeSpCount = \App\Models\WarningLetter::where('status', 'aktif')
+                            ->where(fn ($query) => $query->whereNull('completion_date')->orWhereDate('completion_date', '>', today()))
+                            ->count();
                     @endphp
                     @if($activeSpCount > 0)
                         <span class="badge bg-danger badge-notifications ms-auto">{{ $activeSpCount }}</span>
@@ -544,6 +548,7 @@
                         $employee = Auth::user()->employee ?? null;
                         $myActiveSp = $employee ? \App\Models\WarningLetter::where('employee_id', $employee->id)
                             ->where('status', 'aktif')
+                            ->where(fn ($query) => $query->whereNull('completion_date')->orWhereDate('completion_date', '>', today()))
                             ->count() : 0;
                     @endphp
                     @if($myActiveSp > 0)

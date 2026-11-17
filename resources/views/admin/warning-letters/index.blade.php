@@ -286,7 +286,7 @@
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" name="send_notification" value="1" id="sendNotification" checked>
                                 <label class="form-check-label" for="sendNotification">
-                                    Kirim notifikasi WhatsApp ke karyawan
+                                    Kirim notifikasi email ke karyawan
                                 </label>
                             </div>
                         </div>
@@ -414,7 +414,7 @@
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="send_notification" value="1" id="uploadSendNotification" checked>
                             <label class="form-check-label" for="uploadSendNotification">
-                                Kirim notifikasi WhatsApp ke karyawan
+                                Kirim notifikasi email ke karyawan
                             </label>
                         </div>
                     </div>
@@ -763,7 +763,7 @@ function renderTable(data) {
                                 </a></li>
                                 ${sp.status === 'aktif' ? `
                                 <li><a class="dropdown-item" href="#" onclick="sendNotification(${sp.id})">
-                                    <i class='bx bxl-whatsapp'></i> Kirim WhatsApp
+                                    <i class='bx bx-envelope'></i> Kirim Email
                                 </a></li>
                                 ` : ''}
                                 <li><hr class="dropdown-divider"></li>
@@ -994,11 +994,11 @@ function deleteSp(id) {
 // Send notification
 function sendNotification(id) {
     Swal.fire({
-        title: 'Kirim Notifikasi WhatsApp?',
-        text: 'Notifikasi akan dikirim ke karyawan',
+        title: 'Kirim Notifikasi Email?',
+        text: 'Notifikasi akan dikirim ke email karyawan',
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#25D366',
+        confirmButtonColor: '#0d6efd',
         cancelButtonColor: '#6c757d',
         confirmButtonText: 'Ya, Kirim!',
         cancelButtonText: 'Batal'

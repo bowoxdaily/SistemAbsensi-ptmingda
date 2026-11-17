@@ -106,6 +106,7 @@ class WarningLetterController extends Controller
             $stats = [
                 'aktif' => WarningLetter::where('employee_id', $employee->id)
                     ->where('status', 'aktif')
+                    ->where(fn ($query) => $query->whereNull('completion_date')->orWhereDate('completion_date', '>', today()))
                     ->count(),
                 'total' => WarningLetter::where('employee_id', $employee->id)->count(),
                 'selesai' => WarningLetter::where('employee_id', $employee->id)

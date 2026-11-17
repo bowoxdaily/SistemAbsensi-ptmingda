@@ -34,6 +34,11 @@ Schedule::command('attendance:generate-absent')
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/generate-absent.log'));
 
+// Expire warning letters on their completion date.
+Schedule::command('warning-letters:expire')
+    ->dailyAt('00:05')
+    ->withoutOverlapping();
+
 // Finalize incomplete check-ins after two weekdays, unless any clarification exists.
 Schedule::command('attendance:finalize-incomplete')
     ->weekdays()

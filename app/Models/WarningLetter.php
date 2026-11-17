@@ -66,7 +66,8 @@ class WarningLetter extends Model
      */
     public function isActive(): bool
     {
-        return $this->status === 'aktif';
+        return $this->status === 'aktif'
+            && (!$this->completion_date || $this->completion_date->isFuture());
     }
 
     /**

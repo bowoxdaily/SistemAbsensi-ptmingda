@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\WarningLetter;
 use App\Models\Employee;
-use App\Services\WhatsAppService;
+use App\Mail\WarningLetterMail;
+use App\Services\EmailSmtpSettingService;
+use Illuminate\Support\Facades\Mail;
+use Throwable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -98,12 +101,15 @@ class WarningLetterController extends Controller
             ], 403);
         }
 
+        $activeLetters = fn () => WarningLetter::where('status', 'aktif')
+            ->where(fn ($query) => $query->whereNull('completion_date')->orWhereDate('completion_date', '>', today()));
+
         $stats = [
-            'total_aktif'      => WarningLetter::where('status', 'aktif')->count(),
-            'st_aktif'         => WarningLetter::where('status', 'aktif')->where('sp_type', 'ST')->count(),
-            'sp1_aktif'        => WarningLetter::where('status', 'aktif')->where('sp_type', 'SP1')->count(),
-            'sp2_aktif'        => WarningLetter::where('status', 'aktif')->where('sp_type', 'SP2')->count(),
-            'sp3_aktif'        => WarningLetter::where('status', 'aktif')->where('sp_type', 'SP3')->count(),
+            'total_aktif'      => $activeLetters()->count(),
+            'st_aktif'         => $activeLetters()->where('sp_type', 'ST')->count(),
+            'sp1_aktif'        => $activeLetters()->where('sp_type', 'SP1')->count(),
+            'sp2_aktif'        => $activeLetters()->where('sp_type', 'SP2')->count(),
+            'sp3_aktif'        => $activeLetters()->where('sp_type', 'SP3')->count(),
             'total_selesai'    => WarningLetter::where('status', 'selesai')->count(),
             'total_dibatalkan' => WarningLetter::where('status', 'dibatalkan')->count(),
             'total_bulan_ini'  => WarningLetter::whereMonth('issue_date', now()->month)
@@ -226,17 +232,24 @@ class WarningLetterController extends Controller
                 'issued_at' => now(),
             ]);
 
-            // Send WhatsApp notification only if status is aktif and notification is requested
-            if ($status === 'aktif' && $request->send_notification) {
-                $whatsapp = new WhatsAppService();
-                $whatsapp->sendWarningLetterNotification($sp);
-            }
-
             DB::commit();
 
             $message = $status === 'draft'
                 ? 'SP berhasil dibuat sebagai draft. Upload dokumen untuk mengaktifkan.'
                 : 'Surat peringatan berhasil dibuat dan diaktifkan';
+
+            if ($status === 'aktif' && $request->send_notification) {
+                try {
+                    $this->sendWarningLetterEmail($sp);
+                    $message .= '. Notifikasi email berhasil dikirim.';
+                } catch (Throwable $e) {
+                    Log::warning('SP created but email notification failed', [
+                        'sp_id' => $sp->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                    $message .= ', tetapi notifikasi email gagal dikirim. Periksa pengaturan SMTP.';
+                }
+            }
 
             Log::info('Warning letter created', [
                 'sp_id' => $sp->id,
@@ -412,67 +425,34 @@ class WarningLetterController extends Controller
     }
 
     /**
-     * Send or resend WhatsApp notification (API)
+     * Send or resend email notification (API)
      */
     public function sendNotification($id)
     {
-        // Security check
         if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'manager', 'viewer', 'superadmin'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized action.'
-            ], 403);
+            return response()->json(['success' => false, 'message' => 'Unauthorized action.'], 403);
         }
 
         try {
             $sp = WarningLetter::with(['employee', 'issuer'])->findOrFail($id);
+            $this->sendWarningLetterEmail($sp);
 
-            Log::info('Attempting to send SP notification', [
-                'sp_id' => $sp->id,
-                'employee_id' => $sp->employee_id,
-                'employee_name' => $sp->employee->name ?? 'N/A',
-                'employee_phone' => $sp->employee->phone ?? 'N/A',
+            return response()->json([
+                'success' => true,
+                'message' => 'Notifikasi email berhasil dikirim ke ' . $sp->employee->name,
             ]);
-
-            $whatsapp = new WhatsAppService();
-            $result = $whatsapp->sendWarningLetterNotification($sp);
-
-            if ($result) {
-                Log::info('SP notification sent successfully', ['sp_id' => $sp->id]);
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Notifikasi WhatsApp berhasil dikirim ke ' . $sp->employee->name
-                ]);
-            } else {
-                Log::warning('SP notification failed - WhatsAppService returned false', [
-                    'sp_id' => $sp->id,
-                    'employee_id' => $sp->employee_id,
-                    'employee_phone' => $sp->employee->phone ?? 'no phone',
-                ]);
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Gagal mengirim notifikasi WhatsApp. Cek log untuk detail: ' .
-                                (!$sp->employee->phone ? 'Karyawan tidak punya nomor HP. ' : '') .
-                                'Pastikan WhatsApp service aktif.'
-                ], 500);
-            }
-        } catch (\Exception $e) {
-            Log::error('Error sending SP notification', [
-                'sp_id' => $id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+        } catch (Throwable $e) {
+            Log::error('Error sending SP email notification', ['sp_id' => $id, 'error' => $e->getMessage()]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengirim notifikasi: ' . $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Bulk send WhatsApp notifications (API)
+     * Bulk send email notifications (API)
      */
     public function bulkSendNotification(Request $request)
     {
@@ -494,20 +474,17 @@ class WarningLetterController extends Controller
             $spIds = $request->sp_ids;
             $sps = WarningLetter::with('employee')->whereIn('id', $spIds)->get();
 
-            $whatsapp = new WhatsAppService();
             $sent = 0;
             $failed = 0;
 
             foreach ($sps as $sp) {
-                $result = $whatsapp->sendWarningLetterNotification($sp);
-                if ($result) {
+                try {
+                    $this->sendWarningLetterEmail($sp);
                     $sent++;
-                } else {
+                } catch (Throwable $e) {
                     $failed++;
+                    Log::warning('Bulk SP email failed', ['sp_id' => $sp->id, 'error' => $e->getMessage()]);
                 }
-
-                // Delay to avoid rate limiting
-                usleep(500000); // 0.5 second delay
             }
 
             return response()->json([
@@ -675,13 +652,20 @@ class WarningLetterController extends Controller
                 'updated_by' => Auth::id(),
             ]);
 
-            // Send WhatsApp notification if requested
-            if ($request->send_notification) {
-                $whatsapp = new WhatsAppService();
-                $whatsapp->sendWarningLetterNotification($sp);
-            }
-
             DB::commit();
+
+            $emailFailed = false;
+            if ($request->send_notification) {
+                try {
+                    $this->sendWarningLetterEmail($sp);
+                } catch (Throwable $e) {
+                    $emailFailed = true;
+                    Log::warning('SP document activated but email notification failed', [
+                        'sp_id' => $sp->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
 
             Log::info('Warning letter document uploaded and activated', [
                 'sp_id' => $sp->id,
@@ -691,7 +675,9 @@ class WarningLetterController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Dokumen berhasil di-upload. SP telah diaktifkan.',
+                'message' => $emailFailed
+                    ? 'Dokumen berhasil di-upload dan SP aktif, tetapi email gagal dikirim. Periksa pengaturan SMTP.'
+                    : 'Dokumen berhasil di-upload. SP telah diaktifkan.',
                 'data' => $sp->load(['employee', 'issuer', 'updater'])
             ]);
         } catch (\Exception $e) {
@@ -707,6 +693,19 @@ class WarningLetterController extends Controller
                 'message' => 'Gagal upload dokumen: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    private function sendWarningLetterEmail(WarningLetter $warningLetter): void
+    {
+        $email = trim((string) ($warningLetter->employee->email ?? ''));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new \RuntimeException('Email karyawan tidak tersedia atau tidak valid.');
+        }
+
+        $smtpService = new EmailSmtpSettingService();
+        $smtpService->applyMailer(EmailSmtpSettingService::CONTEXT_NOTIFICATIONS, 'smtp_notifications');
+
+        Mail::mailer('smtp_notifications')->to($email)->send(new WarningLetterMail($warningLetter));
     }
 
     /**
