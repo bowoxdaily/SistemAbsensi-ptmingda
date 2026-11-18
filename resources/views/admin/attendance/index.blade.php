@@ -302,7 +302,7 @@
                                         @endif
                                     </td>
                                     <td>
-                                        @if ($attendance->check_out)
+                                        @if ($attendance->status !== 'alpha' && $attendance->check_out)
                                             <span
                                                 class="badge bg-label-warning">{{ \Carbon\Carbon::parse($attendance->check_out)->format('H:i') }}</span>
                                         @else
@@ -561,7 +561,7 @@
                                     <div class="col-6">
                                         <div class="border rounded p-2 text-center">
                                             <small class="text-muted d-block">Check Out</small>
-                                            @if ($attendance->check_out)
+                                            @if ($attendance->status !== 'alpha' && $attendance->check_out)
                                                 <strong
                                                     class="text-warning">{{ \Carbon\Carbon::parse($attendance->check_out)->format('H:i') }}</strong>
                                             @else

@@ -137,7 +137,7 @@
                                                     @endif
                                                 </td>
                                                 <td>
-                                                    @if ($attendance->check_out)
+                                                    @if ($attendance->status !== 'alpha' && $attendance->check_out)
                                                         <span class="badge bg-label-warning">
                                                             <i class='bx bx-time-five'></i>
                                                             {{ \Carbon\Carbon::parse($attendance->check_out)->format('H:i') }}
@@ -276,7 +276,7 @@
                                                         <small class="text-muted d-block mb-1">
                                                             <i class='bx bx-log-out'></i> Check Out
                                                         </small>
-                                                        @if ($attendance->check_out)
+                                                        @if ($attendance->status !== 'alpha' && $attendance->check_out)
                                                             <strong class="text-warning">
                                                                 {{ \Carbon\Carbon::parse($attendance->check_out)->format('H:i') }}
                                                             </strong>
