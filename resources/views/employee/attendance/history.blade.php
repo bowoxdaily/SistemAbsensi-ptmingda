@@ -687,7 +687,7 @@
                                 </div>
 
                                 <div class="row mt-3">
-                                    ${data.photo_in ? (() => {
+                                    ${data.status !== 'alpha' && data.photo_in ? (() => {
                                         const photoIn = String(data.photo_in);
                                         const isExternal = photoIn.startsWith('http://') || photoIn.startsWith('https://');
                                         const photoUrl = isExternal ? photoIn : STORAGE_BASE_URL + photoIn;
@@ -708,7 +708,7 @@
                                                 </div>
                                             `;
                                     })() : ''}
-                                    ${data.photo_out ? (() => {
+                                    ${data.status !== 'alpha' && data.photo_out ? (() => {
                                         const photoOut = String(data.photo_out);
                                         const isExternal = photoOut.startsWith('http://') || photoOut.startsWith('https://');
                                         const photoUrl = isExternal ? photoOut : STORAGE_BASE_URL + photoOut;

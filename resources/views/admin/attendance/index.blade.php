@@ -285,7 +285,7 @@
                                         @endif
                                     </td>
                                     <td>
-                                        @if ($attendance->photo_in)
+                                        @if ($attendance->status !== 'alpha' && $attendance->photo_in)
                                             @php
                                                 $photoInUrl = (str_starts_with($attendance->photo_in, 'http://') || str_starts_with($attendance->photo_in, 'https://')) 
                                                     ? $attendance->photo_in 
@@ -310,7 +310,7 @@
                                         @endif
                                     </td>
                                     <td>
-                                        @if ($attendance->photo_out)
+                                        @if ($attendance->status !== 'alpha' && $attendance->photo_out)
                                             @php
                                                 $photoOutUrl = (str_starts_with($attendance->photo_out, 'http://') || str_starts_with($attendance->photo_out, 'https://')) 
                                                     ? $attendance->photo_out 
@@ -540,7 +540,7 @@
                                                 <strong class="text-muted">-</strong>
                                             @endif
                                             <div class="mt-2">
-                                                @if ($attendance->photo_in)
+                                                @if ($attendance->status !== 'alpha' && $attendance->photo_in)
                                                     @php
                                                         $photoInUrl = (str_starts_with($attendance->photo_in, 'http://') || str_starts_with($attendance->photo_in, 'https://')) 
                                                             ? $attendance->photo_in 
@@ -568,7 +568,7 @@
                                                 <strong class="text-muted">-</strong>
                                             @endif
                                             <div class="mt-2">
-                                                @if ($attendance->photo_out)
+                                                @if ($attendance->status !== 'alpha' && $attendance->photo_out)
                                                     @php
                                                         $photoOutUrl = (str_starts_with($attendance->photo_out, 'http://') || str_starts_with($attendance->photo_out, 'https://')) 
                                                             ? $attendance->photo_out 
@@ -1101,7 +1101,7 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <h6 class="mb-3">Foto Check In</h6>
-                                    ${data.photo_in ? (() => {
+                                    ${data.status !== 'alpha' && data.photo_in ? (() => {
                                         const photoIn = String(data.photo_in);
                                         const isExternal = photoIn.startsWith('http://') || photoIn.startsWith('https://');
                                         const photoUrl = isExternal ? photoIn : STORAGE_BASE_URL + photoIn;
@@ -1134,7 +1134,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <h6 class="mb-3">Foto Check Out</h6>
-                                    ${data.photo_out ? (() => {
+                                    ${data.status !== 'alpha' && data.photo_out ? (() => {
                                         const photoOut = String(data.photo_out);
                                         const isExternal = photoOut.startsWith('http://') || photoOut.startsWith('https://');
                                         const photoUrl = isExternal ? photoOut : STORAGE_BASE_URL + photoOut;

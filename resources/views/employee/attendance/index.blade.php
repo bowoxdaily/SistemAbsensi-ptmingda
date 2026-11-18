@@ -412,8 +412,9 @@
                         document.getElementById('checkInTime').textContent = att.check_in || '-';
                         document.getElementById('checkOutTime').textContent = att.check_out || '-';
 
-                        // Show photos if available (support Fingerspot S3 direct URL)
-                        if (att.photo_in || att.photo_out) {
+                        // Hide Fingerspot photos for alpha records.
+                        const showAttendancePhotos = att.status !== 'alpha';
+                        if (showAttendancePhotos && (att.photo_in || att.photo_out)) {
                             document.getElementById('photoPreviewContainer').style.display = 'flex';
 
                             if (att.photo_in) {
