@@ -40,6 +40,7 @@ class FinalizeIncompleteAttendance extends Command
             ->chunkById(100, function ($attendances) use (&$emailIndex, $delaySeconds) {
                 foreach ($attendances as $attendance) {
                     $attendance->status = 'alpha';
+                    $attendance->late_minutes = 0;
                     $attendance->save();
 
                     SendAlphaNotificationEmailJob::dispatch($attendance->id)

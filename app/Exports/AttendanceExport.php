@@ -224,7 +224,7 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
             $attendance->check_out ? Carbon::parse($attendance->check_out)->format('H:i') : '-',
             $this->formatWorkSchedule($employee),
             strtoupper((string) ($attendance->status ?? '-')),
-            $attendance->late_minutes > 0 ? $attendance->late_minutes . ' menit' : '-',
+            $attendance->status === 'terlambat' && $attendance->late_minutes > 0 ? $attendance->late_minutes . ' menit' : '-',
             $attendance->overtime_minutes > 0 ? $attendance->overtime_minutes . ' menit' : '-',
             $totalHadir,
             $attendance->notes ?? '-',

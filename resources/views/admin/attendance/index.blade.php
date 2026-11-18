@@ -360,7 +360,7 @@
                                         @endif
                                     </td>
                                     <td>
-                                        @if ($attendance->late_minutes > 0)
+                                        @if ($attendance->status == 'terlambat' && $attendance->late_minutes > 0)
                                             <span class="badge bg-label-warning">{{ $attendance->late_minutes }}
                                                 menit</span>
                                         @else
@@ -623,7 +623,7 @@
                                         @endif
                                     </div>
                                     <div>
-                                        @if ($attendance->late_minutes > 0)
+                                        @if ($attendance->status == 'terlambat' && $attendance->late_minutes > 0)
                                             <span class="badge bg-label-warning">
                                                 <i class='bx bx-time'></i> {{ $attendance->late_minutes }} menit
                                             </span>
@@ -1085,7 +1085,7 @@
                                         </tr>
                                         <tr>
                                             <th>Terlambat</th>
-                                            <td>${data.late_minutes > 0 ? data.late_minutes + ' menit' : '-'}</td>
+                                            <td>${data.status === 'terlambat' && data.late_minutes > 0 ? data.late_minutes + ' menit' : '-'}</td>
                                         </tr>
                                     </table>
                                     ${data.notes ? `

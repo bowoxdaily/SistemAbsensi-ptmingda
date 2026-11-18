@@ -151,7 +151,7 @@
                                                         <span class="badge bg-success">Hadir</span>
                                                     @elseif($attendance->status == 'terlambat')
                                                         <span class="badge bg-warning">Terlambat</span>
-                                                        @if ($attendance->late_minutes > 0)
+                                                        @if ($attendance->status == 'terlambat' && $attendance->late_minutes > 0)
                                                             <br><small class="text-muted">({{ $attendance->late_minutes }}
                                                                 menit)</small>
                                                         @endif
@@ -175,7 +175,7 @@
                                                     @endif
                                                 </td>
                                                 <td>
-                                                    @if ($attendance->late_minutes > 0)
+                                                    @if ($attendance->status == 'terlambat' && $attendance->late_minutes > 0)
                                                         <span class="badge bg-danger">
                                                             <i class='bx bx-time'></i> {{ $attendance->late_minutes }}
                                                             menit
@@ -228,7 +228,7 @@
                                                         <span class="badge bg-success">Hadir</span>
                                                     @elseif($attendance->status == 'terlambat')
                                                         <span class="badge bg-warning">Terlambat</span>
-                                                        @if ($attendance->late_minutes > 0)
+                                                        @if ($attendance->status == 'terlambat' && $attendance->late_minutes > 0)
                                                             <br><span class="badge bg-danger mt-1">
                                                                 <i class='bx bx-time'></i> {{ $attendance->late_minutes }}
                                                                 menit
@@ -282,6 +282,8 @@
                                                             </strong>
                                                         @else
                                                             <strong class="text-muted">-</strong>
+                                                    @else
+                                                        <span class="text-muted small">-</span>
                                                         @endif
                                                     </div>
                                                 </div>
@@ -290,15 +292,17 @@
                                             <!-- Late Info & Action -->
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <div>
-                                                    @if ($attendance->late_minutes > 0)
+                                                    @if ($attendance->status == 'terlambat' && $attendance->late_minutes > 0)
                                                         <span class="badge bg-danger">
                                                             <i class='bx bx-time'></i> Terlambat
                                                             {{ $attendance->late_minutes }} menit
                                                         </span>
-                                                    @else
+                                                    @elseif ($attendance->status !== 'alpha')
                                                         <span class="text-success small">
                                                             <i class='bx bx-check-circle'></i> Tepat waktu
                                                         </span>
+                                                    @else
+                                                        <span class="text-muted small">-</span>
                                                     @endif
                                                 </div>
                                                 <button type="button" class="btn btn-sm btn-primary view-detail"
@@ -759,7 +763,7 @@
             });
         });
 
-        // ─── Klarifikasi Absensi ────────────────────────────────────────────
+        // â”€â”€â”€ Klarifikasi Absensi â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // Buka modal klarifikasi
         $(document).on('click', '.btn-clarify', function () {
             const id      = $(this).data('id');

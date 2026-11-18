@@ -197,6 +197,8 @@
                                             <td>
                                                 @if ($absensi->status == 'terlambat')
                                                     <small class="text-warning">{{ $absensi->late_minutes }} menit</small>
+                                                @elseif($absensi->status == 'alpha')
+                                                    -
                                                 @elseif($absensi->notes)
                                                     <small>{{ Str::limit($absensi->notes, 30) }}</small>
                                                 @else

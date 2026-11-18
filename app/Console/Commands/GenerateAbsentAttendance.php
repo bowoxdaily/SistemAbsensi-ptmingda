@@ -87,6 +87,27 @@ class GenerateAbsentAttendance extends Command
         $now = now();
 
         foreach ($employees as $employee) {
+            $attendanceDate = $date->copy();
+            $joinDate = $employee->join_date ? Carbon::parse($employee->join_date)->startOfDay() : null;
+            $isJoinDateH1 = $joinDate && $joinDate->lt($date->copy()->startOfDay())
+                && $joinDate->copy()->addWeekdays(1)->isSameDay($date);
+
+            if ($joinDate && $joinDate->isSameDay($date)) {
+                $this->line("Skipping {$employee->name}: join-date absences are checked on the next weekday.");
+                $skippedCount++;
+                continue;
+            }
+
+            if ($isJoinDateH1) {
+                $attendanceDate = $joinDate->copy();
+                if (Attendance::where('employee_id', $employee->id)->whereDate('attendance_date', $attendanceDate)->exists()
+                    || \App\Models\FingerspotLog::where('employee_id', $employee->id)->whereDate('scan_time', $attendanceDate)->exists()) {
+                    $this->line("Skipping {$employee->name}: attendance or Fingerspot log exists for join date.");
+                    $skippedCount++;
+                    continue;
+                }
+            }
+
             // Check if employee has work schedule
             if (!$employee->workSchedule) {
                 $this->warn("Employee {$employee->name} has no work schedule, skipped.");
@@ -97,14 +118,14 @@ class GenerateAbsentAttendance extends Command
             $workSchedule = $employee->workSchedule;
 
             // Skip if the date is before the employee's join date
-            if ($employee->join_date && Carbon::parse($employee->join_date)->startOfDay()->gt($date->copy()->startOfDay())) {
+            if ($joinDate && $joinDate->gt($date->copy()->startOfDay())) {
                 $this->line("Skipping {$employee->name}: date {$date->format('Y-m-d')} is before join date " . Carbon::parse($employee->join_date)->format('Y-m-d'));
                 $skippedCount++;
                 continue;
             }
 
             // Check if this day is a working day for the employee's shift
-            if (!$this->isWorkingDay($workSchedule, $dayOfWeek)) {
+            if (!$this->isWorkingDay($workSchedule, $attendanceDate->dayOfWeek)) {
                 $skippedCount++;
                 continue;
             }
@@ -134,11 +155,11 @@ class GenerateAbsentAttendance extends Command
             }
 
             // Set tanggal check-in ke tanggal yang dicek
-            $checkinDateTime = Carbon::parse($date->format('Y-m-d') . ' ' . $checkinTime->format('H:i:s'));
+            $checkinDateTime = Carbon::parse($attendanceDate->format('Y-m-d') . ' ' . $checkinTime->format('H:i:s'));
 
             // Tambahkan grace period 10 menit setelah jam check-in.
             // Untuk tanggal hari ini, alpha baru digenerate setelah lewat jam masuk + 10 menit.
-            $isToday = $date->isToday();
+            $isToday = !$isJoinDateH1 && $date->isToday();
             $gracePeriodEnd = null;
             
             if ($isToday) {
@@ -152,14 +173,22 @@ class GenerateAbsentAttendance extends Command
             }
 
             // Check if attendance record already exists
-            if (isset($existingAttendances[$employee->id])) {
+            if ($isJoinDateH1
+                ? Attendance::where('employee_id', $employee->id)->whereDate('attendance_date', $attendanceDate)->exists()
+                : isset($existingAttendances[$employee->id])) {
                 // Attendance already exists, skip
                 $skippedCount++;
                 continue;
             }
 
-            // IMPORTANT: Check if employee has approved leave for this date
-            $approvedLeave = $approvedLeaves->get($employee->id);
+            // IMPORTANT: Check if employee has approved leave for the attendance date
+            $approvedLeave = $isJoinDateH1
+                ? Leave::where('employee_id', $employee->id)
+                    ->where('status', 'approved')
+                    ->whereDate('start_date', '<=', $attendanceDate)
+                    ->whereDate('end_date', '>=', $attendanceDate)
+                    ->first()
+                : $approvedLeaves->get($employee->id);
 
             if ($approvedLeave) {
                 // Employee has approved leave, create attendance with leave status
@@ -167,7 +196,7 @@ class GenerateAbsentAttendance extends Command
 
                 $insertData[] = [
                     'employee_id' => $employee->id,
-                    'attendance_date' => $date->format('Y-m-d'),
+                    'attendance_date' => $attendanceDate->format('Y-m-d'),
                     'check_in' => null,
                     'check_out' => null,
                     'status' => $leaveStatus,
@@ -185,7 +214,7 @@ class GenerateAbsentAttendance extends Command
             // Create alpha attendance record
             $insertData[] = [
                 'employee_id' => $employee->id,
-                'attendance_date' => $date->format('Y-m-d'),
+                'attendance_date' => $attendanceDate->format('Y-m-d'),
                 'check_in' => null,
                 'check_out' => null,
                 'status' => 'alpha',
@@ -221,11 +250,10 @@ class GenerateAbsentAttendance extends Command
             // AttendanceObserver tidak men-update attendance_monthly_summaries secara otomatis.
             // Invalidasi cache summary untuk bulan ini agar data Rekapitulasi tidak stale.
             // Summary akan di-rebuild oleh cron recalculate-overtime pada pukul 19:00.
-            $cacheYear  = $date->year;
-            $cacheMonth = $date->month;
             foreach ($insertData as $row) {
+                $rowDate = Carbon::parse($row['attendance_date']);
                 \Illuminate\Support\Facades\Cache::forget(
-                    "attendance_summary:{$row['employee_id']}:{$cacheYear}:{$cacheMonth}"
+                    "attendance_summary:{$row['employee_id']}:{$rowDate->year}:{$rowDate->month}"
                 );
             }
 
@@ -409,11 +437,10 @@ class GenerateAbsentAttendance extends Command
 
             // [FIX 2026-08-08] Sama seperti generate-absent reguler:
             // Attendance::insert() melewati Observer, invalidasi cache summary secara manual.
-            $cacheYear  = $date->year;
-            $cacheMonth = $date->month;
             foreach ($insertData as $row) {
+                $rowDate = Carbon::parse($row['attendance_date']);
                 \Illuminate\Support\Facades\Cache::forget(
-                    "attendance_summary:{$row['employee_id']}:{$cacheYear}:{$cacheMonth}"
+                    "attendance_summary:{$row['employee_id']}:{$rowDate->year}:{$rowDate->month}"
                 );
             }
         }
