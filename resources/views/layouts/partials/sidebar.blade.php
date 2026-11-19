@@ -25,6 +25,7 @@
             </a>
         </li>
 
+
         @if (Auth::user()->role == 'admin' || Auth::user()->role == 'manager' || Auth::user()->role == 'superadmin')
             <!-- Menu untuk Admin, Manager & Superadmin -->
             <!-- Menu Header - Master Data -->
@@ -389,6 +390,13 @@
 
             <li class="menu-header small text-uppercase">
                 <span class="menu-header-text">SDM & Disiplin</span>
+            </li>
+
+            <li class="menu-item {{ request()->routeIs('admin.call-letters.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.call-letters.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-envelope"></i>
+                    <div>Surat Panggilan</div>
+                </a>
             </li>
 
             <!-- Surat Peringatan -->
