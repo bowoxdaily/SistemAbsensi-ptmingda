@@ -75,6 +75,10 @@ Schedule::command('attendance:recalculate-overtime', ['--from' => now()->subDay(
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/overtime-recalculate.log'));
 
+Schedule::command('call-letters:fail-stale-emails')
+    ->hourly()
+    ->withoutOverlapping();
+
 // Schedule: Queue worker — proses jobs (email broadcast, notifikasi, dll)
 // --queue=default : eksplisit hanya proses queue 'default' (alpha notification, broadcast)
 // --sleep=3       : tunggu 3 detik sebelum poll ulang jika queue kosong (kurangi DB polling)

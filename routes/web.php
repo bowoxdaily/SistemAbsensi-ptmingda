@@ -185,8 +185,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/warning-letters', [WarningLetterController::class, 'index'])->name('admin.warning-letters.index');
         Route::get('/admin/warning-letters/export', [WarningLetterController::class, 'export'])->name('admin.warning-letters.export');
         Route::get('/admin/call-letters', [\App\Http\Controllers\Admin\CallLetterController::class, 'index'])->name('admin.call-letters.index');
-        Route::get('/admin/call-letters/{id}/print', [\App\Http\Controllers\Admin\CallLetterController::class, 'print'])->name('admin.call-letters.print');
-        Route::get('/admin/call-letters/{id}/pdf', [\App\Http\Controllers\Admin\CallLetterController::class, 'downloadPdf'])->name('admin.call-letters.pdf');
         Route::get('/admin/call-letters/{id}/document', [\App\Http\Controllers\Admin\CallLetterController::class, 'downloadDocument'])->name('admin.call-letters.document');
 
         // Calendar Agenda & Birthday (View only)

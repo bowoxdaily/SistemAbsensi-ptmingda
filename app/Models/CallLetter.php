@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CallLetter extends Model
 {
-    protected $fillable = ['employee_id', 'letter_number', 'issue_date', 'meeting_at', 'location', 'purpose', 'description', 'document_path', 'issued_by'];
+    protected $fillable = ['employee_id', 'letter_number', 'issue_date', 'meeting_at', 'location', 'purpose', 'description', 'document_path', 'issued_by', 'email_status', 'email_sent_at', 'email_error'];
 
-    protected $casts = ['issue_date' => 'date', 'meeting_at' => 'datetime'];
+    protected $casts = ['issue_date' => 'date', 'meeting_at' => 'datetime', 'email_sent_at' => 'datetime'];
 
     public function employee(): BelongsTo
     {

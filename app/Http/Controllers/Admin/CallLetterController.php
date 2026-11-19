@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\CallLetter;
 use App\Models\Employee;
+use App\Jobs\SendCallLetterEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Symfony\Component\Process\Process;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 
 class CallLetterController extends Controller
 {
@@ -59,7 +61,7 @@ class CallLetterController extends Controller
     {
         $this->authorizeAccess();
         $data = $request->validate([
-            'employee_id' => 'required|exists:employees,id',
+            'employee_id' => ['required', 'exists:employees,id,status,active'],
             'letter_number' => 'required|string|max:100|unique:call_letters,letter_number',
             'issue_date' => 'required|date',
             'meeting_at' => 'required|date',
@@ -68,11 +70,17 @@ class CallLetterController extends Controller
             'description' => 'nullable|string|max:2000',
             'document' => 'required|file|mimes:pdf|max:5120',
         ]);
-        $file = $request->file('document');
-        $path = $file->storeAs(
+        $employee = Employee::findOrFail($data['employee_id']);
+        $email = trim((string) $employee->email);
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return response()->json(['success' => false, 'message' => 'Email karyawan tidak tersedia atau tidak valid.'], 422);
+        }
+
+        $disk = 'r2';
+        $path = $request->file('document')->storeAs(
             'call_letters',
             uniqid('call-letter-', true) . '.pdf',
-            'local'
+            $disk
         );
         if (!$path) {
             return response()->json(['success' => false, 'message' => 'Gagal menyimpan file surat.'], 500);
@@ -80,60 +88,86 @@ class CallLetterController extends Controller
 
         $data['document_path'] = $path;
         $data['issued_by'] = Auth::id();
+        $data['email_status'] = 'pending';
         try {
             $letter = CallLetter::create($data);
         } catch (\Throwable $exception) {
-            Storage::disk('local')->delete($path);
+            Storage::disk($disk)->delete($path);
             throw $exception;
         }
 
-        return response()->json(['success' => true, 'data' => $letter], 201);
+        try {
+            SendCallLetterEmail::dispatch($letter->id);
+        } catch (\Throwable $exception) {
+            $letter->forceFill(['email_status' => 'failed', 'email_error' => mb_substr($exception->getMessage(), 0, 2000)])->save();
+            Log::error('Call letter email could not be queued', ['call_letter_id' => $letter->id, 'error' => $exception->getMessage()]);
+
+            return response()->json(['success' => true, 'message' => 'Surat tersimpan, tetapi email gagal masuk antrean.', 'data' => $letter], 201);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Surat tersimpan. Email sedang diproses di background.', 'data' => $letter], 201);
+    }
+
+    public function detail($id)
+    {
+        $this->authorizeAccess();
+
+        return response()->json(['data' => CallLetter::with('employee')->findOrFail($id)]);
+    }
+
+    public function destroy($id)
+    {
+        $this->authorizeAccess();
+        $letter = CallLetter::findOrFail($id);
+        $path = $letter->document_path;
+
+        if ($path && !Storage::disk('r2')->delete($path)) {
+            return response()->json(['success' => false, 'message' => 'PDF gagal dihapus dari R2. Surat tidak dihapus.'], 500);
+        }
+        $letter->delete();
+
+        return response()->json(['success' => true, 'message' => 'Surat panggilan berhasil dihapus.']);
+    }
+
+    public function sendNotification($id)
+    {
+        $this->authorizeAccess();
+        $letter = CallLetter::with('employee')->findOrFail($id);
+        $email = trim((string) ($letter->employee->email ?? ''));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $letter->forceFill(['email_status' => 'failed', 'email_error' => 'Email karyawan tidak tersedia atau tidak valid.'])->save();
+
+            return response()->json(['success' => false, 'message' => 'Email karyawan tidak tersedia atau tidak valid.'], 422);
+        }
+
+        abort_unless($letter->document_path && Storage::disk('r2')->exists($letter->document_path), 404, 'File surat tidak ditemukan di R2.');
+        if ($letter->email_status === 'pending') {
+            return response()->json(['success' => false, 'message' => 'Email sedang dalam antrean. Tunggu hingga proses selesai.'], 409);
+        }
+        $letter->forceFill(['email_status' => 'pending', 'email_error' => null])->save();
+
+        try {
+            SendCallLetterEmail::dispatch($letter->id);
+        } catch (\Throwable $exception) {
+            $letter->forceFill(['email_status' => 'failed', 'email_error' => mb_substr($exception->getMessage(), 0, 2000)])->save();
+            Log::error('Call letter email could not be queued', ['call_letter_id' => $letter->id, 'error' => $exception->getMessage()]);
+
+            return response()->json(['success' => false, 'message' => 'Email gagal masuk antrean.'], 500);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Email masuk antrean dan akan dikirim ke ' . $letter->employee->name]);
     }
 
     public function downloadDocument($id)
     {
         $this->authorizeAccess();
         $letter = CallLetter::findOrFail($id);
-        abort_unless($letter->document_path && Storage::disk('local')->exists($letter->document_path), 404, 'File surat tidak ditemukan.');
+        $disk = 'r2';
+        abort_unless($letter->document_path && Storage::disk($disk)->exists($letter->document_path), 404, 'File surat tidak ditemukan.');
 
-        return Storage::disk('local')->download($letter->document_path, 'Surat-Resmi-' . $letter->letter_number . '.pdf');
-    }
+        $filename = 'Surat-Resmi-' . preg_replace('/[\\\\\/]+/', '-', $letter->letter_number) . '.pdf';
 
-    public function print($id)
-    {
-        $this->authorizeAccess();
-        return view('admin.call-letters.print', ['letter' => CallLetter::with(['employee.department', 'employee.position', 'issuer'])->findOrFail($id)]);
-    }
-
-    public function downloadPdf($id)
-    {
-        $this->authorizeAccess();
-        $letter = CallLetter::with(['employee.department', 'employee.position', 'issuer'])->findOrFail($id);
-        $url = route('admin.call-letters.print', $letter->id);
-        $browsers = array_filter([
-            env('BROWSER_PATH'),
-            'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-            'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
-            'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-        ]);
-        $browser = collect($browsers)->first(fn ($path) => is_file($path));
-        abort_unless($browser, 503, 'Browser Chrome/Edge untuk membuat PDF tidak tersedia. Gunakan tombol Cetak / Simpan PDF.');
-
-        $directory = storage_path('app/private/call-letters');
-        if (!is_dir($directory)) {
-            mkdir($directory, 0700, true);
-        }
-        $profile = $directory . DIRECTORY_SEPARATOR . 'chrome-' . uniqid();
-        $path = $directory . DIRECTORY_SEPARATOR . 'surat-panggilan-' . $letter->id . '-' . uniqid() . '.pdf';
-        $process = new Process([$browser, '--headless', '--disable-gpu', '--no-sandbox', '--no-first-run', '--user-data-dir=' . $profile, '--print-to-pdf=' . $path, $url]);
-        $process->setTimeout(60);
-        $process->run();
-        if (!$process->isSuccessful() || !is_file($path)) {
-            @unlink($path);
-            abort(500, 'Gagal membuat PDF. Gunakan tombol Cetak / Simpan PDF.');
-        }
-
-        return response()->download($path, 'Surat-Panggilan-' . $letter->letter_number . '.pdf')->deleteFileAfterSend();
+        return Storage::disk($disk)->download($letter->document_path, $filename);
     }
 }
 

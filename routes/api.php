@@ -345,7 +345,10 @@ Route::middleware(['web', 'auth'])->prefix('employee/leave')->group(function () 
 Route::middleware(['web', 'auth', 'viewer'])->prefix('admin/call-letters')->group(function () {
     Route::get('/employees', [\App\Http\Controllers\Admin\CallLetterController::class, 'employees']);
     Route::get('/', [\App\Http\Controllers\Admin\CallLetterController::class, 'list']);
+    Route::get('/{id}', [\App\Http\Controllers\Admin\CallLetterController::class, 'detail']);
     Route::post('/', [\App\Http\Controllers\Admin\CallLetterController::class, 'store']);
+    Route::delete('/{id}', [\App\Http\Controllers\Admin\CallLetterController::class, 'destroy']);
+    Route::post('/{id}/send-notification', [\App\Http\Controllers\Admin\CallLetterController::class, 'sendNotification']);
 });
 
 // Warning Letters Management API (admin, manager, viewer - full access)
