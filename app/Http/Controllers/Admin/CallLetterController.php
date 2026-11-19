@@ -16,7 +16,7 @@ class CallLetterController extends Controller
 {
     private function authorizeAccess(): void
     {
-        abort_unless(Auth::check() && in_array(Auth::user()->role, ['admin', 'manager', 'viewer', 'superadmin'], true), 403);
+        abort_unless(Auth::check() && in_array(Auth::user()->role, ['admin', 'manager', 'viewer'], true), 403);
     }
 
     public function index()
