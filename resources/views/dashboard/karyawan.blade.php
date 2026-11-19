@@ -174,9 +174,9 @@
                                         <tr>
                                             <td>{{ \Carbon\Carbon::parse($absensi->attendance_date)->translatedFormat('d M Y') }}
                                             </td>
-                                            <td>{{ $absensi->check_in ? \Carbon\Carbon::parse($absensi->check_in)->format('H:i') : '-' }}
+                                            <td>{{ $absensi->status !== 'alpha' && $absensi->check_in ? \Carbon\Carbon::parse($absensi->check_in)->format('H:i') : '-' }}
                                             </td>
-                                            <td>{{ $absensi->check_out ? \Carbon\Carbon::parse($absensi->check_out)->format('H:i') : '-' }}
+                                            <td>{{ $absensi->status !== 'alpha' && $absensi->check_out ? \Carbon\Carbon::parse($absensi->check_out)->format('H:i') : '-' }}
                                             </td>
                                             <td>
                                                 @if ($absensi->status == 'hadir')
@@ -252,7 +252,7 @@
                                                 <div class="border rounded p-2 text-center">
                                                     <small class="text-muted d-block">Masuk</small>
                                                     <strong class="text-success">
-                                                        {{ $absensi->check_in ? \Carbon\Carbon::parse($absensi->check_in)->format('H:i') : '-' }}
+                                                        {{ $absensi->status !== 'alpha' && $absensi->check_in ? \Carbon\Carbon::parse($absensi->check_in)->format('H:i') : '-' }}
                                                     </strong>
                                                 </div>
                                             </div>
@@ -260,7 +260,7 @@
                                                 <div class="border rounded p-2 text-center">
                                                     <small class="text-muted d-block">Keluar</small>
                                                     <strong class="text-warning">
-                                                        {{ $absensi->check_out ? \Carbon\Carbon::parse($absensi->check_out)->format('H:i') : '-' }}
+                                                        {{ $absensi->status !== 'alpha' && $absensi->check_out ? \Carbon\Carbon::parse($absensi->check_out)->format('H:i') : '-' }}
                                                     </strong>
                                                 </div>
                                             </div>
