@@ -85,11 +85,17 @@ $(function () {
         const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
         return match ? `${match[3]}-${match[2]}-${match[1]}` : value;
     }
+    const dateTimeFormatter = new Intl.DateTimeFormat('id-ID', {
+        timeZone: @json(config('app.timezone')),
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+    });
     function formatDateTime(value) {
-        const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
-        return match ? `${match[3]}-${match[2]}-${match[1]} ${match[4]}:${match[5]}` : value;
-    }
-    let currentPage = 1;
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value;
+        const parts = Object.fromEntries(dateTimeFormatter.formatToParts(date).map(part => [part.type, part.value]));
+        return `${parts.day}-${parts.month}-${parts.year} ${parts.hour}:${parts.minute}`;
+    }    let currentPage = 1;
     function loadLetters(page = 1) {
         currentPage = page;
         $.get('/api/admin/call-letters', {search: $('#search').val(), page}).done(function (response) {
