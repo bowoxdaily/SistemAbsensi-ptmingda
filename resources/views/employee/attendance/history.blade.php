@@ -282,8 +282,6 @@
                                                             </strong>
                                                         @else
                                                             <strong class="text-muted">-</strong>
-                                                    @else
-                                                        <span class="text-muted small">-</span>
                                                         @endif
                                                     </div>
                                                 </div>

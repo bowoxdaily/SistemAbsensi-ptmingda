@@ -341,6 +341,13 @@ Route::middleware(['web', 'auth'])->prefix('employee/leave')->group(function () 
     Route::delete('/{id}', [\App\Http\Controllers\Employee\LeaveController::class, 'cancel']);
 });
 
+// Manual IR Call Letters API
+Route::middleware(['web', 'auth', 'viewer'])->prefix('admin/call-letters')->group(function () {
+    Route::get('/employees', [\App\Http\Controllers\Admin\CallLetterController::class, 'employees']);
+    Route::get('/', [\App\Http\Controllers\Admin\CallLetterController::class, 'list']);
+    Route::post('/', [\App\Http\Controllers\Admin\CallLetterController::class, 'store']);
+});
+
 // Warning Letters Management API (admin, manager, viewer - full access)
 Route::middleware(['web', 'auth', 'viewer'])->prefix('admin/warning-letters')->group(function () {
     Route::get('/', [WarningLetterController::class, 'list']);
