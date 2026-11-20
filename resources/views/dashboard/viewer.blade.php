@@ -86,7 +86,7 @@
                     </div>
                 </div>
                 <div class="col-6 mb-4">
-                    <div class="card">
+                    <a href="{{ route('admin.karyawan.status-report.export', ['exclude_active' => 1]) }}" class="card text-decoration-none" title="Export data karyawan selain aktif">
                         <div class="card-body">
                             <div class="card-title d-flex align-items-start justify-content-between">
                                 <div class="avatar flex-shrink-0">
@@ -97,7 +97,7 @@
                             <h3 class="card-title text-nowrap mb-1">{{ $totalResign }}</h3>
                             <small class="text-danger fw-semibold">Resign</small>
                         </div>
-                    </div>
+                    </a>
                 </div>
                 <div class="col-6 mb-4">
                     <div class="card h-100">

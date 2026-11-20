@@ -25,6 +25,7 @@ class StatusKaryawanExport implements FromCollection, WithHeadings, WithMapping,
     {
         $search      = $this->filters['search'] ?? null;
         $status      = $this->filters['status'] ?? null;
+        $excludeActive = $this->filters['exclude_active'] ?? false;
         $deptId      = $this->filters['department_id'] ?? null;
         $joinFrom    = $this->filters['join_from'] ?? null;
         $joinTo      = $this->filters['join_to'] ?? null;
@@ -36,6 +37,7 @@ class StatusKaryawanExport implements FromCollection, WithHeadings, WithMapping,
                    ->orWhere('nik', 'like', "%{$search}%");
             }))
             ->when($status, fn($q) => $q->where('status', $status))
+            ->when($excludeActive, fn($q) => $q->where('status', '!=', 'active'))
             ->when($deptId, fn($q) => $q->where('department_id', $deptId))
             ->when($joinFrom, fn($q) => $q->whereDate('join_date', '>=', $joinFrom))
             ->when($joinTo, fn($q) => $q->whereDate('join_date', '<=', $joinTo))

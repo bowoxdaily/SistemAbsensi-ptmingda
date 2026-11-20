@@ -822,6 +822,7 @@ class KaryawanController extends Controller
         $filters = [
             'search'      => $request->get('search'),
             'status'      => $request->get('status'),
+            'exclude_active' => $request->boolean('exclude_active'),
             'department_id' => $request->get('department_id'),
             'join_from'   => $request->get('join_from'),
             'join_to'     => $request->get('join_to'),
